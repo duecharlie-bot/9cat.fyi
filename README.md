@@ -1,4 +1,4 @@
-# NineCat
+# nineCat
 
 A fantasy basketball draft tool for 9-cat leagues.
 
