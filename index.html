@@ -32,8 +32,14 @@
   --onclock-bg:var(--onclock-bg); --onclock-fg:#FFFFFF; --onclock-k:var(--onclock-k);
   --banner-bg:#1C2E24; --banner-fg:#A6DEBC; --banner-bd:#2E4B39;
   --banner-btn:#2E4B39; --banner-btnfg:#D6F0E2;
-  --mask:var(--mask);
+  --mask:rgba(6,9,13,.72);
   --scroll:#3E4C5C; --scroll-hi:#4E5F72;
+  --clock-a:#243140;
+  --clock-b:#28384A;
+  --clock-d:#223145;
+  --toolbar-grad1:#1F2936;
+  --toolbar-grad2:#171D26;
+  --control-bg:#1C2430;
   --r:3px;
 }
 body[data-theme="court"]{
@@ -62,6 +68,12 @@ body[data-theme="court"]{
   --banner-btn:#1C7644; --banner-btnfg:#FFFFFF;
   --mask:rgba(30,40,52,.55);
   --scroll:#C4CEDA; --scroll-hi:#AAB7C6;
+  --clock-a:#EEF2F8;
+  --clock-b:#E6EDF6;
+  --clock-d:#E9F1F7;
+  --toolbar-grad1:#F7FAFD;
+  --toolbar-grad2:#EEF3F8;
+  --control-bg:#FFFFFF;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -77,24 +89,64 @@ body{
 .disp{font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
 
 /* ---------- shell ---------- */
-.shell{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:1px;background:var(--line);height:100vh}
+.shell{display:grid;grid-template-columns:minmax(0,1.35fr) 5px minmax(0,1fr);background:var(--ink);height:100vh}
+.grip{
+  background:var(--line);cursor:col-resize;position:relative
+}
+.grip:hover,.grip.drag{background:var(--wood)}
+.grip::after{
+  content:"";position:absolute;inset:0 -4px;   /* easier to grab than 5px */
+}
 .col{background:var(--ink);overflow-y:auto;min-width:0}
 
 /* ---------- clock bar ---------- */
 .clock{
-  display:flex;align-items:stretch;gap:1px;background:var(--line);
-  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30
+  display:flex;align-items:stretch;gap:1px;
+  background:linear-gradient(90deg,var(--line-soft),var(--line));
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;
+  box-shadow:0 1px 0 rgba(0,0,0,.16)
 }
-.clock-cell{background:var(--panel);padding:8px 14px;display:flex;flex-direction:column;justify-content:center}
+.clock-cell{
+  background:linear-gradient(180deg,var(--panel-2) 0%,var(--panel) 100%);
+  padding:8px 14px;display:flex;flex-direction:column;justify-content:center
+}
+.clock .clock-cell:nth-of-type(1){background:linear-gradient(180deg,var(--clock-a) 0%,var(--panel) 100%)}
+.clock .clock-cell:nth-of-type(2){background:linear-gradient(180deg,var(--clock-b) 0%,var(--panel) 100%)}
+.clock .clock-cell:nth-of-type(4){background:linear-gradient(180deg,var(--clock-d) 0%,var(--panel) 100%)}
 .clock-cell .k{font-size:9px;letter-spacing:.14em;color:var(--dimmer);text-transform:uppercase}
-.clock-cell .v{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1.1}
-.clock-cell.onclock{background:var(--wood-lo);flex:1}
+.clock-cell .v{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1.1;color:var(--chalk)}
+.clock-cell.onclock{
+  background:linear-gradient(180deg,rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 24%), var(--raise);
+  flex:1;
+  box-shadow:inset 3px 0 0 var(--wood)
+}
 .clock-cell.onclock .k{color:var(--onclock-k)}
-.clock-cell.onclock .v{color:var(--onclock-fg)}
+.clock-cell.onclock .v{color:var(--chalk)}
 .clock-cell.you{background:var(--you-bg)}
 .clock-cell.you .v{color:var(--ok)}
-.clock-btn{background:var(--panel);border:0;color:var(--dim);padding:0 12px;cursor:pointer;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-family:"Saira Condensed",sans-serif;font-weight:700}
+.clock-btn{
+  background:linear-gradient(180deg,var(--panel-2) 0%,var(--panel) 100%);
+  border:0;color:var(--dim);padding:0 12px;cursor:pointer;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-family:"Saira Condensed",sans-serif;font-weight:700
+}
 .clock-btn:hover{background:var(--panel-2);color:var(--chalk)}
+#undo{
+  background:linear-gradient(
+    180deg,
+    color-mix(in srgb,var(--hot) 62%,var(--panel-2)) 0%,
+    color-mix(in srgb,var(--hot) 45%,var(--panel)) 100%
+  );
+  color:#fff;
+  box-shadow:inset 3px 0 0 var(--hot);
+  text-shadow:0 1px 1px rgba(0,0,0,.28)
+}
+#undo:hover{
+  background:linear-gradient(
+    180deg,
+    color-mix(in srgb,var(--hot) 76%,var(--panel-2)) 0%,
+    color-mix(in srgb,var(--hot) 58%,var(--panel)) 100%
+  );
+  color:#fff
+}
 
 /* ---------- section head ---------- */
 .head{
@@ -140,19 +192,33 @@ body{
 .ledger-key{font-size:11px;color:var(--dimmer);padding:8px 16px 0;line-height:1.5}
 
 /* ---------- search + board ---------- */
-.searchwrap{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;position:sticky;top:0;background:var(--ink);z-index:20}
+.searchwrap{
+  padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;
+  position:sticky;top:0;
+  background:linear-gradient(180deg,var(--toolbar-grad1) 0%,var(--toolbar-grad2) 100%);
+  z-index:20
+}
 input[type=text],input[type=number],select{
-  background:var(--panel);border:1px solid var(--line);color:var(--chalk);
-  padding:7px 10px;border-radius:var(--r);font-family:inherit;font-size:13px;width:100%
+  background:var(--control-bg);border:1px solid var(--line);color:var(--chalk);
+  padding:7px 10px;border-radius:var(--r);font-family:inherit;font-size:13px;width:100%;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03)
 }
 input::placeholder{color:var(--dimmer)}
-.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;flex:0 0 auto}
-.seg button{background:var(--panel);border:0;color:var(--dim);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:0 10px;cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700}
+.seg{
+  display:flex;border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;flex:0 0 auto;background:var(--panel)
+}
+.seg button{
+  background:transparent;border:0;color:var(--dim);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;padding:0 10px;cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700
+}
+.seg button:hover{background:var(--panel-2);color:var(--chalk)}
 .seg button.on{background:var(--wood);color:var(--wood-text)}
 
 table{width:100%;border-collapse:collapse}
 thead th{
-  position:sticky;top:0;background:var(--ink);z-index:10;
+  /* offset measured at runtime — the search bar above is sticky too */
+  position:sticky;top:var(--stickytop,56px);background:var(--ink);z-index:10;
   font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
   font-weight:600;text-align:right;padding:9px 6px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap
 }
@@ -160,12 +226,24 @@ thead th.l{text-align:left}
 thead th:hover{color:var(--chalk)}
 tbody td{padding:8px 6px;border-bottom:1px solid var(--line-soft);font-size:13px;text-align:right;white-space:nowrap}
 tbody td.l{text-align:left}
+/*  With a resizable split the board can get narrow enough to scroll sideways,
+    which used to carry the player's name off screen — leaving rows of numbers
+    with nothing to identify them. Pin the name column instead.              */
+tbody tr{background:var(--ink)}
+thead th.l,tbody td.l{position:sticky;left:0;z-index:12;background:inherit}
+thead th.l{background:var(--ink);z-index:14}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--panel)}
 /*  Row 1 is already identifiable by sitting at the top of a Fit-sorted board;
     a permanent gold trim just competes with the selection highlight.        */
 tbody tr.top{}
-.pname{font-weight:600;font-size:14px;letter-spacing:.01em}
+.pname{
+  position:relative;
+  font-weight:600;
+  font-size:14px;
+  letter-spacing:.01em;
+  padding-right:112px;
+}
 .ppos{color:var(--dimmer);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
 .fit{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px}
 .delta{font-size:10px;color:var(--dimmer)}
@@ -183,9 +261,18 @@ tbody tr.top{}
 .px:hover{color:var(--hot)}
 
 /* ---------- modal ---------- */
-.mask{position:fixed;inset:0;background:var(--mask);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+.mask{
+  position:fixed;inset:0;background:var(--mask);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:20px;z-index:100
+}
 .mask.on{display:flex}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:6px;width:100%;max-width:620px;max-height:86vh;overflow-y:auto;padding:20px}
+/*  Raised off the page rather than the same flat panel as everything behind it,
+    so a dialog reads as a dialog even at a glance.                          */
+.modal{
+  background:var(--panel-2);border:1px solid var(--line);border-top:2px solid var(--wood);
+  border-radius:6px;width:100%;max-width:620px;max-height:86vh;overflow-y:auto;padding:22px;
+  box-shadow:0 24px 64px rgba(0,0,0,.5)
+}
 .modal h3{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
 .modal p{font-size:13px;color:var(--dim);margin-bottom:12px}
 textarea{
@@ -213,15 +300,22 @@ thead th.on .arw{opacity:1}
 /* placeholder banner */
 .banner{
   background:var(--banner-bg);border-bottom:1px solid var(--banner-bd);color:var(--banner-fg);
-  padding:8px 16px;font-size:12px;display:flex;justify-content:space-between;
-  align-items:center;gap:12px
+  padding:8px 16px;font-size:12px;display:flex;
+  align-items:center;gap:8px
 }
+.banner > span{flex:1;min-width:0}
 .banner.hide{display:none}
-.banner button.x{background:none;color:var(--banner-fg);font-size:17px;line-height:1;padding:0 4px}
+.banner button.x{
+  background:none;color:var(--banner-fg);font-size:17px;line-height:1;padding:0 4px;
+  margin-left:2px
+}
 .banner button.x:hover{color:#fff}
-.banner button{background:var(--banner-btn);border:0;color:var(--banner-btnfg);padding:4px 10px;border-radius:var(--r);
+.banner button{
+  background:var(--banner-btn);border:0;color:var(--banner-btnfg);padding:4px 10px;border-radius:var(--r);
   font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;
-  text-transform:uppercase;cursor:pointer;flex:0 0 auto}
+  text-transform:uppercase;cursor:pointer;flex:0 0 auto
+}
+#b_banner2{margin-left:auto}
 
 /* gp slider */
 .gpw{display:grid;grid-template-columns:140px 1fr 104px 46px;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--dimmer)}
@@ -309,6 +403,116 @@ thead th.on .arw{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 
+/* ---------- roster gap notice ---------- */
+.rgap{
+  position:relative;padding:9px 16px;font-size:12px;color:var(--dim);line-height:1.5;
+  border-bottom:1px solid var(--line-soft);border-left:2px solid var(--dimmer);background:var(--raise)
+}
+.rgap.warm{border-left-color:var(--wood)}
+.rgap.hot{border-left-color:var(--hot);background:var(--neg-bg);color:var(--neg-fg)}
+.rgap .dismiss{top:6px;right:8px}
+
+/* ---------- freshly logged pick ---------- */
+@keyframes pickflash{
+  0%{background:var(--wood);color:var(--wood-text)}
+  100%{background:transparent}
+}
+.slot.flash{animation:pickflash 1.6s ease-out}
+@media (prefers-reduced-motion:reduce){ .slot.flash{animation:none;background:var(--raise)} }
+
+/* ---------- help table ---------- */
+/*  The board sets `tbody td { text-align:right; white-space:nowrap }` globally,
+    and browsers wrap loose <tr>s in an implicit <tbody> — so this table picked
+    both up, right-aligning the prose and forcing it onto one line.          */
+.helptbl{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:12px;
+  margin:10px 0 6px;
+  table-layout:fixed
+}
+.helptbl td{
+  padding:10px 10px;
+  border-bottom:1px solid var(--line-soft);
+  color:var(--dim);
+  vertical-align:top;
+  text-align:left;
+  white-space:normal;
+  line-height:1.55
+}
+.helptbl td:first-child{
+  width:76px;
+  padding-left:10px;
+  padding-right:16px;
+  color:var(--wood);
+  font-family:"Saira Condensed",sans-serif;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase
+}
+.helptbl td:last-child{
+  padding-right:4px;
+}
+.helptbl b{color:var(--chalk)}
+
+/* ---------- menu + tuning ---------- */
+/*  The menu is absolutely positioned, so it needs a positioned ancestor or it
+    anchors to the viewport and lands in the far corner of the other panel. */
+.topwrap{position:relative;z-index:60}
+.menu{
+  position:absolute;right:8px;top:100%;z-index:60;display:none;flex-direction:column;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 8px 24px rgba(0,0,0,.35);min-width:190px;overflow:hidden
+}
+.menu.on{display:flex}
+.menu button{
+  background:none;border:0;color:var(--dim);text-align:left;padding:10px 14px;cursor:pointer;
+  font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:12px;letter-spacing:.08em;
+  text-transform:uppercase;border-bottom:1px solid var(--line-soft)
+}
+.menu button:last-child{border-bottom:0}
+.menu button:hover{background:var(--panel-2);color:var(--chalk)}
+.tuning{
+  display:block;width:100%;
+  background:linear-gradient(
+    90deg,
+    color-mix(in srgb,var(--wood) 18%,var(--panel)) 0%,
+    color-mix(in srgb,var(--wood) 8%,var(--panel)) 34%,
+    var(--panel) 100%
+  );
+  border:0;
+  border-top:1px solid color-mix(in srgb,var(--wood) 42%,var(--line));
+  border-bottom:1px solid color-mix(in srgb,var(--wood) 28%,var(--line));
+  box-shadow:inset 3px 0 0 var(--wood);
+  color:var(--wood-hi);
+  text-align:left;
+  padding:7px 16px;
+  cursor:pointer;
+  font-family:"Saira Condensed",sans-serif;
+  font-weight:700;
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase
+}
+.tuning:hover{
+  background:linear-gradient(
+    90deg,
+    color-mix(in srgb,var(--wood) 24%,var(--panel-2)) 0%,
+    color-mix(in srgb,var(--wood) 10%,var(--panel)) 38%,
+    var(--panel) 100%
+  );
+  color:var(--chalk)
+}
+#tuning.hide{display:none}
+
+/* ---------- board footnote ---------- */
+.boardfoot{
+  padding:10px 16px 14px;font-size:11px;color:var(--dimmer);line-height:1.6;
+  border-top:1px solid var(--line-soft)
+}
+.boardfoot b{color:var(--dim);font-weight:600}
+
 /* ---------- first-run intro ---------- */
 .intro{
   margin:0 0 16px;padding:11px 13px;border-left:2px solid var(--wood);background:var(--raise);
@@ -347,9 +551,22 @@ thead th.on .arw{opacity:1}
 
 /* ---------- selected row ---------- */
 .again{
-  margin-left:8px;font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:9px;
-  letter-spacing:.12em;text-transform:uppercase;color:var(--wood);
-  border:1px solid var(--wood-lo,var(--line));border-radius:var(--r);padding:1px 5px;vertical-align:middle
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  margin-left:0;
+  white-space:nowrap;
+  font-family:"Saira Condensed",sans-serif;
+  font-weight:700;
+  font-size:9px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--wood);
+  border:1px solid var(--wood-lo,var(--line));
+  border-radius:var(--r);
+  padding:1px 5px;
+  vertical-align:middle
 }
 tbody tr.sel{background:var(--pos-bg);box-shadow:inset 3px 0 0 var(--wood)}
 tbody tr.sel .pname{color:var(--chalk)}
@@ -416,12 +633,23 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 
   <!-- ============ LEFT: BOARD ============ -->
   <div class="col">
+    <div class="topwrap">
     <div class="clock" id="clock"></div>
+    <div class="menu" id="menu">
+      <button id="b_set">League setup</button>
+      <button id="b_imp">Load projections</button>
+      <button id="b_help">Instructions</button>
+      <button id="theme">Light / dark mode</button>
+      <button id="reset" style="color:var(--hot)">Reset draft</button>
+    </div>
+    </div>
 
     <div class="banner" id="banner">
       <span>Loading…</span>
     </div>
 
+    <button class="tuning" id="tuningbtn">Tuning <span id="tuningcaret">▸</span></button>
+    <div id="tuning" class="hide">
     <div class="gpw">
       <span id="gpwlab">Games Played Weight</span>
       <input type="range" id="gpw" min="0" max="100" value="50">
@@ -435,9 +663,10 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       <span class="mono" id="shapev" style="text-align:right">50%</span>
       <button class="tinybtn" id="shapeauto" title="Reset to a balanced 50%">50%</button>
     </div>
+    </div>
 
     <div class="searchwrap">
-      <input type="text" id="q" placeholder="Search a player · Enter to inspect, Enter again to draft  ( / to focus )" autocomplete="off">
+      <input type="text" id="q" placeholder="Search a player" autocomplete="off">
       <select id="mode" style="width:auto;flex:0 0 auto">
         <option value="z">Z-scores</option>
         <option value="proj">Projected per game</option>
@@ -450,10 +679,10 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       <thead>
         <tr>
           <th class="l" data-s="name">Player<span class="arw">▾</span></th>
-          <th data-s="fit">Fit<span class="arw">▾</span></th>
-          <th data-s="rank" title="Your projection source's own rank. It can disagree with VAL: this Hashtag export was built with turnovers weighted x0.25, while VAL counts all nine categories equally.">Rk<span class="arw">▾</span></th>
+          <th data-s="fit" title="Total, adjusted for your roster: categories you can still swing count more, ones already won or lost count less, and players who won't survive to your next pick count more. This is the column to draft from.">Fit<span class="arw">▾</span></th>
+          <th data-s="rank" title="Rank by Total across the whole pool — our own ordering, not the projection source&#39;s. Compare with ADP to see who the market is under- or over-drafting.">#<span class="arw">▾</span></th>
           <th data-s="adp" title="Average draft position — where the market is taking him, regardless of what the projections say.">ADP<span class="arw">▾</span></th>
-          <th data-s="total">Val<span class="arw">▾</span></th>
+          <th data-s="total" title="Add up the nine category numbers to the right and you get this. It's the player in a vacuum — total production, before anything about your roster. Switch the view to Z-scores to see the columns add up.">Total<span class="arw">▾</span></th>
           <th data-s="fg">FG%<span class="arw">▾</span></th>
           <th data-s="ft">FT%<span class="arw">▾</span></th>
           <th data-s="tpm">3PM<span class="arw">▾</span></th>
@@ -467,7 +696,14 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       </thead>
       <tbody id="board"></tbody>
     </table>
+    <div class="boardfoot">
+      <b>Total</b> is the nine category numbers added up — the player on his own.
+      <b>Fit</b> is that same number weighted for your roster and for who won't last until your next pick.
+      When they disagree, Fit is the one to draft from.
+    </div>
   </div>
+
+  <div class="grip" id="grip" title="Drag to resize · double-click to reset"></div>
 
   <!-- ============ RIGHT: BRAIN ============ -->
   <div class="col">
@@ -491,6 +727,7 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
     <div id="suggest"></div>
 
     <div class="head"><h2 id="rosterhead">My Roster</h2><span class="note" id="rostercount"></span></div>
+    <div class="rgap" id="rgap" style="display:none"></div>
     <div class="roster" id="roster"></div>
 
     <div class="head"><h2>Pick Log</h2><span class="note" id="logcount"></span></div>
@@ -503,8 +740,6 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
   <div class="modal">
     <h3>League setup</h3>
     <div id="s_intro" class="intro" style="display:none">
-      A draft board for 9-category fantasy basketball. It ranks who's left by how much they'd
-      help <b>your</b> roster, not by a generic list.
       <b>Set your league size and draft slot first</b> — they decide the pick order, which
       everything else is measured against.
     </div>
@@ -531,6 +766,49 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
     </div>
     <button class="btn primary" id="s_save">Save setup</button>
     <button class="btn" id="s_close">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ HELP MODAL ============ -->
+<div class="mask" id="helpmask">
+  <div class="modal">
+    <h3>Instructions</h3>
+    <p style="font-size:11px;color:var(--dimmer);margin-top:-2px">
+      A draft board for 9-category fantasy basketball. It ranks who's left by how much they'd help
+      <b style="color:var(--chalk)">your</b> roster, not by a generic list.
+    </p>
+
+    <ol class="steps">
+      <li><b>Set your league up</b> — Settings → League setup.
+        <em>Teams and draft slot decide the pick order everything else is measured against.</em></li>
+      <li><b>Load projections</b> — Settings → Load projections.
+        <em>We have 30 players out-of-the-box, see Load Projections for instructions.</em></li>
+      <li><b>Log every pick, not just yours.</b>
+        <em>Click a player to inspect him, click again to draft. Make sure to log Opponents' picks.</em></li>
+    </ol>
+
+    <h3 style="margin-top:18px">Reading the board</h3>
+    <table class="helptbl">
+      <tr><td>Fit</td><td>Value adjusted for your roster and for who'll be gone by your next turn. <b>We recommend you draft from this.</b></td></tr>
+      <tr><td>#</td><td>Rank by Total across the whole pool.</td></tr>
+      <tr><td>ADP</td><td>Where the market takes him. A player whose ADP is far below his # could be going later than he should.</td></tr>
+      <tr><td>Total</td><td>The nine category Z-Score added up — the player on his own.</td></tr>
+    </table>
+
+    <h3 style="margin-top:18px">The panels on the right</h3>
+    <p><b style="color:var(--chalk)">Category Ledger</b> — Where your team stands in each category, and
+    the rank among drafted teams. Hover any player to see what he'd do to every line. Switch the
+    dropdown to another team to compare head to head.</p>
+    <p><b style="color:var(--chalk)">Punt Radar</b> — Categories you're losing badly enough that
+    chasing them costs more than conceding. Suggestions only; nothing applies until you click.</p>
+    <p style="color:var(--dimmer);font-size:11px">
+      Everything saves automatically — refresh mid-draft and it picks up where you left off.
+      Tuning sliders are under <span class="mono">Tuning</span> at the top.
+    </p>
+
+    <div style="margin-top:14px">
+      <button class="btn primary" id="help_close">Got it</button>
+    </div>
   </div>
 </div>
 
@@ -1293,6 +1571,8 @@ let sortKey = "fit", sortDir = -1;
 let posFilter = "ALL";
 let hoverId = null;
 let selectedId = null;   // click once to inspect, again to draft
+let boardIds = [];       // ids in the order currently rendered, for arrow keys
+let flashPick = null;    // overall index of the pick to highlight briefly
 let ledgerTeam = null;   // null = my team
 let ledgerMode = "z";    // "z" or "tot"
 
@@ -1656,7 +1936,14 @@ function scorePool(list, opts){
   });
 
   if(field === "z"){
-    // Fallback ADP = overall value rank
+    /*  Rank by our own Total, fixed over the whole pool so a number never shifts
+      as others get drafted. Showing the source's ranking here invited an obvious
+      question with an unsatisfying answer — why is Shai 3rd at 11.3 when
+      Wembanyama is 2nd at 9.9? Because that ranking used different category
+      weights than the ones on screen.                                        */
+  [...list].sort((a,b)=>b.total-a.total).forEach((p,i)=>{ p.valRank = i+1; });
+
+  // Fallback ADP = overall value rank
     const byVal = [...list].sort((a,b)=>b.total-a.total);
     byVal.forEach((p,i)=>{ if(p.adp === null) p.adp = i+1; });
   }
@@ -1917,10 +2204,8 @@ function renderClock(state){
 
   $("#clock").innerHTML = done
     ? `<div class="clock-cell onclock"><span class="k">Draft</span><span class="v">Complete</span></div>
-       <button class="clock-btn" id="b_set">Setup</button><button class="clock-btn" id="b_imp">Projections</button>
        <button class="clock-btn" id="undo">↶ Undo Pick</button>
-       <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
-       <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D2 Dark Mode" : "\u25D3 Light Mode"}</button>`
+       <button class="clock-btn" id="menubtn" title="Menu">☰</button>`
     : `
     <div class="clock-cell"><span class="k">Pick</span><span class="v">${overall+1}</span></div>
     <div class="clock-cell"><span class="k">Round</span><span class="v">${rd}.${String(inRd).padStart(2,"0")}</span></div>
@@ -1929,31 +2214,37 @@ function renderClock(state){
       <span class="v" style="${!mine && teamName(onIdx).length>9 ? "font-size:15px" : ""}">${mine ? "YOUR PICK" : teamName(onIdx)}</span>
     </div>
     <div class="clock-cell"><span class="k">${nLbl}</span><span class="v" style="${until===0?"font-size:15px":""}">${untilText}</span></div>
-    <button class="clock-btn" id="b_set">Setup</button>
-    <button class="clock-btn" id="b_imp">Projections</button>
     <button class="clock-btn" id="undo">↶ Undo Pick</button>
-    <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
-    <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D2 Dark Mode" : "\u25D3 Light Mode"}</button>`;
+    <button class="clock-btn" id="menubtn" title="Menu">☰</button>`;
 
-  $("#theme").onclick = ()=>{
-    document.body.dataset.theme = document.body.dataset.theme === "court" ? "arena" : "court";
-    render();
-  };
-  /*  The clock is rebuilt on every render, so its buttons must be rewired here —
-      a one-time binding at boot would be dropped the first time a pick landed. */
+  /*  Only the clock's own buttons need rewiring here — it's rebuilt every render,
+      so a one-time binding would be dropped the first time a pick landed. The
+      menu lives outside the clock and is wired once at boot.                 */
   const ub = $("#undo");
   ub.onclick = undo;
   ub.disabled = !picks.length;
-  ub.style.opacity = picks.length ? 1 : .35;
+  ub.style.opacity = picks.length ? 1 : .55;
   ub.title = picks.length ? `Undo pick ${picks.length} (${(picks[picks.length-1]&&(pool.find(x=>x.id===picks[picks.length-1].playerId)||{}).name) || ""})` : "Nothing to undo";
-  $("#b_set").onclick = openSet;
-  $("#b_imp").onclick = ()=> $("#impmask").classList.add("on");
-  $("#reset").onclick = ()=>{
-    if(!picks.length || confirm(`Clear all ${picks.length} logged picks? Your loaded projections stay.`)){
-      picks = []; locks = {}; hoverId = null; selectedId = null; ledgerTeam = null; clearState(); $("#q").value = ""; render();
-    }
-  };
+  $("#menubtn").onclick = e=>{ e.stopPropagation(); $("#menu").classList.toggle("on"); };
 }
+
+// Menu actions — bound once.
+function closeMenu(){ $("#menu").classList.remove("on"); }
+document.addEventListener("click", closeMenu);
+$("#menu").addEventListener("click", e=> e.stopPropagation());
+$("#b_set").onclick  = ()=>{ closeMenu(); openSet(); };
+$("#b_imp").onclick  = ()=>{ closeMenu(); $("#impmask").classList.add("on"); };
+$("#b_help").onclick = ()=>{ closeMenu(); $("#helpmask").classList.add("on"); };
+$("#theme").onclick  = ()=>{
+  document.body.dataset.theme = document.body.dataset.theme === "court" ? "arena" : "court";
+  closeMenu(); render();
+};
+$("#reset").onclick = ()=>{
+  closeMenu();
+  if(!picks.length || confirm(`Clear all ${picks.length} logged picks? Your loaded projections stay.`)){
+    picks = []; locks = {}; hoverId = null; selectedId = null; ledgerTeam = null; clearState(); $("#q").value = ""; render();
+  }
+};
 
 /*  Player photo, with a monogram underneath.
 
@@ -2088,20 +2379,6 @@ function renderRec(state){
   const cost = bestVal.total - best.total;
   const differs = mine && bestVal.id !== best.id && cost > 0.4;
 
-  const g = state.gaps;
-  const gapSig = g.missing.join(",");
-  const gapNote = (!g.missing.length || g.left <= 0 || ui.gapHidden === gapSig) ? "" : `
-    <div class="gapnote ${g.urgency > 0.7 ? "hot" : g.urgency > 0.34 ? "warm" : ""}">
-      <div class="k">Roster check</div>
-      <button class="dismiss" id="gapx" title="Dismiss">&times;</button>
-      No ${g.missing.join(", ")} yet · ${g.left} pick${g.left===1?"":"s"} left.
-      ${g.urgency > 0.7
-        ? `You're nearly out of room — fill ${g.missing.length > 1 ? "these" : "it"} now, even at a value loss.`
-        : g.urgency > 0.34
-          ? `Worth covering in the next couple of rounds.`
-          : `No rush. Positional need doesn't affect any score below — take the better player.`}
-    </div>`;
-
   /*  The panel follows your selection, falling back to the recommendation.
       Clicking a row used to draft instantly, which meant you could never look
       at anyone but the top name — and one stray click cost you a pick.       */
@@ -2118,14 +2395,14 @@ function renderRec(state){
   const compare = !isRec
     ? `<div class="tradeoff">
          <div class="k">${fitGap > 0.05 ? `Board rates ${best.name.split(" ").slice(-1)[0]} higher by ${fitGap.toFixed(1)}` : `Equal to the board's pick`}</div>
-         Recommendation is <b>${best.name}</b> (fit ${isFinite(fg1)?fg1.toFixed(1):"—"}${best.srcRank?`, rank #${best.srcRank}`:``})
+         Recommendation is <b>${best.name}</b> (fit ${isFinite(fg1)?fg1.toFixed(1):"—"}${best.valRank?`, #${best.valRank}`:``})
          versus <b>${shown.name}</b> at ${isFinite(fg2)?fg2.toFixed(1):"—"}.
          <button class="mini" id="r_back">Back to ${best.name.split(" ").slice(-1)[0]}</button>
        </div>`
     : (differs ? `
       <div class="tradeoff">
         <div class="k">Costs you ${cost.toFixed(1)} of raw value</div>
-        Highest value on the board is <b>${bestVal.name}</b> (${bestVal.total.toFixed(1)}${bestVal.srcRank?`, rank #${bestVal.srcRank}`:``}).
+        Highest value on the board is <b>${bestVal.name}</b> (${bestVal.total.toFixed(1)}${bestVal.valRank?`, #${bestVal.valRank}`:``}).
         ${conviction < 0.45
           ? `Category shaping is only ${Math.round(conviction*100)}% engaged this early, so if the gap looks big, trust the value.`
           : `The board prefers ${best.name.split(" ").slice(-1)[0]} on category fit${best.scarce - bestVal.scarce > 0.3 ? ` and availability` : ``}.`}
@@ -2138,7 +2415,7 @@ function renderRec(state){
     <div class="rec-top">
       <div class="rec-info">
         <div class="rec-name">${shown.name}</div>
-        <div class="rec-sub">${shown.pos.join(" / ")} · ${shown.team}${shown.srcRank?` · Projected Rank #${shown.srcRank}`:``} · <span title="Sum of z-scores across all nine categories — total production added, before any adjustment for your roster.">9-cat Value ${shown.total.toFixed(1)}</span></div>
+        <div class="rec-sub">${shown.pos.join(" / ")} · ${shown.team}${shown.valRank?` · Value Rank #${shown.valRank}`:``} · <span title="Add up the nine category numbers to the right and you get this. It's the player in a vacuum — total production, before anything about your roster. Switch the view to Z-scores to see the columns add up.">Total ${shown.total.toFixed(1)}</span></div>
         <div class="rec-why">
           ${shownContrib.map(x=>`<span class="chip up">${x.c.label} +${shown.z[x.c.k].toFixed(1)}</span>`).join("")}
           ${shown.scarce > 0.3 ? `<span class="chip risk">Gone before your next turn</span>` : ``}
@@ -2152,13 +2429,11 @@ function renderRec(state){
       <button class="btn primary" id="r_draft">Draft ${shown.name.split(" ").slice(-1)[0]} to ${mine ? "my team" : teamName(onIdx)}</button>
       ${!isRec ? `<button class="btn" id="r_clear">Clear</button>` : ``}
     </div>
-    ${gapNote}`;
+    `;
   $("#r_draft").onclick = ()=> draft(shown.id);
   const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; render(); };
   const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; render(); };
   const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; render(); };
-  const gx = $("#gapx");
-  if(gx) gx.onclick = ()=>{ ui.gapHidden = gapSig; render(); };
 }
 
 /*  Every team's roster in a single pass. Cheap enough to recompute each render:
@@ -2397,7 +2672,7 @@ function fitFor(p){
 function sortVal(p, key, mode){
   if(key === "fit")   return fitFor(p);
   if(key === "total") return p.total;
-  if(key === "rank")  return (p.srcRank ?? p.adp) == null ? -Infinity : -(p.srcRank ?? p.adp);
+  if(key === "rank")  return p.valRank == null ? -Infinity : -p.valRank;
   if(key === "adp")   return p.adp == null ? -Infinity : -p.adp;   // earlier ADP sorts first
   if(mode === "z")    return p.z[key];
   const src = mode === "last" ? p.last : p;
@@ -2414,7 +2689,12 @@ function renderBoard(state){
   const mode = $("#mode").value;
   let list = state.avail;
   if(posFilter !== "ALL") list = list.filter(p=>p.pos.includes(posFilter));
-  if(q) list = list.filter(p=>fold(p.name).includes(q));
+  /*  Match team and position as well as name — "DEN" or "C" is often what you
+      actually want mid-draft when you're hunting a specific need.           */
+  if(q) list = list.filter(p =>
+    fold(p.name).includes(q) ||
+    fold(p.team).includes(q) ||
+    p.pos.some(x => fold(x) === q));
 
   const key = sortKey;
   list = [...list].sort((a,b)=>{
@@ -2429,8 +2709,9 @@ function renderBoard(state){
     return (bv - av) * (sortDir === -1 ? 1 : -1);
   }).slice(0, 80);
 
+  boardIds = list.map(p=>p.id);
   $("#board").innerHTML = list.map((p,i)=>{
-    const rk = p.srcRank ?? null;
+    const rk = p.valRank ?? null;
     /*  Only warn about availability for players you're plausibly taking. A
         "gone soon" dot on someone ranked 40th is noise — it's true (the market
         rates him higher than the projections do) but it isn't a decision you
@@ -2672,6 +2953,23 @@ function renderRoster(state){
   const r = isMine ? state.roster : allRosters()[viewing];
   $("#rosterhead").textContent = isMine ? "My Roster" : possessive(teamName(viewing)) + " Roster";
   $("#rostercount").textContent = `${r.length} / ${cfg.size}`;
+
+  /*  Positional need reads better here, next to the empty slots it refers to,
+      than as a banner sitting on top of the player you're evaluating.       */
+  const g = state.gaps;
+  const sig = g.missing.join(",");
+  const show = isMine && g.missing.length && g.left > 0 && ui.gapHidden !== sig;
+  const gn = $("#rgap");
+  gn.style.display = show ? "" : "none";
+  if(show){
+    gn.className = "rgap " + (g.urgency > 0.7 ? "hot" : g.urgency > 0.34 ? "warm" : "");
+    gn.innerHTML = `<span>No ${g.missing.join(", ")} yet \u00b7 ${g.left} pick${g.left===1?"":"s"} left. ${
+      g.urgency > 0.7 ? `Fill ${g.missing.length > 1 ? "these" : "it"} now, even at a value loss.`
+      : g.urgency > 0.34 ? `Worth covering in the next couple of rounds.`
+      : `No rush \u2014 this affects no score. Take the better player.`}</span>
+      <button class="dismiss" id="gapx" title="Dismiss">&times;</button>`;
+    $("#gapx").onclick = ()=>{ ui.gapHidden = sig; render(); };
+  }
   const {slots, owner, unplaced} = assignSlots(r);
 
   $("#roster").innerHTML = slots.map((s,i)=>{
@@ -2693,7 +2991,7 @@ function renderLog(){
     const p = pool.find(x=>x.id===pk.playerId);
     const mine = pk.teamIdx === myTeamIdx();
     const rd = Math.floor(pk.overall / cfg.teams) + 1;
-    return `<div class="slot">
+    return `<div class="slot${pk.overall === flashPick ? " flash" : ""}">
       <span class="idx mono">${rd}.${String((pk.overall % cfg.teams)+1).padStart(2,"0")}</span>
       <span class="nm" style="${mine?"color:var(--ok);font-weight:600":""}">${p?p.name:"?"}</span>
       <span class="mono" style="color:var(--dimmer);font-size:10px">${mine?"YOU":shortName(pk.teamIdx)}</span>
@@ -2715,6 +3013,11 @@ function draft(id){
   $("#q").value = "";
   hoverId = null;
   selectedId = null;
+  /*  Brief highlight on the pick that just landed. Mid-draft it's easy to lose
+      track of whether a click actually registered.                          */
+  flashPick = picks.length - 1;
+  clearTimeout(draft._t);
+  draft._t = setTimeout(()=>{ flashPick = null; renderLog(); }, 1700);
   render();
 }
 
@@ -2847,6 +3150,17 @@ function syncGPW(){
 $("#shape").addEventListener("input", e=>{ shape = +e.target.value / 100; render(); });
 $("#shapeauto").onclick = ()=>{ shape = DEFAULT_SHAPE; render(); };
 
+// Tuning stays folded away until asked for — two sliders is the single biggest
+// source of "too much going on" before anyone has made a pick.
+const TUNE_KEY = "draftboard.tuning.v1";
+function setTuning(open){
+  $("#tuning").classList.toggle("hide", !open);
+  $("#tuningcaret").textContent = open ? "\u25be" : "\u25b8";
+  try{ localStorage.setItem(TUNE_KEY, open ? "1" : "0"); }catch(e){}
+}
+$("#tuningbtn").onclick = ()=> setTuning($("#tuning").classList.contains("hide"));
+try{ setTuning(localStorage.getItem(TUNE_KEY) === "1"); }catch(e){ setTuning(false); }
+
 
 $("#q").addEventListener("input", ()=> renderBoard(evaluate()));
 $("#q").addEventListener("keydown", e=>{
@@ -2890,8 +3204,9 @@ function openSet(){
   paintCatGrid();
   paintNameGrid();
   $("#s_intro").style.display = firstRun ? "" : "none";
-  $("#s_save").textContent = firstRun ? "Save and load projections" : "Save setup";
+  $("#s_save").textContent = firstRun ? "Save and continue" : "Save setup";
   $("#setmask").classList.add("on");
+  setTimeout(()=>{ const f = $("#s_teams"); if(f && f.focus){ f.focus(); if(f.select) f.select(); } }, 30);
 }
 function setCatPreset(o){
   CATS.forEach(c=>{
@@ -2900,6 +3215,95 @@ function setCatPreset(o){
   });
 }
 $("#s_close").onclick = ()=> $("#setmask").classList.remove("on");
+$("#help_close").onclick = ()=> $("#helpmask").classList.remove("on");
+
+/*  The table header sticks below the search bar. Measuring beats hardcoding —
+    the bar's height changes with font size and zoom.                        */
+function syncStickyTop(){
+  const sw = document.querySelector(".searchwrap");
+  if(sw) document.documentElement.style.setProperty("--stickytop", sw.offsetHeight + "px");
+}
+window.addEventListener("resize", syncStickyTop);
+syncStickyTop();
+
+/*  Escape closes whichever dialog is open. Every modal had a Cancel button and
+    a backdrop click, but Escape is what people actually reach for.          */
+/*  Arrow keys walk the board and Enter drafts, so a fast draft never needs the
+    mouse. Ignored while typing, so the search box still behaves normally.   */
+document.addEventListener("keydown", e=>{
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ""));
+  if(typing || !boardIds.length) return;
+  if(e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
+
+  if(e.key === "Enter"){
+    if(selectedId !== null){ e.preventDefault(); draft(selectedId); }
+    return;
+  }
+  e.preventDefault();
+  const at = boardIds.indexOf(selectedId);
+  const next = e.key === "ArrowDown"
+    ? (at < 0 ? 0 : Math.min(at + 1, boardIds.length - 1))
+    : (at < 0 ? 0 : Math.max(at - 1, 0));
+  selectedId = boardIds[next];
+  render();
+  const row = $("#board").querySelector(`tr[data-id="${selectedId}"]`);
+  if(row && row.scrollIntoView) row.scrollIntoView({block:"nearest"});
+});
+
+document.addEventListener("keydown", e=>{
+  if(e.key !== "Escape") return;
+  const open = ["#setmask","#impmask","#helpmask"].map($).filter(m=>m && m.classList.contains("on"));
+  if(open.length){ open.forEach(m=>m.classList.remove("on")); e.stopPropagation(); }
+});
+
+/*  Draggable split. Stored as a left-column fraction rather than pixels so it
+    survives a window resize.                                                 */
+const SPLIT_KEY = "draftboard.split.v1";
+const SPLIT_DEFAULT = 1.35 / 2.35;
+function applySplit(frac){
+  const f = Math.max(0.28, Math.min(0.78, frac));
+  document.querySelector(".shell").style.gridTemplateColumns =
+    `minmax(0,${f}fr) 5px minmax(0,${1-f}fr)`;
+  return f;
+}
+let splitFrac = SPLIT_DEFAULT;
+try{ const v = parseFloat(localStorage.getItem(SPLIT_KEY)); if(!isNaN(v)) splitFrac = v; }catch(e){}
+applySplit(splitFrac);
+
+(function(){
+  const grip = $("#grip");
+  let dragging = false;
+  const move = e=>{
+    if(!dragging) return;
+    const x = (e.touches ? e.touches[0].clientX : e.clientX);
+    splitFrac = applySplit(x / window.innerWidth);
+    e.preventDefault();
+  };
+  const stop = ()=>{
+    if(!dragging) return;
+    dragging = false;
+    grip.classList.remove("drag");
+    document.body.style.userSelect = "";
+    try{ localStorage.setItem(SPLIT_KEY, String(splitFrac)); }catch(e){}
+  };
+  const start = e=>{
+    dragging = true;
+    grip.classList.add("drag");
+    document.body.style.userSelect = "none";   // stop the drag selecting the board
+    e.preventDefault();
+  };
+  grip.addEventListener("mousedown", start);
+  grip.addEventListener("touchstart", start, {passive:false});
+  window.addEventListener("mousemove", move);
+  window.addEventListener("touchmove", move, {passive:false});
+  window.addEventListener("mouseup", stop);
+  window.addEventListener("touchend", stop);
+  grip.addEventListener("dblclick", ()=>{
+    splitFrac = applySplit(SPLIT_DEFAULT);
+    try{ localStorage.setItem(SPLIT_KEY, String(splitFrac)); }catch(e){}
+  });
+})();
+$("#helpmask").addEventListener("click", e=>{ if(e.target === $("#helpmask")) $("#helpmask").classList.remove("on"); });
 
 // Close the setup modal when the user clicks the backdrop,
 // but keep clicks inside the modal itself from dismissing it.
@@ -2931,7 +3335,7 @@ $("#s_save").onclick = ()=>{
   reindex();
   $("#setmask").classList.remove("on");
   render();
-  if(firstRun){ firstRun = false; $("#impmask").classList.add("on"); }
+  if(firstRun){ firstRun = false; $("#helpmask").classList.add("on"); }
 };
 
 // Import
