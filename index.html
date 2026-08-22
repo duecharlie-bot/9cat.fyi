@@ -576,6 +576,8 @@ thead th.on .arw{opacity:1}
   vertical-align:middle
 }
 tbody tr.sel{background:var(--pos-bg);box-shadow:inset 3px 0 0 var(--wood)}
+tbody tr.focus{background:var(--raise);box-shadow:inset 3px 0 0 var(--dimmer)}
+tbody tr.focus:hover{background:var(--raise)}
 tbody tr.sel .pname{color:var(--chalk)}
 tbody tr.sel:hover{background:var(--pos-bg)}
 
@@ -1576,7 +1578,7 @@ let pool = [];
 let picks = [];          // {playerId, teamIdx, overall}
 let sortKey = "fit", sortDir = -1;
 let posFilter = "ALL";
-let hoverId = null;
+let hoverId = null;   // previewed player; persists until another row is hovered
 let selectedId = null;   // click once to inspect, again to draft
 let boardIds = [];       // ids in the order currently rendered, for arrow keys
 let flashPick = null;    // overall index of the pick to highlight briefly
@@ -2393,8 +2395,11 @@ function renderRec(state){
       at anyone but the top name — and one stray click cost you a pick.       */
   const sel = selectedId !== null ? avail.find(p => p.id === selectedId) : null;
   if(selectedId !== null && !sel) selectedId = null;         // he just got drafted
-  const shown = sel || best;
+  const prev = hoverId !== null && hoverId !== selectedId ? avail.find(p => p.id === hoverId) : null;
+  if(hoverId !== null && !avail.find(p => p.id === hoverId)) hoverId = null;
+  const shown = prev || sel || best;
   const isRec = shown.id === best.id;
+  const previewing = !!prev;
 
   const shownContrib = CATS.map(c=>({c, v: w[c.k] * cw(c.k) * shown.z[c.k]}))
                            .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
@@ -2419,7 +2424,7 @@ function renderRec(state){
       </div>` : ``);
 
   $("#rec").innerHTML = `
-    <div class="rec-eyebrow">${!isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}${
+    <div class="rec-eyebrow">${previewing ? "Previewing" : !isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}${
       fitMode() ? ` <span style="color:var(--dimmer)">· fit from last season</span>` : ``}</div>
     <div class="rec-top">
       <div class="rec-info">
@@ -2440,8 +2445,8 @@ function renderRec(state){
     </div>
     `;
   $("#r_draft").onclick = ()=> draft(shown.id);
-  const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; render(); };
-  const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; render(); };
+  const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; hoverId = null; render(); };
+  const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; hoverId = null; render(); };
   const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; render(); };
 }
 
@@ -2749,11 +2754,29 @@ function renderBoard(state){
     // First click inspects; clicking the already-selected player commits.
     tr.onclick = ()=>{
       if(selectedId === id) draft(id);
-      else { selectedId = id; render(); }
+      else { selectedId = id; hoverId = id; render(); }
     };
     tr.ondblclick = ()=> draft(id);
-    tr.onmouseenter = ()=>{ hoverId = id; renderLedger(evaluate()); };
-    tr.onmouseleave = ()=>{ hoverId = null; renderLedger(evaluate()); };
+    /*  Hovering previews a player in the profile panel and the ledger, and the
+        preview STAYS when the cursor leaves the row. Reverting on mouseleave
+        would snap the panel back to the recommendation exactly as you moved
+        across to click Draft — you'd hit the button for a different player.  */
+    tr.onmouseenter = ()=>{
+      if(hoverId === id) return;
+      hoverId = id;
+      const st = evaluate();
+      renderRec(st); renderLedger(st); markFocus();
+    };
+  });
+}
+
+/*  Move the "previewing" outline without re-rendering the whole board — hover
+    fires constantly and rebuilding 200 rows per row-crossing is wasteful.   */
+function markFocus(){
+  const rows = $("#board").querySelectorAll("tr[data-id]");
+  rows.forEach(tr=>{
+    const on = +tr.dataset.id === hoverId && hoverId !== selectedId;
+    tr.classList.toggle("focus", on);
   });
 }
 
@@ -3216,7 +3239,7 @@ $("#q").addEventListener("keydown", e=>{
 document.addEventListener("keydown", e=>{
   if(e.key === "/" && document.activeElement !== $("#q")){ e.preventDefault(); $("#q").focus(); }
   if((e.metaKey||e.ctrlKey) && e.key === "z"){ e.preventDefault(); undo(); }
-  if(e.key === "Escape" && selectedId !== null){ selectedId = null; render(); }
+  if(e.key === "Escape" && (selectedId !== null || hoverId !== null)){ selectedId = null; hoverId = null; render(); }
 });
 function undo(){ picks.pop(); render(); }
 
@@ -3285,6 +3308,7 @@ document.addEventListener("keydown", e=>{
     ? (at < 0 ? 0 : Math.min(at + 1, boardIds.length - 1))
     : (at < 0 ? 0 : Math.max(at - 1, 0));
   selectedId = boardIds[next];
+  hoverId = selectedId;          // keep the preview in step with the keyboard
   render();
   const row = $("#board").querySelector(`tr[data-id="${selectedId}"]`);
   if(row && row.scrollIntoView) row.scrollIntoView({block:"nearest"});
