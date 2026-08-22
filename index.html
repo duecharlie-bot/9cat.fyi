@@ -2641,6 +2641,13 @@ $("#s_save").onclick = ()=>{
 
 // Import
 $("#imp_close").onclick = ()=> $("#impmask").classList.remove("on");
+
+// Close the projections modal when the user clicks the backdrop,
+// but keep clicks inside the modal itself from dismissing it.
+$("#impmask").addEventListener("click", e=>{
+  if(e.target === e.currentTarget) e.currentTarget.classList.remove("on");
+});
+
 let impTarget = "proj";
 [...$("#imptarget").querySelectorAll("button")].forEach(b=>{
   b.onclick = ()=>{
@@ -2700,7 +2707,12 @@ $("#imp_go").onclick = ()=>{
   $("#banner").classList.add("hide");
   syncGPW();
   clearState();
-  render();
+
+  // The pasted projection text is already persisted in localStorage.
+  // Reboot the page so the normal startup path reloads the pool and
+  // attaches the built-in historical data before rendering.
+  $("#impmask").classList.remove("on");
+  setTimeout(()=> window.location.reload(), 150);
 };
 
 // Boot
