@@ -481,15 +481,10 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
   <div class="modal">
     <h3>Load projections</h3>
 
-    <div class="seg" id="imptarget" style="margin-bottom:12px;width:100%">
-      <button data-t="proj" class="on" style="flex:1;padding:7px 0">This season's projections</button>
-      <button data-t="last" style="flex:1;padding:7px 0">Last season's actuals</button>
-    </div>
-
     <p style="font-size:11px;color:var(--dimmer);margin-top:-2px">
-      2025–26 historical stats are preloaded from
+      Paste this season's projections below. 2025–26 historical stats are already preloaded from
       <a href="https://boxscorelab.com/downloads/" target="_blank" rel="noopener" style="color:var(--wood)">BoxScore Lab</a>
-      under CC BY 4.0 (data through Aug. 9, 2026).
+      under CC BY 4.0 (data through Aug. 9, 2026), so there is nothing else to import.
     </p>
 
     <p>
@@ -2654,14 +2649,6 @@ $("#impmask").addEventListener("click", e=>{
   if(e.target === e.currentTarget) e.currentTarget.classList.remove("on");
 });
 
-let impTarget = "proj";
-[...$("#imptarget").querySelectorAll("button")].forEach(b=>{
-  b.onclick = ()=>{
-    impTarget = b.dataset.t;
-    [...$("#imptarget").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
-  };
-});
-
 $("#imp_go").onclick = ()=>{
   const rows = dedupe(parsePool($("#impbox").value));
   const msg = $("#impmsg");
@@ -2672,22 +2659,6 @@ $("#imp_go").onclick = ()=>{
     msg.innerHTML = `Parsed only ${rows.length} rows. Each needs a name and a field-goal column carrying
       makes and attempts. First unreadable row:<br>
       <span class="mono" style="color:var(--dimmer)">${(skipped[0]||"—").slice(0,110).replace(/</g,"&lt;")}</span>`;
-    return;
-  }
-
-  /* ---- last season's actuals: match onto the existing pool, don't replace it ---- */
-  if(impTarget === "last"){
-    if(!pool.length){ msg.className="msg bad"; msg.textContent="Load this season's projections first."; return; }
-    const hit = attachLast(rows);
-    const missed = attachLast.missed || [];
-    msg.className = hit > pool.length * 0.5 ? "msg good" : "msg bad";
-    msg.innerHTML = `Matched <b>${hit}</b> of ${pool.length}
-      ${attachLast.fuzzy ? `(${attachLast.fuzzy} by surname — nickname spellings)` : ``}.
-      ${missed.length ? `<br><span style="color:var(--dimmer)">No match for ${missed.length}:
-        ${missed.slice(0,12).map(n=>n.replace(/</g,"&lt;")).join(", ")}${missed.length>12?"…":""}.
-        Usually rookies or players who didn't appear last season.</span>` : ``}`;
-    $("#mode").value = "last";
-    render();
     return;
   }
 
