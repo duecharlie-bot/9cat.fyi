@@ -309,6 +309,26 @@ thead th.on .arw{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 
+/* ---------- first-run intro ---------- */
+.intro{
+  margin:0 0 16px;padding:11px 13px;border-left:2px solid var(--wood);background:var(--raise);
+  border-radius:0 var(--r) var(--r) 0;font-size:13px;color:var(--dim);line-height:1.55
+}
+.intro b{color:var(--chalk)}
+
+/* ---------- import steps ---------- */
+.steps{margin:0 0 14px;padding:0 0 0 22px;font-size:13px;color:var(--dim);line-height:1.55}
+.steps li{margin-bottom:11px}
+.steps li::marker{color:var(--wood);font-weight:700}
+.steps b{color:var(--chalk)}
+.steps em{display:block;font-style:normal;font-size:11px;color:var(--dimmer);margin-top:3px}
+.src{display:inline-flex;gap:6px;margin-left:6px;flex-wrap:wrap}
+.src a{
+  font-size:10px;padding:1px 6px;border:1px solid var(--line);border-radius:var(--r);
+  color:var(--wood);text-decoration:none
+}
+.src a:hover{border-color:var(--wood);background:var(--panel-2)}
+
 /* ---------- head to head ---------- */
 #h2h{padding:12px 16px;border-bottom:1px solid var(--line-soft);background:var(--raise)}
 .h2h-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
@@ -482,6 +502,12 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 <div class="mask" id="setmask">
   <div class="modal">
     <h3>League setup</h3>
+    <div id="s_intro" class="intro" style="display:none">
+      A draft board for 9-category fantasy basketball. It ranks who's left by how much they'd
+      help <b>your</b> roster, not by a generic list.
+      <b>Set your league size and draft slot first</b> — they decide the pick order, which
+      everything else is measured against.
+    </div>
     <p>Snake order is derived from these. Change them before the draft starts.</p>
     <div class="grid2">
       <div class="fld"><label>Teams</label><input type="number" id="s_teams" min="4" max="20"></div>
@@ -489,7 +515,7 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       <div class="fld"><label>Roster spots</label><input type="number" id="s_size" min="5" max="20"></div>
       <div class="fld"><label>Punt aggression (0–10)</label><input type="number" id="s_aggr" min="0" max="10" step="1"></div>
     </div>
-    <p style="margin-bottom:16px">How readily the engine writes a category off. <b style="color:var(--chalk)">0</b> keeps chasing all nine to the end; <b style="color:var(--chalk)">10</b> abandons a losing category the moment it slips. <b style="color:var(--chalk)">5</b> is a sane default.</p>
+    <p style="margin-bottom:16px"><b style="color:var(--chalk)">Punt aggression</b> is how readily the engine writes a category off. <b style="color:var(--chalk)">0</b> keeps chasing all nine to the end; <b style="color:var(--chalk)">10</b> abandons a losing category the moment it slips. <b style="color:var(--chalk)">5</b> is a sane default.</p>
     <h3 style="margin-top:20px">Team names <span style="font-weight:400;font-size:11px;color:var(--dimmer);text-transform:none;letter-spacing:0">optional</span></h3>
     <p>Leave blank for "Team 1", "Team 2" and so on. Your own slot is highlighted.</p>
     <div class="namegrid" id="s_names"></div>
@@ -514,29 +540,48 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
     <h3>Load projections</h3>
 
     <p style="font-size:11px;color:var(--dimmer);margin-top:-2px">
-      Paste this season's projections below. 2025–26 historical stats are already preloaded from
+      Last season's stats are already built in, from
       <a href="https://boxscorelab.com/downloads/" target="_blank" rel="noopener" style="color:var(--wood)">BoxScore Lab</a>
-      under CC BY 4.0 (data through Aug. 9, 2026), so there is nothing else to import.
+      (CC BY 4.0). You only need this season's projections.
     </p>
 
-    <p>
-      Column headers are read automatically, so paste whatever the site gives you — ESPN, Hashtag,
-      Basketball Monster, or your own CSV. Repeated header rows, doubled names, <span class="mono">0.573 (10.5/18.3)</span>
-      and <span class="mono">9.5/19.0</span> cells all parse. Don't clean anything up first.
+    <ol class="steps">
+      <li>
+        Open a projections page and set it to show <b>all</b> players.
+        <span class="src">
+          <a href="https://hashtagbasketball.com/fantasy-basketball-projections" target="_blank" rel="noopener">Hashtag</a>
+          <a href="https://fantasy.espn.com/basketball/players/projections" target="_blank" rel="noopener">ESPN</a>
+          <a href="https://www.basketball-reference.com/leagues/NBA_2026_per_game.html" target="_blank" rel="noopener">Basketball Reference</a>
+        </span>
+        <em>On Hashtag also set <b>Based On</b> to <b>Averages</b>. On ESPN, scroll to the very bottom so every row loads.</em>
+      </li>
+      <li>
+        Select the whole table and copy it.
+        <em>Click just above the first player's name, scroll to the bottom, then shift-click after the last one. Ctrl/Cmd&nbsp;+&nbsp;C.</em>
+      </li>
+      <li>
+        Paste into the box below and press <b>Replace pool</b>.
+        <em>Don't tidy anything up first — headers, repeated rows and odd cells are all handled.</em>
+      </li>
+    </ol>
+
+    <p style="font-size:11px;color:var(--dimmer)">
+      It reads the column headers itself, so any source works. If something doesn't
+      parse it tells you which row and nothing is changed.
     </p>
 
     <details style="margin-bottom:12px" id="photodetails" open>
       <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Player photos — <span id="photostat">not set up</span></summary>
       <p style="margin-top:8px">
-        None of the stat sources carry player ids, so photos need a name-to-id index. This fetches
-        one and caches it in your browser — once, then never again.
+        Fetched automatically and cached in your browser. If it can't reach the index you'll get
+        initials instead, and everything else still works.
       </p>
       <button class="mini" id="i_photoauto" style="display:inline-block">Fetch photos automatically</button>
       <details style="margin-top:10px">
-        <summary style="cursor:pointer;font-size:11px;color:var(--dimmer)">If that fails, paste ids manually</summary>
+        <summary style="cursor:pointer;font-size:11px;color:var(--dimmer)">Advanced: paste ids manually</summary>
         <p style="margin-top:8px">
           Open <span class="mono">nba.com/players</span>, scroll to the bottom so every row renders,
-          then run this in the console (F12) and paste the result below.
+          then run this in the browser console (F12) and paste the result below.
         </p>
       <textarea readonly style="height:74px" onclick="this.select()">copy([...new Set([...document.querySelectorAll('a[href*="/player/"]')]
   .map(a=>{const m=a.getAttribute('href').match(/\/player\/(\d+)\//);
@@ -548,28 +593,19 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       </details>
     </details>
 
-    <details style="margin-bottom:12px" open>
-      <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Export a whole table without hand-selecting rows</summary>
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Advanced: grab the table with one command</summary>
       <p style="margin-top:8px">
-        Set the page to show every player first, then open the console (F12) and paste this. It copies the
-        biggest table on the page as tab-separated text, ready to paste below. Tabs beat CSV here —
-        nothing needs escaping.
+        Only needed if the table is too long to select by hand. Open the browser console (F12),
+        paste this, press Enter — it copies the whole table to your clipboard. Chrome asks you to
+        type <span class="mono">allow pasting</span> the first time.
       </p>
       <textarea readonly style="height:88px" onclick="this.select()">copy([...[...document.querySelectorAll('table')]
   .sort((a,b)=>b.rows.length-a.rows.length)[0].rows]
   .map(r=>[...r.cells].map(c=>c.innerText.replace(/\s+/g,' ').trim()).join('\t'))
   .join('\n'))</textarea>
-      <p style="margin-top:8px">Or download it as a CSV file instead:</p>
-      <textarea readonly style="height:110px" onclick="this.select()">(()=>{const t=[...document.querySelectorAll('table')]
-  .sort((a,b)=>b.rows.length-a.rows.length)[0];
-const esc=s=>/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
-const csv=[...t.rows].map(r=>[...r.cells]
-  .map(c=>esc(c.innerText.replace(/\s+/g,' ').trim())).join(',')).join('\n');
-const a=document.createElement('a');
-a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-a.download='projections.csv';a.click();})()</textarea>
       <p style="margin-top:6px;color:var(--dimmer)">
-        On lazy-loading pages like ESPN, scroll to the bottom first — the snippet only sees rendered rows.
+        It takes the biggest table on the page, so scroll to the bottom on lazy-loading sites first.
       </p>
     </details>
 
@@ -1882,9 +1918,9 @@ function renderClock(state){
   $("#clock").innerHTML = done
     ? `<div class="clock-cell onclock"><span class="k">Draft</span><span class="v">Complete</span></div>
        <button class="clock-btn" id="b_set">Setup</button><button class="clock-btn" id="b_imp">Projections</button>
-       <button class="clock-btn" id="undo">↶ Undo</button>
+       <button class="clock-btn" id="undo">↶ Undo Pick</button>
        <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
-       <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`
+       <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D2 Dark Mode" : "\u25D3 Light Mode"}</button>`
     : `
     <div class="clock-cell"><span class="k">Pick</span><span class="v">${overall+1}</span></div>
     <div class="clock-cell"><span class="k">Round</span><span class="v">${rd}.${String(inRd).padStart(2,"0")}</span></div>
@@ -1895,9 +1931,9 @@ function renderClock(state){
     <div class="clock-cell"><span class="k">${nLbl}</span><span class="v" style="${until===0?"font-size:15px":""}">${untilText}</span></div>
     <button class="clock-btn" id="b_set">Setup</button>
     <button class="clock-btn" id="b_imp">Projections</button>
-    <button class="clock-btn" id="undo">↶ Undo</button>
+    <button class="clock-btn" id="undo">↶ Undo Pick</button>
     <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
-    <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`;
+    <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D2 Dark Mode" : "\u25D3 Light Mode"}</button>`;
 
   $("#theme").onclick = ()=>{
     document.body.dataset.theme = document.body.dataset.theme === "court" ? "arena" : "court";
@@ -2361,8 +2397,8 @@ function fitFor(p){
 function sortVal(p, key, mode){
   if(key === "fit")   return fitFor(p);
   if(key === "total") return p.total;
-  if(key === "rank")  return -(p.srcRank ?? p.adp ?? 9999);
-  if(key === "adp")   return -(p.adp ?? 9999);      // earlier ADP sorts first
+  if(key === "rank")  return (p.srcRank ?? p.adp) == null ? -Infinity : -(p.srcRank ?? p.adp);
+  if(key === "adp")   return p.adp == null ? -Infinity : -p.adp;   // earlier ADP sorts first
   if(mode === "z")    return p.z[key];
   const src = mode === "last" ? p.last : p;
   if(!src) return -Infinity;
@@ -2383,7 +2419,14 @@ function renderBoard(state){
   const key = sortKey;
   list = [...list].sort((a,b)=>{
     if(key === "name") return a.name.localeCompare(b.name) * (sortDir === -1 ? 1 : -1);
-    return (sortVal(b,key,mode) - sortVal(a,key,mode)) * (sortDir === -1 ? 1 : -1);
+    const av = sortVal(a,key,mode), bv = sortVal(b,key,mode);
+    /*  A missing value is not a low value. Left as -Infinity it sorts as "worst",
+        which floats blanks to the top the moment you reverse the direction — and
+        two blanks subtract to NaN, which leaves the comparator undefined. Blanks
+        go last in both directions, always.                                     */
+    const ab = !isFinite(av), bb = !isFinite(bv);
+    if(ab || bb) return ab && bb ? 0 : (ab ? 1 : -1);
+    return (bv - av) * (sortDir === -1 ? 1 : -1);
   }).slice(0, 80);
 
   $("#board").innerHTML = list.map((p,i)=>{
@@ -2839,11 +2882,15 @@ function paintCatGrid(){
     `<div class="fld"><label>${c.label}</label>
      <input type="number" data-w="${c.k}" min="0" max="3" step="0.25" value="${cw(c.k)}"></div>`).join("");
 }
+let firstRun = false;
+
 function openSet(){
   $("#s_teams").value = cfg.teams; $("#s_slot").value = cfg.slot;
   $("#s_size").value = cfg.size;   $("#s_aggr").value = cfg.aggr;
   paintCatGrid();
   paintNameGrid();
+  $("#s_intro").style.display = firstRun ? "" : "none";
+  $("#s_save").textContent = firstRun ? "Save and load projections" : "Save setup";
   $("#setmask").classList.add("on");
 }
 function setCatPreset(o){
@@ -2884,6 +2931,7 @@ $("#s_save").onclick = ()=>{
   reindex();
   $("#setmask").classList.remove("on");
   render();
+  if(firstRun){ firstRun = false; $("#impmask").classList.add("on"); }
 };
 
 // Import
@@ -2982,7 +3030,21 @@ function syncPhotoStat(){
   if(d && hit) d.open = false;
 }
 const bd = $("#b_dismiss"); if(bd) bd.onclick = ()=> $("#banner").classList.add("hide");
-if(!pool.length) $("#impmask").classList.add("on");
+/*  First visit opens Setup, not the importer. Teams and draft slot decide the
+    snake order, which decides "next turn in N picks", which decides scarcity on
+    every player — wrong there and nothing looks broken, the numbers are just
+    quietly wrong all draft. Saving chains straight into Projections.         */
+const SEEN_KEY = "draftboard.seen.v1";
+let seenBefore = false;
+try{ seenBefore = localStorage.getItem(SEEN_KEY) === "1"; }catch(e){}
+
+if(!seenBefore){
+  firstRun = true;
+  openSet();
+  try{ localStorage.setItem(SEEN_KEY, "1"); }catch(e){}
+} else if(!pool.length){
+  $("#impmask").classList.add("on");
+}
 syncPhotoStat();
 render();
 
