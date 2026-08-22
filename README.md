@@ -28,8 +28,6 @@ You can paste in your own projection data from most fantasy basketball sites. Ni
 
 Last season's stats are included for comparison.
 
-### A couple notes
-
-NineCat is still a work in progress. Right now drafts are tracked manually and everything is saved locally in your browser.
+### Note
 
 Projection data belongs to the original publishers and isn't included in the public repo unless it's openly licensed.
