@@ -4,7 +4,7 @@ A fantasy basketball draft tool for 9-cat leagues.
 
 I built NineCat to help with the part of drafting that normal rankings don't really account for — how a player fits with the team you've already drafted.
 
-
+![NineCat draft board](assets/ninecat-preview.png) 
 
 It looks at projected value, category fit, ADP, punt strategies, and who's likely to still be available at your next pick.
 
