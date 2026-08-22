@@ -2361,8 +2361,8 @@ function fitFor(p){
 function sortVal(p, key, mode){
   if(key === "fit")   return fitFor(p);
   if(key === "total") return p.total;
-  if(key === "rank")  return -(p.srcRank ?? p.adp ?? 9999);
-  if(key === "adp")   return -(p.adp ?? 9999);      // earlier ADP sorts first
+  if(key === "rank")  return (p.srcRank ?? p.adp) == null ? -Infinity : -(p.srcRank ?? p.adp);
+  if(key === "adp")   return p.adp == null ? -Infinity : -p.adp;   // earlier ADP sorts first
   if(mode === "z")    return p.z[key];
   const src = mode === "last" ? p.last : p;
   if(!src) return -Infinity;
@@ -2383,7 +2383,14 @@ function renderBoard(state){
   const key = sortKey;
   list = [...list].sort((a,b)=>{
     if(key === "name") return a.name.localeCompare(b.name) * (sortDir === -1 ? 1 : -1);
-    return (sortVal(b,key,mode) - sortVal(a,key,mode)) * (sortDir === -1 ? 1 : -1);
+    const av = sortVal(a,key,mode), bv = sortVal(b,key,mode);
+    /*  A missing value is not a low value. Left as -Infinity it sorts as "worst",
+        which floats blanks to the top the moment you reverse the direction — and
+        two blanks subtract to NaN, which leaves the comparator undefined. Blanks
+        go last in both directions, always.                                     */
+    const ab = !isFinite(av), bb = !isFinite(bv);
+    if(ab || bb) return ab && bb ? 0 : (ab ? 1 : -1);
+    return (bv - av) * (sortDir === -1 ? 1 : -1);
   }).slice(0, 80);
 
   $("#board").innerHTML = list.map((p,i)=>{
