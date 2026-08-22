@@ -2,7 +2,7 @@
 
 A fantasy basketball draft tool for 9-cat leagues.
 
-I built NineCat to help with the part of drafting that normal rankings don't really account for — how a player fits with the team you've already drafted.
+I built nineCat to help with the part of drafting that normal rankings don't really account for — how a player fits with the team you've already drafted.
 
 ![NineCat draft board](assets/ninecat-preview.png) 
 
@@ -24,7 +24,7 @@ It looks at projected value, category fit, ADP, punt strategies, and who's likel
 
 ### Projections
 
-You can paste in your own projection data from most fantasy basketball sites. NineCat reads the table and builds the board from it.
+You can paste in your own projection data from most fantasy basketball sites. nineCat reads the table and builds the board from it.
 
 Last season's stats are included for comparison.
 
