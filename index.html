@@ -117,8 +117,15 @@ body{
 .clock-cell .v{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1.1;color:var(--chalk)}
 .clock-cell.onclock{
   background:linear-gradient(180deg,rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 24%), var(--raise);
-  flex:1;
   box-shadow:inset 3px 0 0 var(--wood)
+}
+/*  Only .onclock used to carry flex:1, so the bar reflowed the moment the clock
+    reached you — that cell stretched on other teams' picks and didn't on yours.
+    A dedicated spacer keeps every cell content-sized and the buttons pinned
+    right, whoever is up.                                                     */
+.clock-gap{
+  flex:1;min-width:0;
+  background:linear-gradient(180deg,var(--panel-2) 0%,var(--panel) 100%)
 }
 .clock-cell.onclock .k{color:var(--onclock-k)}
 .clock-cell.onclock .v{color:var(--chalk)}
@@ -2204,16 +2211,18 @@ function renderClock(state){
 
   $("#clock").innerHTML = done
     ? `<div class="clock-cell onclock"><span class="k">Draft</span><span class="v">Complete</span></div>
+       <div class="clock-gap"></div>
        <button class="clock-btn" id="undo">↶ Undo Pick</button>
        <button class="clock-btn" id="menubtn" title="Menu">☰</button>`
     : `
     <div class="clock-cell"><span class="k">Pick</span><span class="v">${overall+1}</span></div>
     <div class="clock-cell"><span class="k">Round</span><span class="v">${rd}.${String(inRd).padStart(2,"0")}</span></div>
-    <div class="clock-cell ${mine?"you":"onclock"}">
+    <div class="clock-cell ${mine?"you":"onclock"}" style="min-width:150px">
       <span class="k">${mine?"You're up":"On the clock"}</span>
       <span class="v" style="${!mine && teamName(onIdx).length>9 ? "font-size:15px" : ""}">${mine ? "YOUR PICK" : teamName(onIdx)}</span>
     </div>
     <div class="clock-cell"><span class="k">${nLbl}</span><span class="v" style="${until===0?"font-size:15px":""}">${untilText}</span></div>
+    <div class="clock-gap"></div>
     <button class="clock-btn" id="undo">↶ Undo Pick</button>
     <button class="clock-btn" id="menubtn" title="Menu">☰</button>`;
 
@@ -3030,6 +3039,7 @@ function draft(id){
     the same pool — restoring picks onto a different projection set would
     silently rename every player on your roster. The signature guards that.   */
 const SAVE_KEY = "draftboard.v1";
+const CFG_KEY  = "draftboard.league.v1";   // settings, kept away from draft state
 const PROJ_KEY = "draftboard.projections.v1";
 const poolSig = () => pool.length + "|" + (pool[0] ? pool[0].name : "");
 
@@ -3041,11 +3051,37 @@ function loadProjectionText(){
   try{ return localStorage.getItem(PROJ_KEY) || ""; }catch(e){ return ""; }
 }
 
+/*  League settings live in their own key, deliberately.
+
+    They used to ride along inside the draft-state blob, which coupled them to
+    the pool signature and to every code path that cleared or replaced a draft.
+    Importing projections is exactly such a path — and league setup is the first
+    thing a user is asked for, so losing it there is the worst possible moment.
+    Settings are about the league; picks are about one draft. Different keys.  */
+function saveSettings(){
+  try{
+    localStorage.setItem(CFG_KEY, JSON.stringify({
+      cfg, shape, theme: document.body.dataset.theme
+    }));
+  }catch(e){}
+}
+
+function loadSettings(){
+  try{
+    const d = JSON.parse(localStorage.getItem(CFG_KEY) || "null");
+    if(!d) return false;
+    if(d.cfg) Object.assign(cfg, d.cfg);
+    if(typeof d.shape === "number") shape = d.shape;
+    if(d.theme) document.body.dataset.theme = d.theme;
+    return true;
+  }catch(e){ return false; }
+}
+
 function saveState(){
+  saveSettings();
   try{
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      sig: poolSig(), picks, locks, cfg, shape, ledgerTeam,
-      theme: document.body.dataset.theme
+      sig: poolSig(), picks, locks, ledgerTeam
     }));
   }catch(e){ /* private browsing, quota, file:// restrictions — not worth failing over */ }
 }
@@ -3055,6 +3091,7 @@ function loadState(){
     const raw = localStorage.getItem(SAVE_KEY);
     if(!raw) return false;
     const d = JSON.parse(raw);
+    // Legacy blobs carried settings too; honour them once so nobody loses a setup.
     if(d.cfg) Object.assign(cfg, d.cfg);
     if(typeof d.shape === "number") shape = d.shape;
     if(d.theme) document.body.dataset.theme = d.theme;
@@ -3066,7 +3103,7 @@ function loadState(){
   }catch(e){ return false; }
 }
 
-function clearState(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+function clearState(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }   // settings untouched by design
 
 function render(){
   const state = evaluate();
@@ -3336,6 +3373,7 @@ $("#s_save").onclick = ()=>{
   cfg.k     = Math.max(1, 12 - cfg.aggr);   // higher aggression = sharper sigmoid
   picks = picks.filter(p => p.overall < cfg.teams * cfg.size);
   reindex();
+  saveSettings();                 // persist league setup the moment it's confirmed
   $("#setmask").classList.remove("on");
   render();
   if(firstRun){ firstRun = false; $("#helpmask").classList.add("on"); }
@@ -3403,6 +3441,7 @@ const savedProjectionText = loadProjectionText();
 pool = dedupe(parsePool(savedProjectionText || RAW));
 scoreBoth(pool);
 const matched = pool.length ? attachLast(dedupe(parsePool(RAW_LAST))) : 0;
+loadSettings();                 // league setup, before anything pool-dependent
 const resumed = loadState();
 syncGPW();
 
