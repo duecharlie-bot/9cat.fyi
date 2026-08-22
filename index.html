@@ -2673,7 +2673,10 @@ function sortVal(p, key, mode){
   if(key === "fit")   return fitFor(p);
   if(key === "total") return p.total;
   if(key === "rank")  return p.valRank == null ? -Infinity : -p.valRank;
-  if(key === "adp")   return p.adp == null ? -Infinity : -p.adp;   // earlier ADP sorts first
+  if(key === "adp") {
+    const adp = Number(p.adp);
+    return (!Number.isFinite(adp) || adp <= 0) ? -Infinity : -adp; // blanks/invalid ADP always count as missing
+  }
   if(mode === "z")    return p.z[key];
   const src = mode === "last" ? p.last : p;
   if(!src) return -Infinity;
@@ -2726,7 +2729,7 @@ function renderBoard(state){
       <td class="fit mono" style="color:${(isFinite(fitFor(p))&&fitFor(p)>=0)?"var(--chalk)":"var(--dimmer)"}">${
         isFinite(fitFor(p)) ? fitFor(p).toFixed(1) : "—"}</td>
       <td class="mono" style="color:${rk?"var(--chalk)":"var(--dimmer)"}">${rk ?? "—"}</td>
-      <td class="mono" style="color:var(--dim)">${p.adp ? p.adp.toFixed(0) : "—"}</td>
+      <td class="mono" style="color:var(--dim)">${Number.isFinite(Number(p.adp)) && Number(p.adp) > 0 ? Number(p.adp).toFixed(0) : "—"}</td>
       <td class="mono" style="color:var(--dim)">${p.total.toFixed(1)}</td>
       ${CATS.map(c=>statCell(p,c,mode)).join("")}
     </tr>`;
@@ -3381,7 +3384,12 @@ $("#imp_go").onclick = ()=>{
 
   $("#banner").classList.add("hide");
   syncGPW();
-  clearState();
+
+  // A new projection pool should reset draft-specific state, but it should NOT
+  // wipe league setup. At this point picks/locks are already empty and `pool`
+  // is the newly imported pool, so save the new clean draft state with the
+  // existing league settings before reloading.
+  saveState();
 
   // The pasted projection text is already persisted in localStorage.
   // Reboot the page so the normal startup path reloads the pool and
