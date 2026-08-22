@@ -2439,7 +2439,16 @@ function draft(id){
     the same pool — restoring picks onto a different projection set would
     silently rename every player on your roster. The signature guards that.   */
 const SAVE_KEY = "draftboard.v1";
+const PROJ_KEY = "draftboard.projections.v1";
 const poolSig = () => pool.length + "|" + (pool[0] ? pool[0].name : "");
+
+function saveProjectionText(text){
+  try{ localStorage.setItem(PROJ_KEY, text); }catch(e){}
+}
+
+function loadProjectionText(){
+  try{ return localStorage.getItem(PROJ_KEY) || ""; }catch(e){ return ""; }
+}
 
 function saveState(){
   try{
@@ -2670,6 +2679,7 @@ $("#imp_go").onclick = ()=>{
   }
 
   /* ---- this season's projections: replace the pool ---- */
+  saveProjectionText($("#impbox").value);
   pool = rows; picks = []; locks = {};
   scoreBoth(pool);
   const withGP = pool.filter(p=>p.gp>0).length;
@@ -2694,7 +2704,8 @@ $("#imp_go").onclick = ()=>{
 };
 
 // Boot
-pool = dedupe(parsePool(RAW));
+const savedProjectionText = loadProjectionText();
+pool = dedupe(parsePool(savedProjectionText || RAW));
 scoreBoth(pool);
 const matched = pool.length ? attachLast(dedupe(parsePool(RAW_LAST))) : 0;
 const resumed = loadState();
