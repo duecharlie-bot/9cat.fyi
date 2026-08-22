@@ -168,7 +168,7 @@ body{
 .rec-eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--wood);margin-bottom:4px}
 .rec-name{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;line-height:1;letter-spacing:0}
 .rec-sub{color:var(--dim);font-size:13px;margin-top:3px}
-.rec-why{margin-top:12px;display:flex;flex-wrap:wrap;gap:5px}
+.rec-why{margin-top:12px;display:flex;flex-wrap:wrap;gap:5px;min-height:26px}
 .chip{font-size:11px;padding:4px 8px;border-radius:var(--r);border:1px solid var(--line);color:var(--dim);letter-spacing:.04em}
 .chip.up{border-color:var(--pos-bd);color:var(--pos-fg);background:var(--pos-bg)}
 .chip.risk{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
@@ -390,9 +390,14 @@ thead th.on .arw{opacity:1}
 .sug .mini{margin-top:8px}
 
 /* tradeoff callout */
+/*  Always rendered, never conditionally hidden. Popping this block in and out
+    as you hover different players shoved the ledger, punt radar and roster up
+    and down on every mouse move. Fixed height keeps everything below it still. */
 .tradeoff{
   margin-top:12px;padding:10px 12px;border-left:2px solid var(--wood);
-  background:var(--raise);font-size:13px;color:var(--dim);line-height:1.5;border-radius:0 var(--r) var(--r) 0
+  background:var(--raise);font-size:13px;color:var(--dim);line-height:1.5;
+  border-radius:0 var(--r) var(--r) 0;
+  min-height:92px;box-sizing:border-box
 }
 .tradeoff .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:3px}
 .tradeoff b{color:var(--chalk)}
@@ -2405,6 +2410,7 @@ function renderRec(state){
                            .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
 
   const fg1 = fitFor(best), fg2 = fitFor(shown);
+  const runnerUp = [...avail].sort((a,b)=>fitFor(b)-fitFor(a))[1] || null;
   const fitGap = (isFinite(fg1)?fg1:0) - (isFinite(fg2)?fg2:0);
   const compare = !isRec
     ? `<div class="tradeoff">
@@ -2421,7 +2427,14 @@ function renderRec(state){
           ? `Category shaping is only ${Math.round(conviction*100)}% engaged this early, so if the gap looks big, trust the value.`
           : `The board prefers ${best.name.split(" ").slice(-1)[0]} on category fit${best.scarce - bestVal.scarce > 0.3 ? ` and availability` : ``}.`}
         <button class="mini" id="r_val">Inspect ${bestVal.name}</button>
-      </div>` : ``);
+      </div>`
+    : `
+      <div class="tradeoff">
+        <div class="k">Top of the board</div>
+        Nothing available scores higher for your roster.${runnerUp
+          ? ` Clear of <b>${runnerUp.name}</b> by ${(fg1 - fitFor(runnerUp)).toFixed(1)}.`
+          : ``}
+      </div>`);
 
   $("#rec").innerHTML = `
     <div class="rec-eyebrow">${previewing ? "Previewing" : !isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}${
