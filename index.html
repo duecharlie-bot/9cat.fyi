@@ -2612,6 +2612,12 @@ function setCatPreset(o){
   });
 }
 $("#s_close").onclick = ()=> $("#setmask").classList.remove("on");
+
+// Close the setup modal when the user clicks the backdrop,
+// but keep clicks inside the modal itself from dismissing it.
+$("#setmask").addEventListener("click", e=>{
+  if(e.target === e.currentTarget) e.currentTarget.classList.remove("on");
+});
 $("#s_teams").addEventListener("input", ()=>{ cfg.teams = Math.max(4, +$("#s_teams").value || 12); paintNameGrid(); });
 $("#s_slot").addEventListener("input", paintNameGrid);
 $("#s_cats_std").onclick = ()=> setCatPreset({});
