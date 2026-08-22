@@ -491,10 +491,6 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       Column headers are read automatically, so paste whatever the site gives you — ESPN, Hashtag,
       Basketball Monster, or your own CSV. Repeated header rows, doubled names, <span class="mono">0.573 (10.5/18.3)</span>
       and <span class="mono">9.5/19.0</span> cells all parse. Don't clean anything up first.
-      <br><br>
-      The one hard requirement is <b style="color:var(--chalk)">makes and attempts, not just a percentage</b> —
-      a bare rate can't tell the engine whether 54% came on 20 shots a night or on 4.
-      Include <span class="mono">GP</span> if the source has it and the durability slider comes alive.
     </p>
 
     <details style="margin-bottom:12px" open>
@@ -2089,7 +2085,7 @@ function renderLedger(state){
 
   $("#ledgerkey").innerHTML = asTotals
     ? `Combined projected per-game production of the roster \u2014 counting stats summed, percentages recombined by volume. Bars compare against an average roster of the same size; the right-hand figure is the rank among drafted teams. Hover a player on the board to see where each line would land if you drafted him.`
-    : `Bars are the roster\u2019s per-player z-score in each category. Amber labels mark where the next pick has the most leverage \u2014 you\u2019re close enough to even that moving the bar actually flips the category. Grey labels are decided: locked up, or punted. Hover a player on the board to see where each line would land if you drafted him.`;
+    : ``;
 
   $("#ledgernote").textContent = isMine
     ? (roster.length ? "hover a player to preview" : "draft someone to begin")
