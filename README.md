@@ -1,14 +1,9 @@
-# Draft Board
+# NineCat
 
-A 9-category fantasy basketball draft board. One HTML file, no build step, no
-server, no dependencies. Open it in a browser and it works — including offline,
-once your data is loaded.
+Fantasy basketball draft intelligence for 9-category leagues.
 
-It exists because generic ranking lists answer the wrong question. A ranking
-tells you who the best player is. During a draft you need to know who the best
-player *for your roster* is, given what you've already taken, what your
-opponents are building, and who will still be on the board when your turn comes
-round again.
+NineCat helps you make draft decisions based on projected player value, roster construction, category strength, punt strategy, and expected player availability.
+
 
 ---
 
