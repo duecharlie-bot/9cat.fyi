@@ -1,0 +1,2930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft Room — 9-Cat Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ---- Arena (default): dark, but lifted off pure black for legibility ---- */
+  --ink:#171D26;
+  --panel:#202834;
+  --panel-2:#293341;
+  --line:#36434F;
+  --line-soft:#2A3441;
+  --raise:#252F3C;
+  --chalk:#EEF3F9;
+  --dim:#A6B3C3;
+  --dimmer:#7E8C9E;
+  --wood:#D4A059;
+  --wood-hi:#E0B171;
+  --wood-text:var(--wood-text);
+  --cool:#57ACF2;
+  --hot:#E4636E;
+  --ok:#5CC489;
+  --pos-bg:#162E3D; --pos-fg:#A8D6F5; --pos-bd:#2B5D7C;
+  --neg-bg:#331A1E; --neg-fg:#F2B3B9; --neg-bd:#66303A;
+  --okk-bg:#183324; --okk-fg:#97DBB2; --okk-bd:#2F6647;
+  --you-bg:#1F3E2F;
+  --onclock-bg:var(--onclock-bg); --onclock-fg:#FFFFFF; --onclock-k:var(--onclock-k);
+  --banner-bg:#1C2E24; --banner-fg:#A6DEBC; --banner-bd:#2E4B39;
+  --banner-btn:#2E4B39; --banner-btnfg:#D6F0E2;
+  --mask:var(--mask);
+  --scroll:#3E4C5C; --scroll-hi:#4E5F72;
+  --r:3px;
+}
+body[data-theme="court"]{
+  /* ---- Court: light, for bright rooms ---- */
+  --ink:#F2F5F9;
+  --panel:#FFFFFF;
+  --panel-2:#E9EEF4;
+  --line:#D0D9E3;
+  --line-soft:#E3E9F0;
+  --raise:#EDF1F7;
+  --chalk:#16202C;
+  --dim:#4E5C6E;
+  --dimmer:#78869A;
+  --wood:#8F5D12;
+  --wood-hi:#A46E1E;
+  --wood-text:#FFFFFF;
+  --cool:#1668BC;
+  --hot:#AE2F3B;
+  --ok:#1C7644;
+  --pos-bg:#E2EFFA; --pos-fg:#125388; --pos-bd:#B6D6F1;
+  --neg-bg:#FBE6E8; --neg-fg:#8E2028; --neg-bd:#EFC0C5;
+  --okk-bg:#E3F2E9; --okk-fg:#1A6339; --okk-bd:#BCDFCB;
+  --you-bg:#DCEFE3;
+  --onclock-bg:#F2E1C2; --onclock-fg:#5A3E13; --onclock-k:#8A6524;
+  --banner-bg:#E5F3EB; --banner-fg:#1A6339; --banner-bd:#BCDFCB;
+  --banner-btn:#1C7644; --banner-btnfg:#FFFFFF;
+  --mask:rgba(30,40,52,.55);
+  --scroll:#C4CEDA; --scroll-hi:#AAB7C6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--ink);
+  color:var(--chalk);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.disp{font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:1px;background:var(--line);height:100vh}
+.col{background:var(--ink);overflow-y:auto;min-width:0}
+
+/* ---------- clock bar ---------- */
+.clock{
+  display:flex;align-items:stretch;gap:1px;background:var(--line);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30
+}
+.clock-cell{background:var(--panel);padding:8px 14px;display:flex;flex-direction:column;justify-content:center}
+.clock-cell .k{font-size:9px;letter-spacing:.14em;color:var(--dimmer);text-transform:uppercase}
+.clock-cell .v{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1.1}
+.clock-cell.onclock{background:var(--wood-lo);flex:1}
+.clock-cell.onclock .k{color:var(--onclock-k)}
+.clock-cell.onclock .v{color:var(--onclock-fg)}
+.clock-cell.you{background:var(--you-bg)}
+.clock-cell.you .v{color:var(--ok)}
+.clock-btn{background:var(--panel);border:0;color:var(--dim);padding:0 12px;cursor:pointer;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-family:"Saira Condensed",sans-serif;font-weight:700}
+.clock-btn:hover{background:var(--panel-2);color:var(--chalk)}
+
+/* ---------- section head ---------- */
+.head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:14px 16px 8px;border-bottom:1px solid var(--line)
+}
+.head h2{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:16px;letter-spacing:.1em;text-transform:uppercase}
+.head .note{font-size:11px;color:var(--dimmer)}
+
+/* ---------- recommendation ---------- */
+.rec{padding:16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--panel) 0%,var(--ink) 100%)}
+.rec-eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--wood);margin-bottom:4px}
+.rec-name{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;line-height:1;letter-spacing:0}
+.rec-sub{color:var(--dim);font-size:13px;margin-top:3px}
+.rec-why{margin-top:12px;display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11px;padding:4px 8px;border-radius:var(--r);border:1px solid var(--line);color:var(--dim);letter-spacing:.04em}
+.chip.up{border-color:var(--pos-bd);color:var(--pos-fg);background:var(--pos-bg)}
+.chip.risk{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
+.rec-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  font-size:12px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--line);
+  background:var(--panel-2);color:var(--chalk);cursor:pointer
+}
+.btn:hover{background:var(--line)}
+.btn.primary{background:var(--wood);border-color:var(--wood);color:var(--wood-text)}
+.btn.primary:hover{background:var(--wood-hi)}
+.btn:focus-visible,.px:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--wood);outline-offset:1px}
+.empty{padding:28px 16px;color:var(--dimmer);font-size:13px}
+
+/* ---------- ledger (signature) ---------- */
+.ledger{padding:12px 16px 18px}
+.lrow{display:grid;grid-template-columns:42px 1fr auto 34px;align-items:center;gap:9px;height:27px}
+.lcat{font-size:11px;letter-spacing:.08em;color:var(--dimmer);text-transform:uppercase}
+.lrow.lev .lcat{color:var(--wood)}
+.ltrack{position:relative;height:12px;background:var(--panel);border-radius:2px;overflow:visible}
+.lmid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
+.lbar{position:absolute;top:0;bottom:0;border-radius:2px;transition:all .18s ease}
+.lbar.pos{background:var(--cool)}
+.lbar.neg{background:var(--hot)}
+.lghost{position:absolute;top:-2px;bottom:-2px;border:1px dashed var(--wood);border-radius:2px;pointer-events:none}
+.lval{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;min-width:52px}
+.ledger-key{font-size:11px;color:var(--dimmer);padding:8px 16px 0;line-height:1.5}
+
+/* ---------- search + board ---------- */
+.searchwrap{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;position:sticky;top:0;background:var(--ink);z-index:20}
+input[type=text],input[type=number],select{
+  background:var(--panel);border:1px solid var(--line);color:var(--chalk);
+  padding:7px 10px;border-radius:var(--r);font-family:inherit;font-size:13px;width:100%
+}
+input::placeholder{color:var(--dimmer)}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;flex:0 0 auto}
+.seg button{background:var(--panel);border:0;color:var(--dim);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:0 10px;cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700}
+.seg button.on{background:var(--wood);color:var(--wood-text)}
+
+table{width:100%;border-collapse:collapse}
+thead th{
+  position:sticky;top:0;background:var(--ink);z-index:10;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+  font-weight:600;text-align:right;padding:9px 6px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap
+}
+thead th.l{text-align:left}
+thead th:hover{color:var(--chalk)}
+tbody td{padding:8px 6px;border-bottom:1px solid var(--line-soft);font-size:13px;text-align:right;white-space:nowrap}
+tbody td.l{text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel)}
+tbody tr.top{box-shadow:inset 2px 0 0 var(--wood)}
+.pname{font-weight:600;font-size:14px;letter-spacing:.01em}
+.ppos{color:var(--dimmer);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.fit{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px}
+.delta{font-size:10px;color:var(--dimmer)}
+.delta.up{color:var(--ok)}
+.delta.dn{color:var(--hot)}
+.risk-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--hot);margin-left:5px;vertical-align:middle}
+
+/* ---------- roster / log ---------- */
+.roster{padding:6px 16px 16px}
+.slot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+.slot .idx{color:var(--dimmer);font-size:10px;width:22px;flex:0 0 22px}
+.slot .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.open .nm{color:var(--dimmer);font-style:italic}
+.px{background:none;border:0;color:var(--dimmer);cursor:pointer;font-size:14px;padding:0 4px;line-height:1}
+.px:hover{color:var(--hot)}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:var(--mask);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+.mask.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:6px;width:100%;max-width:620px;max-height:86vh;overflow-y:auto;padding:20px}
+.modal h3{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--dim);margin-bottom:12px}
+textarea{
+  width:100%;height:190px;background:var(--ink);border:1px solid var(--line);color:var(--chalk);
+  border-radius:var(--r);padding:10px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.5;resize:vertical
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fld label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:4px}
+.msg{font-size:12px;margin-top:10px}
+.msg.bad{color:var(--hot)}
+.msg.good{color:var(--ok)}
+
+/* sort indicator */
+thead th.on{color:var(--wood)}
+thead th .arw{opacity:0;margin-left:3px}
+thead th.on .arw{opacity:1}
+
+/* punt locks */
+.lcat{cursor:pointer;user-select:none}
+.lcat:hover{color:var(--chalk)}
+.lrow.punt .lcat{color:var(--hot);text-decoration:line-through}
+.lrow.chase .lcat{color:var(--ok)}
+.lrow.punt .ltrack{opacity:.32}
+
+/* placeholder banner */
+.banner{
+  background:var(--banner-bg);border-bottom:1px solid var(--banner-bd);color:var(--banner-fg);
+  padding:8px 16px;font-size:12px;display:flex;justify-content:space-between;
+  align-items:center;gap:12px
+}
+.banner.hide{display:none}
+.banner button.x{background:none;color:var(--banner-fg);font-size:17px;line-height:1;padding:0 4px}
+.banner button.x:hover{color:#fff}
+.banner button{background:var(--banner-btn);border:0;color:var(--banner-btnfg);padding:4px 10px;border-radius:var(--r);
+  font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;cursor:pointer;flex:0 0 auto}
+
+/* gp slider */
+.gpw{display:grid;grid-template-columns:140px 1fr 104px 46px;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--dimmer)}
+.gpw input[type=range]{width:100%;accent-color:var(--wood);margin:0}
+
+.prev{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px}
+.prev td,.prev th{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right}
+.prev th{color:var(--dimmer);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.prev td.l,.prev th.l{text-align:left}
+
+.catgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.catgrid label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:3px}
+.cwx{font-style:normal;font-size:9px;color:var(--wood);margin-left:3px}
+
+/* dismiss buttons */
+.dismiss{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--dimmer);
+  font-size:15px;line-height:1;cursor:pointer;padding:2px 4px}
+.dismiss:hover{color:var(--chalk)}
+.sug,.gapnote{position:relative}
+.sug a{color:var(--wood);text-decoration:none;margin-left:4px}
+.sug a:hover{text-decoration:underline}
+.tinybtn{background:var(--panel-2);border:1px solid var(--line);color:var(--dimmer);justify-self:stretch;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;
+  border-radius:var(--r);cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700;flex:0 0 auto}
+.tinybtn.on{border-color:var(--wood);color:var(--wood)}
+.tinybtn:hover{color:var(--chalk)}
+.pickerlbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);
+  align-self:center;margin-right:2px}
+.scrolly{max-height:340px;overflow-y:auto}
+
+/* active locks + change diff */
+.active{padding:10px 16px;border-bottom:1px solid var(--line-soft);display:flex;flex-wrap:wrap;gap:6px}
+.lockchip{
+  font-size:11px;padding:5px 9px;border-radius:var(--r);cursor:pointer;
+  letter-spacing:.04em;border:1px solid var(--line);color:var(--dim)
+}
+.lockchip b{margin-left:4px;font-weight:700}
+.lockchip.auto{opacity:.6}
+.lockchip.punt{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
+.lockchip.chase{border-color:var(--okk-bd);color:var(--okk-fg);background:var(--okk-bg)}
+.lockchip:hover{border-color:var(--wood);color:var(--chalk)}
+.lockchip.clear{color:var(--dimmer)}
+.sug.diff{background:var(--raise);font-size:11px}
+.sug.diff .up{color:var(--ok)}
+.sug.diff .dn{color:var(--hot)}
+
+/* roster gap advisory */
+.gapnote{margin-top:12px;padding:10px 12px;border-radius:var(--r);background:var(--raise);
+  border-left:2px solid var(--dimmer);font-size:13px;color:var(--dim);line-height:1.5}
+.gapnote .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);margin-bottom:3px}
+.gapnote.warm{border-left-color:var(--wood)}
+.gapnote.warm .k{color:var(--wood)}
+.gapnote.hot{border-left-color:var(--hot);background:var(--neg-bg)}
+.gapnote.hot .k{color:var(--hot)}
+
+/* punt radar */
+.sug{padding:12px 16px;border-bottom:1px solid var(--line-soft);font-size:13px;color:var(--dim);line-height:1.5}
+.sug .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:3px}
+.sug b{color:var(--chalk)}
+.sug.quiet{color:var(--dimmer);font-size:11px}
+.sug.warn{background:var(--neg-bg);border-left:2px solid var(--hot)}
+.sug.warn .k{color:var(--hot)}
+.sug .mini{margin-top:8px}
+
+/* tradeoff callout */
+.tradeoff{
+  margin-top:12px;padding:10px 12px;border-left:2px solid var(--wood);
+  background:var(--raise);font-size:13px;color:var(--dim);line-height:1.5;border-radius:0 var(--r) var(--r) 0
+}
+.tradeoff .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:3px}
+.tradeoff b{color:var(--chalk)}
+.mini{
+  display:block;margin-top:8px;background:none;border:1px solid var(--line);color:var(--dim);
+  padding:5px 9px;border-radius:var(--r);cursor:pointer;font-size:11px;font-family:inherit
+}
+.mini:hover{border-color:var(--wood);color:var(--chalk)}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr;height:auto}
+  .col{height:auto;overflow:visible}
+  .rec-name{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+
+/* ---------- selected row ---------- */
+tbody tr.sel{background:var(--pos-bg);box-shadow:inset 3px 0 0 var(--wood)}
+tbody tr.sel .pname{color:var(--chalk)}
+tbody tr.sel:hover{background:var(--pos-bg)}
+
+/* ---------- recommendation photo ---------- */
+.rec-top{display:flex;gap:14px;align-items:flex-start}
+.rec-info{flex:1;min-width:0}
+.rec-photo{
+  position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;
+  overflow:hidden;border:2px solid var(--line);background:var(--panel-2)
+}
+.rec-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.mono-badge{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;letter-spacing:.02em;
+  color:hsl(var(--h) 45% 78%);background:hsl(var(--h) 30% 22%)
+}
+body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(var(--h) 45% 88%)}
+@media (max-width:900px){ .rec-photo{width:72px;height:72px} .mono-badge{font-size:26px} }
+
+/* ---------- hover projection in the ledger ---------- */
+.lnext{font-style:normal;font-size:11px;color:var(--dimmer);margin-left:5px}
+.lnext.up{color:var(--ok)}
+.lnext.dn{color:var(--hot)}
+
+/* ---------- ledger: team selector + standings rank ---------- */
+.ledgersel{
+  background:var(--panel);border:1px solid var(--line);color:var(--dim);
+  font-family:inherit;font-size:11px;padding:3px 6px;border-radius:var(--r);width:auto;max-width:150px
+}
+.lrank{
+  font-size:10px;color:var(--dimmer);text-align:right;font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums
+}
+.lrank.first{color:var(--ok);font-weight:600}
+
+/* ---------- themed scrollbars ---------- */
+*{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:6px;
+  border:3px solid var(--ink);background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--scroll-hi);border:3px solid var(--ink);background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+
+/* ---------- roster position tag ---------- */
+.rpos{font-size:10px;letter-spacing:.06em;color:var(--dimmer);
+  border:1px solid var(--line);border-radius:var(--r);padding:1px 5px;flex:0 0 auto}
+.slot .nm{flex:1}
+
+/* ---------- team name grid ---------- */
+.namegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:220px;overflow-y:auto}
+</style>
+</head>
+<body data-theme="arena">
+
+<div class="shell">
+
+  <!-- ============ LEFT: BOARD ============ -->
+  <div class="col">
+    <div class="clock" id="clock"></div>
+
+    <div class="banner" id="banner">
+      <span>Loading…</span>
+    </div>
+
+    <div class="gpw">
+      <span id="gpwlab">Games played weight</span>
+      <input type="range" id="gpw" min="0" max="100" value="50">
+      <span class="mono" id="gpwv" style="text-align:right">balanced</span>
+      <span></span>
+    </div>
+
+    <div class="gpw" id="shaperow">
+      <span>Value → Category fit</span>
+      <input type="range" id="shape" min="0" max="100" value="50">
+      <span class="mono" id="shapev" style="text-align:right">50%</span>
+      <button class="tinybtn" id="shapeauto" title="Reset to a balanced 50%">50%</button>
+    </div>
+
+    <div class="searchwrap">
+      <input type="text" id="q" placeholder="Search a player, then Enter to draft him  ( / to focus )" autocomplete="off">
+      <select id="mode" style="width:auto;flex:0 0 auto">
+        <option value="z">Z-scores</option>
+        <option value="proj">Projected per game</option>
+        <option value="last">Last season per game</option>
+      </select>
+      <div class="seg" id="posfilter"></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="l" data-s="name">Player<span class="arw">▾</span></th>
+          <th data-s="fit">Fit<span class="arw">▾</span></th>
+          <th data-s="rank" title="Your projection source's own rank. It can disagree with VAL: this Hashtag export was built with turnovers weighted x0.25, while VAL counts all nine categories equally.">Rk<span class="arw">▾</span></th>
+          <th data-s="total">Val<span class="arw">▾</span></th>
+          <th data-s="fg">FG%<span class="arw">▾</span></th>
+          <th data-s="ft">FT%<span class="arw">▾</span></th>
+          <th data-s="tpm">3PM<span class="arw">▾</span></th>
+          <th data-s="pts">PTS<span class="arw">▾</span></th>
+          <th data-s="reb">REB<span class="arw">▾</span></th>
+          <th data-s="ast">AST<span class="arw">▾</span></th>
+          <th data-s="stl">STL<span class="arw">▾</span></th>
+          <th data-s="blk">BLK<span class="arw">▾</span></th>
+          <th data-s="to">TO<span class="arw">▾</span></th>
+        </tr>
+      </thead>
+      <tbody id="board"></tbody>
+    </table>
+  </div>
+
+  <!-- ============ RIGHT: BRAIN ============ -->
+  <div class="col">
+    <div class="rec" id="rec"></div>
+
+    <div class="head">
+      <h2>Category Ledger</h2>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span class="note" id="ledgernote">hover a player to preview</span>
+        <span class="seg" id="ledgermode">
+          <button data-m="z" class="on">Z</button><button data-m="tot">Totals</button>
+        </span>
+        <select id="ledgerteam" class="ledgersel"></select>
+      </span>
+    </div>
+    <div class="ledger" id="ledger"></div>
+    <div class="ledger-key" id="ledgerkey"></div>
+
+    <div class="head"><h2>Punt Radar</h2><span class="note">click a ledger label to punt by hand</span></div>
+    <div id="suggest"></div>
+
+    <div class="head"><h2 id="rosterhead">My Roster</h2><span class="note" id="rostercount"></span></div>
+    <div class="roster" id="roster"></div>
+
+    <div class="head"><h2>Pick Log</h2><span class="note" id="logcount"></span><button class="clock-btn" id="undo">Undo last</button></div>
+    <div class="roster scrolly" id="log"></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="mask" id="setmask">
+  <div class="modal">
+    <h3>League setup</h3>
+    <p>Snake order is derived from these. Change them before the draft starts.</p>
+    <div class="grid2">
+      <div class="fld"><label>Teams</label><input type="number" id="s_teams" min="4" max="20"></div>
+      <div class="fld"><label>Your draft slot</label><input type="number" id="s_slot" min="1" max="20"></div>
+      <div class="fld"><label>Roster spots</label><input type="number" id="s_size" min="5" max="20"></div>
+      <div class="fld"><label>Punt aggression (0–10)</label><input type="number" id="s_aggr" min="0" max="10" step="1"></div>
+    </div>
+    <p style="margin-bottom:16px">How readily the engine writes a category off. <b style="color:var(--chalk)">0</b> keeps chasing all nine to the end; <b style="color:var(--chalk)">10</b> abandons a losing category the moment it slips. <b style="color:var(--chalk)">8</b> is a sane default.</p>
+    <h3 style="margin-top:20px">Team names <span style="font-weight:400;font-size:11px;color:var(--dimmer);text-transform:none;letter-spacing:0">optional</span></h3>
+    <p>Leave blank for "Team 1", "Team 2" and so on. Your own slot is highlighted.</p>
+    <div class="namegrid" id="s_names"></div>
+
+    <h3 style="margin-top:20px">Category weights</h3>
+    <p>Match your league's scoring. <b style="color:var(--chalk)">1</b> = counts normally,
+       <b style="color:var(--chalk)">0</b> = not scored at all. This is a league setting —
+       punting a category you're losing is a separate, per-roster choice.</p>
+    <div class="catgrid" id="s_cats"></div>
+    <div style="margin:10px 0 16px">
+      <button class="mini" id="s_cats_std" style="display:inline-block;margin-right:6px">Standard 9-cat</button>
+      <button class="mini" id="s_cats_8" style="display:inline-block">8-cat (drop TO)</button>
+    </div>
+    <button class="btn primary" id="s_save">Save setup</button>
+    <button class="btn" id="s_close">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ IMPORT MODAL ============ -->
+<div class="mask" id="impmask">
+  <div class="modal">
+    <h3>Load projections</h3>
+
+    <div class="seg" id="imptarget" style="margin-bottom:12px;width:100%">
+      <button data-t="proj" class="on" style="flex:1;padding:7px 0">This season's projections</button>
+      <button data-t="last" style="flex:1;padding:7px 0">Last season's actuals</button>
+    </div>
+
+    <p>
+      Column headers are read automatically, so paste whatever the site gives you — ESPN, Hashtag,
+      Basketball Monster, or your own CSV. Repeated header rows, doubled names, <span class="mono">0.573 (10.5/18.3)</span>
+      and <span class="mono">9.5/19.0</span> cells all parse. Don't clean anything up first.
+      <br><br>
+      The one hard requirement is <b style="color:var(--chalk)">makes and attempts, not just a percentage</b> —
+      a bare rate can't tell the engine whether 54% came on 20 shots a night or on 4.
+      Include <span class="mono">GP</span> if the source has it and the durability slider comes alive.
+    </p>
+
+    <details style="margin-bottom:12px" open>
+      <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Export a whole table without hand-selecting rows</summary>
+      <p style="margin-top:8px">
+        Set the page to show every player first, then open the console (F12) and paste this. It copies the
+        biggest table on the page as tab-separated text, ready to paste below. Tabs beat CSV here —
+        nothing needs escaping.
+      </p>
+      <textarea readonly style="height:88px" onclick="this.select()">copy([...[...document.querySelectorAll('table')]
+  .sort((a,b)=>b.rows.length-a.rows.length)[0].rows]
+  .map(r=>[...r.cells].map(c=>c.innerText.replace(/\s+/g,' ').trim()).join('\t'))
+  .join('\n'))</textarea>
+      <p style="margin-top:8px">Or download it as a CSV file instead:</p>
+      <textarea readonly style="height:110px" onclick="this.select()">(()=>{const t=[...document.querySelectorAll('table')]
+  .sort((a,b)=>b.rows.length-a.rows.length)[0];
+const esc=s=>/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+const csv=[...t.rows].map(r=>[...r.cells]
+  .map(c=>esc(c.innerText.replace(/\s+/g,' ').trim())).join(',')).join('\n');
+const a=document.createElement('a');
+a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+a.download='projections.csv';a.click();})()</textarea>
+      <p style="margin-top:6px;color:var(--dimmer)">
+        On lazy-loading pages like ESPN, scroll to the bottom first — the snippet only sees rendered rows.
+      </p>
+    </details>
+
+    <textarea id="impbox" placeholder="R#	PLAYER	ADP	POS	TEAM	GP	MPG	FG%	FT%	3PM	PTS	TREB	AST	STL	BLK	TO"></textarea>
+    <div class="msg" id="impmsg"></div>
+    <div style="margin-top:12px">
+      <button class="btn primary" id="imp_go">Replace pool</button>
+      <button class="btn" id="imp_close">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   PLAYER POOL  —  APPROXIMATE per-game lines, placeholders only.
+   Replace via the "Load projections" button before you draft for real.
+   [name, pos, team, FGM, FGA, FTM, FTA, 3PM, PTS, REB, AST, STL, BLK, TO]
+   ============================================================ */
+/* ============================================================
+   EMBEDDED DATA — your own Hashtag projections + Basketball
+   Reference actuals, baked in so the board works offline with
+   nothing to import. Replace either via the Projections button.
+   ============================================================ */
+const RAW = `
+R#	PLAYER	ADP	POS	TEAM	GP	MPG	FG%	FT%	3PM	PTS	TREB	AST	STL	BLK	TO	TOTAL
+1	Nikola Jokic	1.7	C	DEN	72	35.1	0.573 (10.5/18.3)	0.816 (5.6/6.8)	1.8	28.4	12.7	10.4	1.6	0.7	3.5	15.96
+2	Victor Wembanyama	2.9	C	SA	66	30.4	0.502 (9.2/18.3)	0.831 (5.1/6.1)	2.2	25.6	11.8	3.6	1.1	3.2	2.9	14.39
+3	Shai Gilgeous-Alexander	3.1	PG	OKC	71	33.5	0.534 (11.1/20.7)	0.889 (8.0/8.9)	1.9	32.1	4.7	6.5	1.6	0.9	2.3	14.17
+4	Luka Doncic	4.6	PG	LAL	68	35.4	0.465 (10.6/22.9)	0.781 (7.5/9.6)	4.0	32.7	8.7	8.8	1.7	0.5	4.0	10.94
+5	Giannis Antetokounmpo	5.3	PF/C	MIA	69	34.2	0.608 (12.1/19.9)	0.628 (6.9/11.0)	0.3	31.4	11.9	6.5	1.0	1.1	3.3	10.31
+6	Cade Cunningham	8.2	PG	DET	68	33.9	0.466 (9.2/19.7)	0.826 (4.6/5.6)	2.0	25.0	5.8	9.8	1.3	0.8	4.1	7.80
+7	Anthony Edwards	6.8	SG/SF	MIN	74	35.3	0.487 (9.7/20.0)	0.818 (5.4/6.6)	3.7	28.7	5.6	3.5	1.2	0.7	3.0	7.62
+8	Tyrese Maxey	16.3	PG/SG	PHI	70	36.1	0.458 (8.4/18.2)	0.885 (4.6/5.2)	2.8	24.2	3.4	5.8	1.8	0.5	2.2	7.59
+9	Jayson Tatum	11.3	SF/PF	BOS	68	33.7	0.464 (9.0/19.4)	0.815 (4.8/5.8)	3.3	26.1	8.8	5.8	1.2	0.5	2.8	7.54
+10	Stephen Curry	21.1	PG	GS	60	31.6	0.456 (8.4/18.3)	0.929 (4.3/4.6)	4.4	25.4	3.6	5.2	1.0	0.4	2.9	7.52
+11	Kevin Durant	25.9	SF/PF	HOU	70	34.6	0.523 (8.8/16.8)	0.860 (4.8/5.6)	2.3	24.7	5.4	4.3	0.8	1.0	2.9	7.26
+12	Anthony Davis	12.8	PF/C	WAS	65	31.1	0.514 (8.6/16.8)	0.767 (4.7/6.1)	0.6	22.5	10.9	3.2	1.1	1.9	2.1	7.23
+13	Donovan Mitchell	21.7	PG/SG	CLE	72	33.4	0.464 (9.3/20.1)	0.846 (4.9/5.8)	3.3	26.9	4.7	5.4	1.5	0.3	2.6	6.84
+14	Tyrese Haliburton	73.2	PG/SG	IND	63	30.9	0.467 (6.1/13.0)	0.852 (2.4/2.8)	2.8	17.3	3.3	9.6	1.3	0.6	1.5	6.55
+15	Jamal Murray	36.2	PG	DEN	73	34.8	0.478 (8.2/17.2)	0.887 (3.9/4.4)	2.8	23.2	4.1	6.5	1.1	0.4	2.1	6.54
+16	Karl-Anthony Towns	14.4	C	NY	73	31.3	0.514 (7.6/14.7)	0.844 (4.6/5.4)	1.7	21.3	11.8	2.9	0.9	0.6	2.5	6.47
+17	Cooper Flagg	23.2	SF/PF	DAL	72	34.1	0.475 (8.8/18.5)	0.836 (4.4/5.3)	1.3	23.3	7.3	4.9	1.3	1.0	2.2	6.39
+18	Jalen Johnson	31.9	PF	ATL	72	35.1	0.482 (8.1/16.8)	0.786 (3.7/4.7)	1.5	21.4	10.2	6.9	1.4	0.6	3.3	6.38
+19	Kawhi Leonard	49.7	SF/PF	TOR	65	31.1	0.491 (8.6/17.5)	0.872 (4.4/5.0)	2.2	23.7	5.0	3.0	1.7	0.4	1.9	6.38
+20	Trae Young	22.2	PG	WAS	70	33.4	0.436 (7.0/16.0)	0.868 (6.2/7.1)	2.7	22.8	2.9	10.8	1.1	0.2	4.3	6.14
+21	Trey Murphy III	73.1	SG/SF	NO	68	35.2	0.463 (7.4/16.0)	0.888 (3.6/4.0)	3.2	21.6	5.5	3.7	1.3	0.5	1.9	5.98
+22	Scottie Barnes	29.5	SG/SF	TOR	80	34.2	0.477 (7.5/15.7)	0.784 (3.4/4.3)	1.0	19.4	7.9	6.1	1.5	1.3	2.8	5.96
+23	Chet Holmgren	43.0	PF/C	OKC	70	29.7	0.536 (6.3/11.7)	0.780 (3.4/4.4)	1.4	17.3	9.1	1.9	0.7	2.1	1.7	5.88
+24	James Harden	18.1	PG/SG	CLE	72	33.4	0.421 (5.9/14.0)	0.878 (5.6/6.4)	2.6	20.0	4.6	8.2	1.1	0.5	3.4	5.81
+25	Austin Reaves	51.9	PG/SG	LAL	70	34.4	0.472 (6.9/14.5)	0.874 (5.2/5.9)	2.6	21.5	4.6	5.7	1.1	0.3	2.6	5.59
+26	Evan Mobley	33.8	PF/C	CLE	72	32.5	0.552 (7.5/13.7)	0.665 (3.1/4.7)	1.1	19.3	9.6	3.6	0.8	1.8	2.1	5.25
+27	Kyrie Irving	90.5	PG	DAL	55	31.8	0.484 (7.5/15.5)	0.899 (3.3/3.7)	2.4	20.7	4.0	4.9	1.1	0.4	1.9	4.91
+28	Jaren Jackson Jr.	73.0	PF/C	UTA	67	30.7	0.483 (7.9/16.4)	0.788 (4.0/5.1)	2.0	21.8	5.8	2.1	1.2	1.5	2.2	4.85
+29	Amen Thompson	20.2	SG/SF	HOU	76	36.2	0.539 (7.0/13.0)	0.760 (3.7/4.9)	0.4	18.1	7.9	4.2	1.5	1.0	2.2	4.75
+30	Dejounte Murray	127.4	PG/SG	NO	65	30.7	0.456 (6.3/13.8)	0.836 (3.2/3.8)	1.6	17.3	6.1	7.1	1.8	0.3	3.4	4.70
+31	Devin Booker	20.3	PG/SG	PHO	68	33.5	0.459 (8.2/17.9)	0.884 (6.1/6.9)	2.1	24.6	3.8	6.3	0.8	0.2	2.9	4.65
+32	Lauri Markkanen	85.3	SF/PF	UTA	65	34.1	0.452 (8.0/17.8)	0.886 (4.7/5.4)	3.0	23.8	6.7	1.9	0.9	0.5	1.5	4.62
+33	Desmond Bane	49.2	SG/SF	ORL	76	33.6	0.484 (7.0/14.5)	0.904 (3.2/3.5)	2.2	19.4	4.9	4.6	1.1	0.4	2.2	4.52
+34	Walker Kessler	75.7	C	LAL	68	30.2	0.666 (4.9/7.3)	0.570 (1.5/2.6)	0.5	11.8	10.8	1.8	0.7	2.2	1.9	4.41
+35	Josh Giddey	31.8	PG/SG	CHI	70	32.0	0.457 (5.8/12.7)	0.771 (2.9/3.8)	1.8	16.3	8.5	8.4	1.2	0.6	3.3	4.41
+36	Zach Edey	126.8	C	MEM	65	25.8	0.619 (5.3/8.5)	0.775 (2.5/3.2)	0.3	13.3	10.3	1.2	0.7	1.8	1.8	4.36
+37	Jalen Duren	66.7	C	DET	70	28.4	0.652 (6.9/10.7)	0.738 (3.9/5.2)	0.0	17.7	11.1	2.5	0.8	0.9	1.9	4.33
+38	Darius Garland	90.7	PG	LAC	68	31.4	0.468 (7.5/16.1)	0.872 (2.9/3.3)	2.9	20.8	2.8	7.0	1.2	0.2	2.8	4.32
+39	Jalen Williams	32.4	SF/PF	OKC	68	31.2	0.484 (7.8/16.0)	0.805 (3.4/4.3)	1.5	20.4	5.2	5.3	1.5	0.6	2.1	4.23
+40	Domantas Sabonis	20.2	PF/C	SAC	70	30.7	0.581 (6.7/11.5)	0.749 (2.8/3.8)	0.7	17.0	12.3	5.2	0.7	0.3	2.6	4.15
+41	LeBron James	13.9	SF/PF	PHI	60	32.1	0.513 (7.7/15.0)	0.760 (3.4/4.4)	1.5	20.3	6.2	7.4	1.0	0.5	3.0	4.14
+42	Derrick White	53.6	PG/SG	BOS	75	33.8	0.416 (5.7/13.6)	0.871 (2.1/2.4)	3.1	16.5	4.5	5.1	1.1	1.2	1.7	4.11
+43	Tyler Herro	78.5	PG/SG	MIL	64	31.8	0.475 (7.7/16.2)	0.887 (3.3/3.7)	2.9	21.5	4.8	4.8	0.8	0.3	2.2	4.05
+44	Jalen Brunson	20.6	PG	NY	72	34.2	0.476 (9.0/18.9)	0.831 (5.1/6.1)	2.5	25.5	3.1	6.9	0.8	0.1	2.4	4.04
+45	Nickeil Alexander-Walker	110.8	PG/SG	ATL	76	33.0	0.456 (6.5/14.2)	0.881 (3.6/4.1)	3.0	19.6	3.8	3.6	1.1	0.5	1.9	3.98
+46	Franz Wagner	52.2	SF/PF	ORL	64	32.5	0.468 (8.4/18.0)	0.852 (4.7/5.5)	1.6	23.2	5.6	4.3	1.2	0.4	2.1	3.93
+47	LaMelo Ball	31.3	PG	MIN	65	30.2	0.431 (7.0/16.4)	0.867 (2.7/3.2)	2.9	19.8	4.5	7.1	1.3	0.2	2.9	3.88
+48	Onyeka Okongwu	92.6	C	ATL	74	31.1	0.519 (5.8/11.1)	0.757 (2.3/3.0)	1.4	15.2	8.8	2.9	1.1	1.1	1.6	3.78
+49	Joel Embiid	49.8	C	PHI	52	29.4	0.471 (7.5/15.9)	0.857 (6.0/7.0)	1.1	22.2	7.5	3.0	0.5	1.0	2.9	3.66
+50	Alperen Sengün	31.6	C	HOU	72	33.3	0.508 (8.1/15.9)	0.691 (3.9/5.6)	0.4	20.5	10.0	5.7	1.2	1.0	3.0	3.60
+51	Kel'el Ware	126.7	C	MIL	74	27.9	0.540 (5.4/10.0)	0.714 (1.1/1.5)	1.1	13.0	10.5	1.1	0.9	1.4	1.1	3.55
+52	Bam Adebayo	30.1	PF/C	MIA	74	33.4	0.463 (7.0/15.1)	0.773 (3.9/5.0)	1.4	19.3	9.9	3.8	1.2	0.7	1.9	3.46
+53	Paul George	95.8	SF/PF	BOS	58	31.2	0.434 (6.2/14.2)	0.820 (2.2/2.7)	2.6	17.1	5.4	4.1	1.8	0.5	2.2	3.46
+54	Brandon Miller	100.9	SG/SF	CHA	69	31.4	0.425 (7.2/16.8)	0.885 (2.9/3.3)	3.4	20.6	4.9	3.5	1.0	0.7	2.6	3.45
+55	Jalen Suggs	131.9	PG/SG	ORL	60	28.4	0.424 (5.3/12.6)	0.866 (2.2/2.5)	2.2	15.1	4.0	4.9	1.7	0.8	2.8	3.44
+56	Matas Buzelis	121.1	SF/PF	CHI	75	31.3	0.460 (6.2/13.5)	0.795 (2.4/3.1)	2.4	17.2	6.4	2.1	0.8	1.7	2.1	3.42
+57	Kon Knueppel	85.1	SG/SF	CHA	74	32.3	0.475 (6.6/13.9)	0.862 (2.5/2.9)	3.5	19.2	5.5	3.5	0.7	0.2	2.1	3.19
+58	OG Anunoby	69.7	SF/PF	NY	68	33.2	0.479 (6.0/12.5)	0.819 (2.5/3.0)	2.2	16.7	4.8	2.1	1.5	0.8	1.5	3.16
+59	Kristaps Porzingis	100.1	PF/C	GS	51	26.0	0.468 (6.0/12.8)	0.823 (3.9/4.7)	2.1	17.9	6.0	2.2	0.7	1.3	1.3	3.15
+60	Damian Lillard	83.2	PG	POR	55	28.2	0.438 (5.8/13.2)	0.882 (4.4/5.0)	3.1	19.1	3.5	5.0	0.9	0.1	2.1	3.14
+61	Brandon Ingram	85.4	SF/PF	LAC	72	34.1	0.474 (8.3/17.5)	0.826 (3.7/4.4)	1.9	22.1	5.7	4.1	0.8	0.7	2.8	3.11
+62	Jimmy Butler III	83.5	SG/SF	GS	25	27.5	0.510 (5.1/10.1)	0.851 (5.5/6.4)	0.6	16.4	4.8	4.6	1.3	0.3	1.3	3.06
+63	Donovan Clingan	103.6	C	POR	74	27.2	0.527 (4.3/8.2)	0.674 (1.6/2.4)	1.1	11.4	11.4	1.9	0.6	1.8	1.3	3.02
+64	Zion Williamson	44.3	PF/C	NO	60	30.4	0.587 (8.8/15.0)	0.696 (5.6/8.0)	0.1	23.2	6.5	4.1	1.1	0.7	2.5	2.96
+65	Cameron Boozer	115.0	PF	MEM	70	30.4	0.518 (6.0/11.5)	0.784 (4.0/5.1)	1.2	17.2	7.0	3.9	1.1	0.6	2.5	2.96
+66	Ty Jerome	131.9	PG/SG	MEM	60	27.4	0.506 (5.9/11.7)	0.874 (2.5/2.9)	2.2	16.4	3.0	4.5	1.3	0.1	1.7	2.92
+67	Michael Porter Jr.	63.7	SF/PF	BKN	60	32.0	0.485 (7.3/15.1)	0.818 (2.6/3.2)	2.8	20.1	6.9	2.4	0.8	0.4	1.7	2.86
+68	Naz Reid	98.6	PF/C	CHA	74	30.8	0.459 (6.1/13.3)	0.756 (1.5/2.0)	2.5	16.2	7.1	2.6	1.0	1.1	1.7	2.79
+69	Ryan Rollins	121.3	PG/SG	MIL	72	30.1	0.475 (5.9/12.4)	0.797 (1.5/1.9)	2.2	15.5	4.2	4.9	1.5	0.5	2.4	2.72
+70	Ivica Zubac	39.4	C	IND	72	30.4	0.618 (6.6/10.7)	0.681 (1.9/2.9)	0.0	15.2	11.5	2.4	0.6	1.0	1.6	2.70
+71	Jaden McDaniels	97.6	SF/PF	MIN	74	32.8	0.496 (6.0/12.1)	0.813 (1.8/2.2)	1.5	15.3	5.8	2.7	1.1	1.0	1.7	2.65
+72	Zach LaVine	89.5	SG/SF	SAC	68	32.4	0.501 (7.6/15.1)	0.844 (3.1/3.7)	2.9	21.1	3.6	3.4	0.7	0.2	2.4	2.58
+73	John Collins	114.8	PF/C	DET	70	28.9	0.541 (6.1/11.2)	0.810 (2.4/3.0)	1.4	16.0	6.6	1.4	0.9	0.9	1.9	2.53
+74	Mark Williams	117.0	C	PHO	62	24.3	0.624 (5.2/8.4)	0.785 (2.5/3.2)	0.0	13.0	8.8	1.6	0.8	1.0	1.3	2.51
+75	Immanuel Quickley	119.0	PG/SG	TOR	70	32.0	0.435 (6.0/13.8)	0.837 (2.9/3.4)	2.7	17.6	4.1	6.2	1.2	0.1	1.6	2.51
+76	Pascal Siakam	24.4	PF	IND	72	34.5	0.501 (8.9/17.7)	0.711 (3.7/5.2)	1.8	23.2	7.2	3.8	1.1	0.5	1.9	2.41
+77	Rudy Gobert	87.8	C	MIN	74	31.5	0.675 (4.5/6.7)	0.596 (2.3/3.8)	0.0	11.3	11.1	1.7	0.8	1.5	1.3	2.38
+78	Deni Avdija	62.9	SF/PF	POR	68	33.3	0.469 (6.2/13.3)	0.793 (5.4/6.8)	1.7	19.6	6.8	5.0	0.9	0.5	3.1	2.37
+79	Payton Pritchard	99.2	PG/SG	BOS	77	32.5	0.467 (6.2/13.3)	0.873 (1.3/1.5)	3.2	16.9	4.2	4.7	0.9	0.2	1.3	2.34
+80	Julius Randle	80.1	PF	BKN	75	32.6	0.483 (7.1/14.6)	0.804 (4.6/5.7)	1.5	20.1	6.9	4.9	0.9	0.2	2.8	2.32
+81	De'Aaron Fox	41.9	PG/SG	SA	72	30.5	0.474 (7.2/15.2)	0.799 (3.1/3.9)	1.7	19.3	3.9	5.8	1.2	0.3	2.3	2.31
+82	Dyson Daniels	60.2	PG/SG	ATL	75	32.3	0.504 (5.1/10.1)	0.622 (1.0/1.6)	0.6	11.8	6.1	4.7	2.1	0.5	1.7	2.28
+83	Day'Ron Sharpe	139.8	C	BKN	68	28.2	0.563 (4.8/8.6)	0.704 (2.0/2.9)	0.3	11.9	9.4	3.0	1.4	0.9	2.2	2.26
+84	Derik Queen	133.6	PF/C	NO	80	28.5	0.474 (5.0/10.6)	0.796 (3.1/3.9)	0.3	13.5	8.1	4.2	1.2	1.1	2.7	2.23
+85	Jarrett Allen	67.0	C	CLE	70	26.9	0.676 (5.5/8.2)	0.712 (2.7/3.8)	0.0	13.8	8.9	1.8	0.9	0.8	1.2	2.20
+86	Ja Morant	46.8	PG	POR	62	30.4	0.465 (6.7/14.5)	0.845 (4.6/5.5)	1.4	19.5	3.4	6.6	1.0	0.2	3.2	2.14
+87	Keyonte George	107.6	PG/SG	UTA	70	31.9	0.423 (6.3/14.9)	0.860 (4.7/5.5)	2.6	19.9	3.7	6.1	0.9	0.2	2.9	2.13
+88	Josh Hart	59.4	SG/SF	NY	68	31.5	0.503 (4.6/9.1)	0.753 (1.6/2.2)	1.2	12.0	8.0	5.0	1.3	0.3	1.9	1.98
+89	VJ Edgecombe	105.6	SG	PHI	74	34.1	0.438 (5.9/13.5)	0.815 (1.9/2.4)	2.0	15.7	5.6	4.1	1.4	0.5	1.8	1.94
+90	Andrew Wiggins	93.8	SF/PF	MIA	68	31.4	0.461 (6.2/13.5)	0.771 (2.6/3.4)	2.2	17.2	4.9	2.8	1.1	1.0	1.6	1.91
+91	Ausar Thompson	110.3	SF/PF	DET	74	28.2	0.529 (4.9/9.2)	0.602 (1.8/2.9)	0.2	11.6	6.4	3.2	2.2	1.0	1.7	1.87
+92	Ajay Mitchell	139.7	PG/SG	OKC	68	30.1	0.487 (5.5/11.4)	0.865 (2.5/2.9)	1.2	14.8	3.8	4.0	1.4	0.3	1.6	1.87
+93	Ayo Dosunmu	136.0	PG/SG	MIN	73	31.4	0.508 (5.9/11.6)	0.843 (1.8/2.2)	1.8	15.4	3.9	4.4	1.0	0.4	1.6	1.87
+94	Jakob Poeltl	94.4	C	TOR	58	26.5	0.653 (5.5/8.4)	0.642 (1.5/2.3)	0.0	12.4	8.2	2.4	1.0	1.0	1.6	1.82
+95	Keegan Murray	128.6	SF/PF	SAC	72	34.2	0.450 (6.2/13.8)	0.824 (1.5/1.8)	2.2	16.1	6.5	1.5	0.9	1.1	1.0	1.76
+96	Isaiah Hartenstein	120.1	C	OKC	68	26.4	0.597 (4.5/7.6)	0.645 (1.4/2.2)	0.0	10.5	10.3	3.8	0.9	1.0	1.7	1.76
+97	Cameron Johnson	139.5	SF/PF	DEN	60	30.8	0.477 (5.3/11.0)	0.875 (2.7/3.0)	2.4	15.6	4.1	2.9	0.8	0.4	1.3	1.76
+98	Coby White	64.0	PG/SG	CHA	72	31.0	0.451 (6.4/14.3)	0.864 (3.9/4.5)	2.7	19.5	3.6	4.3	0.8	0.2	2.5	1.74
+99	Myles Turner	76.5	C	MIL	70	27.4	0.463 (4.6/9.9)	0.758 (2.1/2.8)	2.1	13.3	5.8	1.5	0.7	1.8	1.4	1.70
+100	Norman Powell	101.0	SG/SF	CHI	65	29.6	0.477 (7.1/15.0)	0.816 (3.9/4.7)	2.7	20.9	3.2	2.2	1.1	0.2	1.8	1.63
+101	Neemias Queta	136.7	C	BOS	75	25.9	0.653 (4.3/6.6)	0.719 (1.6/2.2)	0.0	10.2	8.2	1.6	0.7	1.3	1.1	1.53
+102	Paolo Banchero	36.7	SF/PF	ORL	73	35.2	0.456 (8.2/18.0)	0.756 (6.4/8.5)	1.5	24.3	8.3	5.2	0.8	0.6	3.1	1.51
+103	Mikal Bridges	68.6	SG/SF	NY	80	32.5	0.496 (6.1/12.3)	0.815 (1.0/1.2)	1.8	15.0	3.3	3.5	1.0	0.6	1.2	1.31
+104	Cason Wallace	136.9	PG/SG	OKC	78	30.4	0.451 (3.8/8.4)	0.817 (0.7/0.8)	1.4	9.6	3.7	2.9	2.1	0.5	1.0	1.29
+105	Sandro Mamukelashvili	139.9	PF/C	LAL	74	25.8	0.517 (5.1/9.8)	0.749 (1.7/2.3)	1.9	13.7	6.2	2.1	0.9	0.6	1.0	1.22
+106	Miles Bridges	75.2	SF/PF	PHO	72	30.1	0.445 (6.5/14.7)	0.845 (3.0/3.5)	2.0	18.0	6.4	3.4	0.6	0.5	1.7	1.19
+107	Dylan Harper	99.2	PG/SG	SA	72	29.5	0.504 (6.3/12.6)	0.754 (1.7/2.3)	1.2	15.6	4.5	5.1	1.0	0.5	1.9	1.17
+108	Collin Murray-Boyles	139.5	PF	TOR	68	28.0	0.579 (4.5/7.8)	0.657 (1.6/2.5)	0.4	11.0	6.5	2.4	1.2	1.2	1.3	1.06
+109	Alexandre Sarr	92.9	PF/C	WAS	68	28.8	0.433 (6.0/13.8)	0.686 (2.0/2.9)	1.5	15.4	7.4	2.7	0.8	1.8	1.8	0.98
+110	Christian Braun	99.7	SG/SF	DEN	72	31.8	0.560 (5.3/9.5)	0.815 (2.0/2.5)	1.0	13.8	4.9	2.6	0.9	0.4	1.0	0.95
+111	Tre Jones	140.2	PG	CHI	68	25.9	0.549 (4.6/8.4)	0.837 (2.4/2.9)	0.6	12.3	3.2	5.3	1.1	0.2	1.3	0.95
+112	Brandin Podziemski	137.2	PG/SG	GS	78	31.0	0.451 (5.2/11.6)	0.785 (2.0/2.6)	2.1	14.5	5.8	4.1	1.2	0.2	1.6	0.94
+113	De'Andre Hunter	139.8	SF/PF	SAC	65	31.5	0.448 (6.2/13.8)	0.855 (3.7/4.3)	2.5	18.6	4.8	2.0	0.9	0.2	1.7	0.92
+114	Jabari Smith Jr.	127.6	PF/C	HOU	75	35.2	0.446 (5.5/12.4)	0.796 (2.1/2.7)	2.2	15.4	7.5	1.6	0.7	0.9	1.3	0.86
+115	Caleb Wilson	117.3	SF	CHI	72	30.4	0.491 (5.2/10.5)	0.720 (3.9/5.5)	1.0	15.2	8.0	2.0	1.2	1.0	1.8	0.81
+116	Mitchell Robinson	138.8	C	BOS	65	22.8	0.709 (2.9/4.1)	0.448 (0.9/1.9)	0.0	6.7	9.8	1.0	1.1	1.4	0.8	0.79
+117	Cedric Coward	139.6	SG/SF	MEM	70	28.8	0.450 (6.0/13.3)	0.844 (2.6/3.0)	1.8	16.3	6.6	3.1	0.7	0.5	1.9	0.78
+118	Jaylen Brown	17.4	SG/SF	PHI	70	33.1	0.471 (8.3/17.5)	0.768 (4.3/5.7)	1.7	22.6	5.7	3.4	1.0	0.3	2.8	0.59
+119	Reed Sheppard	103.1	PG/SG	HOU	74	25.8	0.415 (4.6/11.0)	0.800 (0.8/1.0)	2.6	12.5	2.9	3.3	1.5	0.7	1.5	0.57
+120	Paul Reed	140.1	PF/C	DET	69	17.9	0.585 (3.8/6.5)	0.693 (1.4/2.1)	0.3	9.3	5.6	1.7	1.3	1.2	1.1	0.54
+121	Kevin Porter Jr.	94.9	PG/SG	MIL	60	24.4	0.456 (4.8/10.5)	0.822 (2.4/2.9)	0.9	12.9	4.3	4.8	1.5	0.3	2.2	0.49
+122	Quentin Grimes	138.7	SG/SF	LAL	74	30.8	0.459 (5.3/11.6)	0.799 (2.7/3.3)	2.1	15.5	4.4	3.5	1.0	0.4	2.0	0.46
+123	Draymond Green	119.5	PF/C	GS	68	28.8	0.421 (3.2/7.6)	0.695 (1.2/1.7)	1.4	8.9	6.0	5.7	1.2	0.9	2.7	0.41
+124	Nicolas Claxton	119.4	C	CHI	70	28.4	0.568 (4.9/8.7)	0.574 (1.7/2.9)	0.1	11.6	7.5	3.1	0.8	1.3	1.4	0.36
+125	Toumani Camara	129.6	SF/PF	POR	80	33.1	0.448 (4.6/10.2)	0.713 (1.2/1.7)	2.2	12.6	5.5	2.4	1.3	0.5	1.6	0.35
+126	Collin Gillespie	139.6	PG	PHO	75	26.4	0.420 (4.1/9.7)	0.868 (0.9/1.1)	2.6	11.7	3.9	4.4	1.2	0.2	1.4	0.34
+127	Cam Spencer	140.1	PG/SG	MEM	65	23.8	0.465 (3.6/7.8)	0.947 (1.8/1.9)	2.0	11.1	2.6	5.3	0.8	0.2	1.2	0.32
+128	Gui Santos	140.0	SF	GS	72	30.1	0.488 (4.4/9.0)	0.715 (1.6/2.3)	1.6	12.0	6.2	3.4	1.2	0.5	2.0	0.31
+129	Jrue Holiday	135.4	PG/SG	POR	54	28.2	0.448 (4.7/10.6)	0.867 (1.3/1.5)	2.0	12.8	4.2	4.6	1.0	0.3	1.8	0.31
+130	Devin Vassell	126.6	SG/SF	SA	68	30.5	0.441 (5.5/12.6)	0.806 (1.5/1.9)	2.5	15.1	4.0	2.7	1.1	0.4	1.1	0.26
+131	Saddiq Bey	138.8	SF/PF	NO	72	29.2	0.451 (5.7/12.7)	0.842 (3.3/3.9)	2.0	16.7	5.3	2.4	0.9	0.1	0.9	0.18
+132	Jusuf Nurkic	138.0	C	UTA	58	26.4	0.490 (4.3/8.8)	0.612 (1.8/3.0)	0.7	11.2	10.2	3.9	1.1	0.7	2.5	0.14
+133	Fred VanVleet	138.1	PG/SG	HOU	60	31.2	0.378 (4.3/11.3)	0.814 (1.7/2.0)	2.4	12.6	3.3	5.0	1.4	0.4	1.3	0.13
+134	Aaron Nesmith	139.9	SG/SF	IND	69	30.4	0.454 (5.1/11.1)	0.862 (2.1/2.4)	2.4	14.5	4.6	1.8	0.8	0.5	1.3	0.11
+135	CJ McCollum	96.7	PG/SG	ATL	73	30.0	0.450 (7.2/15.9)	0.749 (2.3/3.0)	2.7	19.3	3.4	3.9	0.8	0.4	1.8	0.04
+136	Robert Williams III	140.1	C	POR	60	17.1	0.691 (2.9/4.2)	0.660 (0.6/0.9)	0.1	6.5	6.8	1.0	0.6	1.5	0.8	-0.04
+137	Andrew Nembhard	111.3	PG/SG	IND	64	30.4	0.449 (4.9/10.8)	0.813 (2.5/3.1)	1.3	13.6	3.2	6.4	1.1	0.2	2.1	-0.05
+138	Peyton Watson	138.7	SF/PF	CLE	70	30.1	0.474 (4.6/9.6)	0.717 (2.2/3.0)	1.2	12.5	4.7	1.9	0.9	1.4	1.4	-0.12
+139	Jalen Green	71.0	SG/SF	PHO	69	31.1	0.423 (7.3/17.4)	0.798 (3.0/3.8)	2.7	20.4	4.4	3.3	0.9	0.3	2.5	-0.15
+140	Kyshawn George	135.7	SG/SF	WAS	68	29.0	0.406 (4.2/10.3)	0.785 (1.6/2.1)	2.0	11.9	4.9	3.5	1.1	0.9	2.0	-0.19
+141	Anthony Black	136.3	PG/SG	ORL	68	30.4	0.436 (4.9/11.3)	0.746 (2.6/3.5)	1.3	13.7	3.8	3.9	1.4	0.8	2.2	-0.25
+142	P.J. Washington	138.5	SF/PF	DAL	68	30.4	0.451 (5.1/11.4)	0.703 (2.3/3.3)	1.4	14.0	7.2	2.0	1.0	1.0	1.8	-0.25
+143	Aaron Gordon	123.3	PF	DEN	58	27.9	0.516 (5.3/10.3)	0.789 (3.1/3.9)	1.6	15.3	5.2	3.0	0.5	0.3	1.3	-0.27
+144	Tari Eason	136.1	SF/PF	HOU	60	24.2	0.450 (4.2/9.4)	0.766 (1.1/1.4)	1.3	10.8	6.1	1.4	1.4	0.6	1.2	-0.28
+145	Malik Monk	121.7	PG/SG	SAC	68	26.2	0.439 (5.3/12.2)	0.869 (1.9/2.2)	2.0	14.6	2.8	4.2	0.8	0.5	1.9	-0.29
+146	Bobby Portis	132.3	PF/C	MIA	68	25.1	0.478 (5.7/11.9)	0.776 (1.0/1.3)	1.8	14.1	7.4	1.9	0.7	0.3	1.1	-0.30
+147	Jaime Jaquez Jr.	138.1	SG/SF	MIL	72	29.2	0.491 (5.7/11.6)	0.762 (2.3/3.0)	0.8	14.6	5.6	4.4	1.0	0.3	2.1	-0.32
+148	Wendell Carter Jr.	139.8	C	ORL	70	29.3	0.490 (4.0/8.3)	0.768 (2.4/3.1)	0.8	11.3	7.8	2.1	0.8	0.7	1.3	-0.46
+149	Stephon Castle	74.7	PG/SG	SA	70	31.4	0.448 (6.1/13.6)	0.729 (4.0/5.5)	1.3	17.5	5.0	6.3	1.2	0.3	3.0	-0.46
+150	RJ Barrett	101.4	SG/SF	TOR	58	31.5	0.479 (7.6/15.9)	0.670 (3.5/5.2)	1.8	20.5	5.9	4.5	0.8	0.3	2.3	-0.51
+151	Egor Demin	132.3	PG/SG	BKN	69	29.5	0.399 (4.1/10.2)	0.831 (1.2/1.5)	2.8	12.2	3.8	3.9	1.0	0.4	2.0	-0.53
+152	Tobias Harris	120.5	SF/PF	SA	65	26.2	0.474 (4.5/9.6)	0.863 (1.8/2.1)	1.1	12.0	4.9	2.1	0.9	0.5	1.0	-0.54
+153	Dereck Lively II	139.7	C	DAL	55	19.8	0.694 (3.1/4.4)	0.651 (1.1/1.8)	0.0	7.3	6.5	2.1	0.5	1.4	1.1	-0.60
+154	Darryn Peterson	117.9	PG/SG	UTA	68	29.1	0.427 (4.9/11.4)	0.818 (3.4/4.1)	2.0	15.1	3.1	3.0	1.1	0.5	2.0	-0.64
+155	Isaiah Stewart	140.0	PF/C	MEM	64	23.1	0.554 (3.4/6.1)	0.757 (1.4/1.9)	0.5	8.6	5.9	1.6	0.4	1.5	1.2	-0.67
+156	Santi Aldama	132.3	SF/PF	DAL	64	26.5	0.481 (5.1/10.5)	0.677 (1.3/2.0)	1.8	13.2	5.1	2.9	0.8	0.6	1.2	-0.70
+157	Herbert Jones	139.8	SF/PF	NO	68	30.4	0.397 (3.5/8.9)	0.814 (1.1/1.4)	1.4	9.6	3.7	3.0	1.7	0.5	1.5	-0.71
+158	Jaylin Williams	139.5	PF/C	OKC	68	23.1	0.428 (2.8/6.5)	0.790 (1.1/1.4)	1.8	8.5	6.2	3.2	0.6	0.8	1.2	-0.71
+159	Joan Beringer	139.9	C	MIN	69	18.4	0.664 (3.9/5.8)	0.703 (1.5/2.2)	0.0	9.2	5.4	0.7	0.4	1.5	0.7	-0.72
+160	Isaiah Joe	140.0	SG	DET	70	25.4	0.447 (4.2/9.3)	0.872 (1.3/1.5)	3.1	12.7	3.1	1.8	0.8	0.2	0.7	-0.75
+161	Julian Champagnie	138.6	SF/PF	SA	75	26.5	0.426 (3.7/8.6)	0.870 (1.3/1.5)	2.4	11.0	5.0	1.5	0.8	0.5	0.9	-0.92
+162	Obi Toppin	138.8	PF	IND	60	21.0	0.522 (4.5/8.6)	0.820 (1.4/1.7)	1.6	12.0	4.6	2.0	0.6	0.3	1.0	-1.01
+163	Bradley Beal	139.6	SG/SF	LAC	50	27.5	0.465 (5.3/11.3)	0.801 (1.8/2.2)	1.7	13.9	2.8	3.0	0.9	0.4	1.7	-1.11
+164	Grayson Allen	139.9	PG/SG	CHA	64	22.0	0.422 (3.9/9.3)	0.841 (1.9/2.3)	2.5	12.2	2.8	2.7	1.0	0.3	1.3	-1.13
+165	Collin Sexton	138.8	PG/SG	LAL	70	25.4	0.483 (5.1/10.6)	0.862 (2.9/3.3)	1.5	14.6	2.2	3.2	0.8	0.1	2.0	-1.13
+166	Shaedon Sharpe	114.8	SG/SF	POR	64	28.0	0.452 (6.8/15.0)	0.787 (2.6/3.3)	1.9	18.1	4.1	2.5	1.0	0.2	2.3	-1.14
+167	Moussa Diabaté	139.7	PF/C	CHA	72	25.5	0.616 (3.3/5.3)	0.633 (1.5/2.4)	0.0	8.0	8.8	1.6	0.8	0.9	1.1	-1.14
+168	Dru Smith	140.0	PG	MIA	72	20.1	0.430 (2.4/5.6)	0.824 (1.4/1.7)	0.8	7.0	3.0	2.9	1.7	0.4	1.0	-1.15
+169	Yanic Konan Niederhauser	139.9	C	LAC	50	21.4	0.641 (3.3/5.1)	0.759 (2.4/3.2)	0.1	9.0	6.0	0.6	0.3	1.5	1.2	-1.17
+170	Kelly Oubre Jr.	137.5	SG/SF	IND	64	28.2	0.468 (4.7/10.0)	0.759 (2.0/2.6)	1.2	12.6	4.8	1.5	1.3	0.4	1.2	-1.23
+171	Max Christie		SG	DAL	75	30.5	0.435 (4.0/9.3)	0.878 (1.8/2.1)	2.1	11.9	3.6	2.1	0.8	0.4	1.3	-1.26
+172	Dillon Brooks	134.4	SG/SF	PHO	63	30.1	0.434 (6.6/15.2)	0.824 (2.8/3.4)	2.3	18.3	3.6	1.7	0.9	0.2	1.3	-1.27
+173	Davion Mitchell	139.6	PG	MIA	73	30.1	0.480 (3.7/7.6)	0.670 (0.8/1.1)	1.3	9.4	2.7	6.2	1.1	0.2	1.8	-1.28
+174	Ace Bailey	132.0	SF/PF	UTA	72	27.9	0.443 (5.6/12.6)	0.752 (0.9/1.3)	1.9	14.1	4.3	1.9	0.9	0.7	1.5	-1.29
+175	Yaxel Lendeborg	132.6	SF/PF	GS	72	23.5	0.497 (2.9/5.9)	0.828 (2.0/2.4)	1.0	8.8	5.1	1.9	0.6	0.7	0.6	-1.31
+176	Jay Huff	139.9	C	IND	74	17.1	0.490 (3.1/6.4)	0.815 (0.9/1.1)	1.4	8.6	3.2	1.1	0.4	1.5	0.8	-1.34
+177	Scotty Pippen Jr.	138.4	PG/SG	MEM	50	20.4	0.475 (3.6/7.5)	0.720 (1.5/2.1)	1.1	9.7	3.1	4.3	1.3	0.4	1.8	-1.37
+178	Nikola Vucevic	49.7	C	ORL	64	21.2	0.493 (4.5/9.1)	0.815 (1.0/1.2)	1.1	11.0	6.3	2.3	0.5	0.5	1.0	-1.37
+179	De'Anthony Melton	140.0	PG/SG	GS	55	22.2	0.407 (4.3/10.5)	0.815 (1.9/2.3)	1.5	11.9	3.2	2.6	1.5	0.4	1.8	-1.38
+180	Daniel Gafford	133.0	C	DAL	64	21.7	0.648 (3.9/6.0)	0.671 (2.0/3.0)	0.0	9.8	6.4	1.2	0.5	1.2	1.1	-1.43
+181	Daniss Jenkins	140.0	PG	DET	72	26.1	0.406 (4.2/10.3)	0.821 (2.4/2.9)	1.3	12.1	3.0	5.0	1.1	0.3	2.1	-1.50
+182	Anfernee Simons	108.2	PG/SG	PHI	67	25.7	0.431 (5.4/12.6)	0.901 (1.7/1.9)	2.6	15.1	2.3	3.3	0.6	0.1	1.5	-1.52
+183	Naji Marshall	139.7	SF/PF	DAL	72	26.1	0.510 (5.0/9.9)	0.777 (2.3/3.0)	0.8	13.1	4.3	2.9	1.0	0.1	1.5	-1.54
+184	Royce O'Neale	140.0	SF/PF	CHA	70	24.6	0.422 (3.1/7.3)	0.718 (0.3/0.4)	2.4	8.9	4.4	2.3	0.9	0.4	1.0	-1.54
+185	Pelle Larsson	139.9	SG/SF	MIA	71	30.4	0.480 (4.3/8.9)	0.771 (2.6/3.4)	1.1	12.3	3.9	3.5	1.0	0.3	1.5	-1.56
+186	Jerami Grant	138.9	PF	MEM	50	26.5	0.418 (4.5/10.8)	0.825 (3.4/4.1)	2.0	14.4	3.0	1.9	0.7	0.7	1.5	-1.57
+187	Ryan Kalkbrenner	140.1	C	CHA	68	19.2	0.753 (2.9/3.8)	0.717 (1.1/1.5)	0.0	6.8	4.9	0.7	0.4	1.3	0.8	-1.58
+188	Duncan Robinson	140.0	SG/SF	DET	76	28.4	0.447 (4.5/10.0)	0.800 (1.0/1.2)	3.0	12.9	2.7	2.5	0.6	0.2	1.0	-1.58
+189	Luke Kornet	139.8	C	SA	68	20.0	0.657 (2.6/4.0)	0.765 (1.2/1.5)	0.0	6.4	5.8	1.8	0.5	1.0	0.4	-1.61
+190	Jared McCain	133.7	PG/SG	OKC	72	27.8	0.438 (5.3/12.1)	0.870 (1.6/1.8)	2.4	14.6	3.1	2.4	0.8	0.1	1.5	-1.62
+191	Alex Caruso	138.4	PG/SG	OKC	58	19.4	0.435 (2.5/5.8)	0.814 (0.8/1.0)	1.1	6.9	3.0	2.4	1.5	0.5	0.8	-1.65
+192	Rui Hachimura	139.3	SF/PF	LAC	70	30.1	0.512 (4.8/9.4)	0.743 (1.1/1.5)	1.8	12.5	4.2	1.1	0.7	0.4	0.7	-1.66
+193	Kris Dunn	140.1	PG/SG	LAC	72	24.5	0.457 (2.6/5.6)	0.734 (0.5/0.6)	1.0	6.6	3.2	3.1	1.6	0.3	1.1	-1.67
+194	Sam Merrill	140.1	SG	CLE	65	25.4	0.436 (3.7/8.4)	0.889 (0.8/0.9)	2.7	10.8	2.7	2.2	0.8	0.2	0.7	-1.71
+195	Mikel Brown Jr.	139.5	PG	BKN	69	28.8	0.418 (4.0/9.5)	0.845 (3.7/4.3)	1.9	13.5	2.5	3.5	0.9	0.1	2.3	-1.72
+196	Darius Acuff Jr.	135.6	PG	SAC	72	29.1	0.454 (5.0/10.9)	0.804 (3.0/3.8)	1.6	14.5	1.9	5.0	0.6	0.2	1.4	-1.74
+197	Derrick Jones Jr.		SF/PF	LAC	58	25.8	0.515 (4.0/7.8)	0.731 (1.3/1.7)	1.1	10.4	3.5	1.0	1.0	0.7	0.9	-1.77
+198	Maxime Raynaud	139.8	C	SAC	72	23.2	0.571 (4.6/8.0)	0.785 (1.6/2.0)	0.3	11.0	6.6	1.2	0.5	0.5	1.1	-1.81
+199	Jordan Poole	94.2	PG/SG	NO	50	20.0	0.414 (4.3/10.3)	0.876 (2.3/2.7)	2.3	13.2	1.9	2.9	0.7	0.3	1.9	-1.92
+200	Allen Graves	140.0	SF	TOR	70	22.0	0.481 (3.0/6.2)	0.747 (1.7/2.3)	0.8	8.5	4.7	1.3	1.1	0.7	0.5	-1.96
+`.trim();
+
+const RAW_LAST = `
+Player	Pos	Team	G	FG	FGA	FT	FTA	3P	TRB	AST	STL	BLK	TOV	PTS	Player-additional
+Luka Dončić	PG	LAL	64	10.8	22.8	7.9	10.1	4.0	7.7	8.3	1.6	0.5	4.0	33.5	doncilu01
+Shai Gilgeous-Alexander	PG	OKC	68	10.8	19.4	7.9	9.0	1.7	4.3	6.6	1.4	0.8	2.2	31.1	gilgesh01
+Anthony Edwards	SG	MIN	61	9.9	20.2	5.7	7.2	3.4	5.0	3.7	1.4	0.8	2.9	28.8	edwaran01
+Jaylen Brown	SF	BOS	71	10.4	21.7	6.0	7.5	2.0	6.9	5.1	1.0	0.4	3.6	28.7	brownja02
+Tyrese Maxey	PG	PHI	70	9.9	21.4	5.3	6.0	3.1	4.1	6.6	1.9	0.8	2.4	28.3	maxeyty01
+Kawhi Leonard	SF	LAC	65	9.8	19.4	5.7	6.4	2.6	6.4	3.6	1.9	0.4	2.0	27.9	leonaka01
+Donovan Mitchell	SG	CLE	70	9.7	20.0	5.3	6.1	3.2	4.5	5.7	1.5	0.3	2.8	27.9	mitchdo01
+Nikola Jokić	C	DEN	65	9.9	17.4	6.1	7.4	1.7	12.9	10.7	1.4	0.8	3.7	27.7	jokicni01
+Giannis Antetokounmpo	PF	MIL	36	10.4	16.6	6.4	9.9	0.4	9.8	5.4	0.9	0.7	3.2	27.6	antetgi01
+Joel Embiid	C	PHI	38	9.0	18.3	7.5	8.8	1.4	7.7	3.9	0.6	1.2	2.9	26.9	embiijo01
+Lauri Markkanen	PF	UTA	42	9.1	19.2	5.7	6.4	2.7	6.9	2.1	1.0	0.5	1.5	26.7	markkla01
+Stephen Curry	PG	GSW	43	8.7	18.6	4.7	5.1	4.4	3.6	4.7	1.1	0.4	2.8	26.6	curryst01
+Devin Booker	SG	PHO	64	8.5	18.7	7.1	8.1	1.9	3.9	6.0	0.8	0.3	3.1	26.1	bookede01
+Jalen Brunson	PG	NYK	74	9.3	19.9	4.8	5.7	2.6	3.3	6.8	0.8	0.1	2.4	26.0	brunsja01
+Kevin Durant	SF	HOU	78	9.2	17.6	5.2	6.0	2.4	5.5	4.8	0.8	0.9	3.2	26.0	duranke01
+Jamal Murray	PG	DEN	75	8.8	18.1	4.6	5.2	3.3	4.4	7.1	0.9	0.4	2.3	25.4	murraja01
+Victor Wembanyama	C	SAS	64	8.6	16.9	5.8	7.0	1.9	11.5	3.1	1.0	3.1	2.4	25.0	wembavi01
+Deni Avdija	SF	POR	66	7.5	16.1	7.4	9.2	1.9	6.9	6.7	0.8	0.6	3.8	24.2	avdijde01
+Michael Porter Jr.	SF	BRK	52	8.5	18.4	3.8	4.4	3.4	7.1	3.0	1.1	0.3	2.3	24.2	portemi01
+Pascal Siakam	PF	IND	62	9.0	18.6	4.2	6.1	1.7	6.6	3.8	1.1	0.4	2.2	24.0	siakapa01
+Cade Cunningham	PG	DET	64	8.6	18.6	4.8	6.0	2.0	5.5	9.9	1.4	0.8	3.7	23.9	cunnica01
+James Harden	PG	2TM	70	7.0	16.0	6.6	7.5	3.1	4.8	8.0	1.1	0.4	3.5	23.6	hardeja01
+Keyonte George	PG	UTA	54	7.4	16.3	6.2	7.0	2.5	3.7	6.1	1.1	0.3	3.1	23.6	georgke01
+Austin Reaves	SG	LAL	51	7.3	14.9	6.3	7.3	2.3	4.7	5.5	1.1	0.4	3.0	23.3	reaveau01
+Jalen Johnson	SF	ATL	72	8.3	17.1	4.2	5.3	1.7	10.3	7.9	1.2	0.4	3.4	22.5	johnsja05
+Paolo Banchero	PF	ORL	72	7.3	16.0	6.3	8.2	1.2	8.4	5.2	0.7	0.6	3.1	22.2	banchpa01
+Jayson Tatum	PF	BOS	16	7.4	17.9	4.1	4.9	2.9	10.0	5.3	1.4	0.2	2.4	21.8	tatumja01
+Norman Powell	SG	MIA	58	7.3	15.4	4.5	5.5	2.7	3.5	2.5	1.1	0.2	1.9	21.7	powelno01
+Brandon Ingram	SF	TOR	77	8.0	16.7	3.8	4.6	1.8	5.6	3.7	0.8	0.7	2.4	21.5	ingrabr01
+Trey Murphy III	SF	NOP	66	7.5	15.9	3.3	3.7	3.2	5.7	3.8	1.5	0.4	1.8	21.5	murphtr02
+Julius Randle	PF	MIN	79	7.3	15.3	5.0	6.3	1.4	6.7	5.0	1.1	0.2	2.7	21.1	randlju01
+Cooper Flagg	SF	DAL	70	8.0	17.1	4.0	4.9	1.0	6.7	4.5	1.2	0.9	2.3	21.0	flaggco01
+Zion Williamson	PF	NOP	62	7.8	13.0	5.4	7.5	0.0	5.7	3.2	1.0	0.5	2.0	21.0	willizi01
+LeBron James	SF	LAL	60	7.9	15.3	3.9	5.3	1.3	6.1	7.2	1.2	0.6	3.0	20.9	jamesle01
+Nickeil Alexander-Walker	SG	ATL	78	7.0	15.3	3.6	3.9	3.2	3.4	3.7	1.3	0.5	2.1	20.8	alexani01
+Shaedon Sharpe	SG	POR	50	7.8	17.4	3.1	3.9	2.1	4.3	2.6	1.4	0.1	2.9	20.8	sharpsh01
+Franz Wagner	SF	ORL	34	7.2	14.9	4.8	5.8	1.4	5.2	3.3	0.9	0.3	1.7	20.6	wagnefr01
+Tyler Herro	SG	MIA	33	7.5	15.6	3.0	3.3	2.5	4.8	4.1	0.7	0.4	1.9	20.5	herroty01
+Anthony Davis	PF	DAL	20	8.5	16.7	3.0	4.1	0.5	11.1	2.8	1.1	1.7	2.1	20.4	davisan02
+Alperen Şengün	C	HOU	72	8.1	15.6	3.6	5.2	0.6	8.9	6.2	1.2	1.1	3.2	20.4	sengual01
+Dillon Brooks	SF	PHO	56	7.4	17.1	3.0	3.6	2.3	3.6	1.8	1.0	0.2	1.8	20.2	brookdi01
+Brandon Miller	SF	CHO	65	7.0	16.1	3.1	3.4	3.1	4.9	3.3	1.0	0.7	2.5	20.2	millebr02
+Bam Adebayo	C	MIA	73	6.9	15.7	4.5	5.8	1.7	10.0	3.2	1.2	0.7	1.6	20.1	adebaba01
+LaMelo Ball	PG	CHO	72	7.0	17.3	2.2	2.5	3.8	4.8	7.1	1.2	0.2	2.8	20.1	ballla01
+Desmond Bane	SG	ORL	82	7.1	14.7	3.8	4.2	2.0	4.1	4.1	1.0	0.5	2.0	20.1	banede01
+Karl-Anthony Towns	C	NYK	75	6.9	13.8	4.8	5.5	1.5	11.9	3.0	0.9	0.5	2.5	20.1	townska01
+Jimmy Butler	SF	GSW	38	6.3	12.2	6.5	7.6	0.8	5.6	4.9	1.4	0.2	1.6	20.0	butleji01
+Ty Jerome	SG	MEM	15	6.8	14.3	3.3	3.7	2.8	2.8	5.7	1.1	0.3	1.8	19.7	jeromty01
+Jalen Duren	C	DET	70	7.5	11.5	4.6	6.1	0.0	10.5	2.0	0.8	0.8	1.9	19.5	durenja01
+Ja Morant	PG	MEM	20	6.6	16.1	5.3	5.9	1.0	3.3	8.1	1.0	0.3	3.6	19.5	moranja01
+Jaren Jackson Jr.	C	2TM	48	7.1	15.0	3.4	4.2	1.8	5.7	2.0	1.1	1.4	2.2	19.4	jacksja02
+RJ Barrett	SF	TOR	57	7.0	14.3	3.5	4.9	1.7	5.3	3.3	0.7	0.3	1.7	19.3	barrerj01
+Zach LaVine	SG	SAC	39	6.7	14.0	3.2	3.6	2.5	2.8	2.3	0.7	0.3	1.9	19.2	lavinza01
+Darius Garland	PG	2TM	45	6.9	14.9	2.3	2.7	2.7	2.4	6.7	1.0	0.2	2.9	18.8	garlada01
+CJ McCollum	PG	2TM	76	6.9	15.2	2.4	3.1	2.5	3.3	3.9	0.8	0.5	1.8	18.7	mccolcj01
+De'Aaron Fox	PG	SAS	72	7.1	14.5	2.6	3.4	1.8	3.8	6.2	1.2	0.3	2.3	18.6	foxde01
+Jerami Grant	PF	POR	57	5.8	12.8	4.6	5.6	2.4	3.5	2.1	0.7	0.6	2.1	18.6	grantje01
+Kon Knueppel	SF	CHO	81	6.4	13.4	2.4	2.8	3.4	5.3	3.4	0.7	0.2	2.0	18.5	knuepko01
+DeMar DeRozan	PF	SAC	77	6.5	13.1	4.9	5.6	0.6	2.9	4.1	1.0	0.3	1.2	18.4	derozde01
+Amen Thompson	PG	HOU	79	7.1	13.2	3.8	4.9	0.3	7.8	5.3	1.5	0.6	2.4	18.3	thompam01
+Evan Mobley	PF	CLE	65	7.2	13.2	2.8	4.6	1.0	9.0	3.6	0.7	1.7	1.9	18.2	mobleev01
+Scottie Barnes	PF	TOR	80	7.1	14.0	3.0	3.7	0.9	7.5	5.9	1.4	1.5	2.6	18.1	barnesc01
+Trae Young	PG	2TM	15	5.4	11.8	5.3	6.5	1.8	2.0	8.0	0.9	0.1	2.6	17.9	youngtr01
+Jalen Green	SG	PHO	32	6.8	16.0	2.0	2.7	2.2	3.6	2.8	1.1	0.3	2.3	17.8	greenja05
+Saddiq Bey	SF	NOP	72	6.1	13.4	3.4	4.1	2.1	5.6	2.5	0.9	0.1	0.9	17.7	beysa01
+Bennedict Mathurin	SF	2TM	54	5.4	12.5	5.4	6.2	1.4	5.4	2.4	0.8	0.2	2.2	17.6	mathube01
+Coby White	SG	2TM	50	5.6	12.5	3.9	4.8	2.3	3.4	4.0	0.5	0.1	2.6	17.4	whiteco01
+Kevin Porter Jr.	PG	MIL	38	6.3	13.5	3.6	4.1	1.2	5.2	7.4	2.2	0.5	2.9	17.4	porteke02
+Paul George	PF	PHI	37	6.1	13.9	2.5	3.0	2.7	5.3	3.6	1.7	0.4	1.7	17.3	georgpa01
+Ryan Rollins	PG	MIL	74	6.6	13.9	1.7	2.1	2.5	4.6	5.6	1.5	0.4	2.7	17.3	rolliry01
+Miles Bridges	PF	CHO	77	6.2	13.5	2.7	3.3	1.9	5.8	3.2	0.6	0.4	1.4	17.1	bridgmi02
+Chet Holmgren	PF	OKC	69	6.3	11.3	3.3	4.1	1.3	8.9	1.7	0.6	1.9	1.6	17.1	holmgch01
+Jalen Williams	SG	OKC	33	6.5	13.5	3.3	3.9	0.7	4.6	5.5	1.2	0.3	1.9	17.1	willija06
+Josh Giddey	PG	CHI	54	5.9	13.3	3.2	4.2	1.9	8.3	9.1	1.0	0.5	3.6	17.0	giddejo01
+Payton Pritchard	PG	BOS	79	6.4	13.8	1.5	1.7	2.7	3.9	5.2	0.7	0.1	1.4	17.0	pritcpa01
+Andrew Nembhard	PG	IND	57	5.8	13.2	3.4	4.1	1.9	2.8	7.7	0.9	0.1	2.4	16.9	nembhan01
+Kristaps Porziņģis	C	2TM	32	5.4	12.1	4.2	4.9	1.7	5.2	2.5	0.6	1.2	1.3	16.7	porzikr01
+OG Anunoby	PF	NYK	67	5.8	12.0	2.7	3.3	2.3	5.2	2.2	1.6	0.7	1.8	16.7	anunoog01
+Stephon Castle	PG	SAS	68	5.7	12.0	4.1	5.6	1.2	5.3	7.4	1.1	0.3	3.2	16.7	castlst01
+Dejounte Murray	PG	NOP	14	6.3	13.0	2.8	3.2	1.4	5.4	6.4	1.6	0.2	3.4	16.7	murrade01
+Grayson Allen	SG	PHO	51	5.3	13.1	2.8	3.3	3.1	3.0	3.8	1.4	0.3	1.6	16.5	allengr01
+Derrick White	SG	BOS	77	5.7	14.4	2.4	2.6	2.7	4.4	5.4	1.1	1.3	1.7	16.5	whitede01
+Immanuel Quickley	PG	TOR	70	5.7	12.9	2.4	3.0	2.5	4.0	5.9	1.3	0.1	1.5	16.4	quickim01
+Matas Buzelis	PF	CHI	77	5.8	12.5	2.4	3.1	2.2	5.8	2.1	0.7	1.5	2.1	16.3	buzelma01
+Jrue Holiday	PG	POR	53	6.0	13.4	1.7	2.0	2.6	4.6	6.1	1.0	0.1	2.8	16.3	holidjr01
+Alex Sarr	C	WAS	48	6.6	13.7	2.1	3.0	1.0	7.4	2.7	0.8	2.0	1.7	16.3	sarral01
+Dariq Whitehead	SF	MEM	6	6.2	15.5	0.8	1.2	3.2	4.0	1.5	0.7	0.0	1.7	16.3	whiteda01
+Aaron Gordon	PF	DEN	36	5.5	11.1	3.5	4.5	1.7	5.8	2.7	0.6	0.3	1.1	16.2	gordoaa01
+VJ Edgecombe	SG	PHI	75	6.0	13.7	2.0	2.4	2.0	5.6	4.2	1.4	0.5	1.8	16.0	edgecvj01
+Domantas Sabonis	C	SAC	19	6.3	11.6	2.9	4.1	0.3	11.4	4.1	0.9	0.2	2.7	15.8	sabondo01
+Jabari Smith Jr.	PF	HOU	77	5.7	12.6	2.1	2.7	2.3	6.9	1.9	0.7	0.9	1.4	15.8	smithja05
+Collin Sexton	SG	2TM	68	5.3	10.9	3.2	3.8	1.6	2.3	3.3	1.1	0.1	2.1	15.4	sextoco01
+Jarrett Allen	C	CLE	56	6.0	9.4	3.3	4.7	0.0	8.5	1.8	1.0	0.8	1.3	15.4	allenja01
+Jaime Jaquez Jr.	SF	MIA	75	6.2	12.2	2.2	2.9	0.8	5.0	4.7	0.7	0.3	2.0	15.4	jaqueja01
+Andrew Wiggins	SF	MIA	68	5.7	12.1	1.9	2.4	2.0	4.8	2.7	1.1	1.0	1.5	15.4	wiggian01
+Naji Marshall	SF	DAL	74	5.7	11.1	3.1	4.1	0.8	4.7	3.3	1.1	0.1	1.6	15.2	marshna01
+Onyeka Okongwu	C	ATL	74	5.6	11.6	2.1	2.7	1.9	7.6	3.1	1.1	1.1	1.7	15.2	okongon01
+Russell Westbrook	SF	SAC	64	5.6	13.1	2.0	2.9	2.0	5.4	6.7	1.3	0.2	3.3	15.2	westbru01
+Nikola Vučević	C	2TM	64	6.2	12.5	1.2	1.5	1.6	8.4	3.3	0.6	0.6	1.3	15.1	vucevni01
+Anthony Black	PG	ORL	64	5.4	12.1	2.6	3.6	1.6	3.8	3.7	1.4	0.7	2.1	15.0	blackan01
+Kennedy Chandler	PG	UTA	11	5.5	12.5	2.5	3.9	1.4	3.4	6.7	1.0	0.2	2.1	15.0	chandke01
+Brice Sensabaugh	SF	UTA	75	5.3	11.4	2.2	2.7	2.2	3.1	1.9	0.7	0.2	1.7	14.9	sensabr01
+Ayo Dosunmu	SG	2TM	69	5.6	10.8	1.8	2.1	1.8	3.4	3.6	0.8	0.3	1.4	14.8	dosunay01
+Kyshawn George	SF	WAS	48	5.3	12.0	2.2	2.7	2.1	5.1	4.5	1.0	0.9	2.6	14.8	georgky01
+Jaden McDaniels	PF	MIN	73	5.7	11.1	2.0	2.4	1.4	4.2	2.7	1.1	1.0	1.8	14.8	mcdanja02
+Peyton Watson	SF	DEN	54	5.3	10.8	2.6	3.5	1.5	4.9	2.1	0.9	1.1	1.7	14.6	watsope01
+Mikal Bridges	SF	NYK	82	5.8	11.7	1.0	1.2	1.9	3.8	3.7	1.3	0.8	1.0	14.4	bridgmi01
+Walker Kessler	C	UTA	5	5.2	7.4	2.8	4.0	1.2	10.8	3.0	1.4	1.8	3.2	14.4	kesslwa01
+Anfernee Simons	SG	2TM	55	5.2	11.8	1.3	1.4	2.7	2.5	2.4	0.5	0.1	1.2	14.3	simonan01
+Jeremiah Fears	PG	NOP	82	5.3	12.3	2.4	3.0	1.2	3.7	3.4	1.2	0.4	2.2	14.3	fearsje01
+Cormac Ryan	SG	MIL	11	4.8	9.3	2.2	2.4	2.5	2.5	1.7	1.0	0.3	1.5	14.3	ryanco01
+Scoot Henderson	PG	POR	30	4.8	11.4	2.8	3.3	1.9	2.7	3.7	0.9	0.3	2.4	14.2	hendesc01
+P.J. Washington	PF	DAL	56	5.3	11.8	2.2	3.3	1.4	7.0	1.8	1.0	1.1	1.7	14.2	washipj01
+Ivica Zubac	C	2TM	48	6.0	10.0	2.1	3.0	0.0	10.6	2.2	0.4	0.8	1.8	14.1	zubaciv01
+Tre Jones	PG	CHI	65	5.2	9.5	2.9	3.5	0.6	3.1	5.4	1.2	0.2	1.4	14.1	jonestr01
+Kelly Oubre Jr.	SF	PHI	50	5.1	10.9	2.2	2.9	1.7	5.0	1.6	1.4	0.5	1.4	14.1	oubreke01
+Santi Aldama	PF	MEM	43	5.3	11.1	1.8	2.7	1.6	6.7	2.9	0.9	0.7	1.3	14.0	aldamsa01
+Keegan Murray	PF	SAC	23	5.5	13.0	1.7	2.1	1.3	5.7	1.7	1.0	1.6	1.2	14.0	murrake02
+Devin Vassell	SG	SAS	67	4.9	11.3	1.6	1.9	2.5	4.0	2.5	0.9	0.4	0.9	13.9	vassede01
+Ace Bailey	SF	UTA	72	5.5	12.4	0.9	1.2	1.9	4.2	1.8	0.8	0.7	1.5	13.8	baileac01
+Aaron Nesmith	SF	IND	45	4.7	11.4	2.0	2.5	2.3	4.2	1.9	0.6	0.5	1.4	13.8	nesmiaa01
+Brandin Podziemski	SG	GSW	82	4.8	10.6	2.3	2.9	1.9	5.1	3.7	1.1	0.2	1.6	13.8	podzibr01
+Jalen Suggs	PG	ORL	57	4.9	11.4	1.8	2.1	2.1	3.9	5.5	1.8	0.7	2.7	13.8	suggsja01
+De'Andre Hunter	SF	2TM	45	4.6	11.1	2.8	3.2	1.7	4.1	2.0	0.7	0.1	1.7	13.7	huntede01
+Bobby Portis	PF	MIL	67	5.5	11.2	0.7	1.0	2.0	6.4	1.6	0.6	0.2	1.0	13.7	portibo01
+John Collins	PF	LAC	69	5.3	9.6	1.7	2.2	1.3	5.3	1.0	0.9	0.7	1.4	13.6	collijo01
+Cedric Coward	SG	MEM	62	4.9	10.5	2.3	2.7	1.5	5.9	2.8	0.6	0.4	1.7	13.6	cowarce01
+Zach Edey	C	MEM	11	5.6	8.9	2.3	2.9	0.1	11.1	1.1	0.6	1.9	2.4	13.6	edeyza01
+Ajay Mitchell	SG	OKC	57	5.0	10.4	2.5	2.8	1.1	3.3	3.6	1.2	0.3	1.4	13.6	mitchaj01
+Naz Reid	C	MIN	77	5.2	11.3	1.2	1.6	2.1	6.2	2.2	1.0	1.0	1.6	13.6	reidna01
+Cam Thomas	SG	2TM	42	4.5	11.0	3.3	4.0	1.2	1.7	2.6	0.2	0.1	1.8	13.5	thomaca02
+Tim Hardaway Jr.	SG	DEN	80	4.4	9.7	2.0	2.5	2.8	2.6	1.4	0.5	0.1	0.5	13.5	hardati02
+Reed Sheppard	SG	HOU	82	5.0	11.5	0.8	1.0	2.8	2.9	3.4	1.5	0.7	1.5	13.5	sheppre01
+Toumani Camara	PF	POR	82	4.8	10.9	1.2	1.7	2.7	5.1	2.5	1.1	0.4	1.8	13.4	camarto01
+Quentin Grimes	SG	PHI	75	4.5	10.1	2.7	3.2	1.7	3.6	3.3	0.9	0.4	1.8	13.4	grimequ01
+Jordan Poole	PG	NOP	39	4.2	11.4	2.5	2.9	2.5	2.0	3.1	0.6	0.4	1.8	13.4	poolejo01
+Tobias Harris	PF	DET	63	4.9	10.5	2.2	2.5	1.3	5.1	2.5	0.9	0.4	1.0	13.3	harrito02
+Keldon Johnson	SF	SAS	82	5.0	9.7	1.9	2.4	1.2	5.4	1.4	0.6	0.1	0.9	13.2	johnske04
+Jaylon Tyson	SG	CLE	66	5.0	10.2	1.2	1.6	2.0	5.1	2.2	0.8	0.4	1.5	13.2	tysonja01
+Kyle Kuzma	PF	MIL	69	4.9	10.0	2.0	2.7	1.2	4.5	2.7	0.7	0.4	1.7	13.0	kuzmaky01
+Brandon Williams	PG	DAL	66	4.4	9.3	3.7	4.6	0.5	2.9	3.9	0.9	0.3	1.9	13.0	willibr03
+Sam Merrill	SG	CLE	52	4.3	9.3	1.1	1.3	3.0	2.6	2.4	0.6	0.1	0.8	12.8	merrisa01
+Collin Gillespie	PG	PHO	80	4.4	10.5	1.0	1.1	2.9	4.1	4.6	1.2	0.2	1.6	12.7	gilleco01
+Deandre Ayton	C	LAL	72	5.6	8.3	1.3	2.0	0.0	8.0	0.8	0.6	1.0	1.2	12.5	aytonde01
+GG Jackson II	PF	MEM	55	4.6	9.3	2.0	2.7	1.2	4.3	1.5	0.6	0.8	1.5	12.5	jacksgg01
+Malik Monk	SG	SAC	62	4.5	10.2	1.5	1.7	2.0	1.9	3.0	0.6	0.4	1.5	12.5	monkma01
+Maxime Raynaud	C	SAC	74	5.2	9.1	1.8	2.3	0.3	7.5	1.4	0.5	0.5	1.3	12.5	raynama01
+Jaylen Wells	SG	MEM	69	4.4	10.1	1.9	2.5	1.9	3.2	1.6	0.9	0.1	1.1	12.5	wellsja01
+Max Christie	SG	DAL	77	4.2	9.4	1.6	1.8	2.3	3.2	2.0	0.6	0.4	1.2	12.3	chrisma02
+Noah Clowney	PF	BRK	66	3.8	9.6	2.7	3.4	2.0	4.1	1.6	0.8	0.7	1.5	12.3	clownno01
+De'Anthony Melton	PG	GSW	49	4.4	10.8	2.0	2.5	1.5	3.2	2.6	1.6	0.4	1.9	12.3	meltode01
+Jonathan Kuminga	PF	2TM	36	4.4	9.4	2.5	3.4	1.0	5.6	2.3	0.6	0.3	1.9	12.2	kuminjo01
+Donte DiVincenzo	SG	MIN	82	4.1	10.2	1.0	1.3	3.0	4.1	3.8	1.3	0.4	1.4	12.2	divindo01
+Cameron Johnson	SF	DEN	54	4.2	8.8	1.7	2.1	2.0	3.8	2.4	0.7	0.4	0.9	12.2	johnsca02
+Tre Johnson	SG	WAS	60	4.5	10.8	1.3	1.5	1.9	2.8	2.0	0.6	0.3	1.6	12.2	johnstr03
+Duncan Robinson	SG	DET	77	4.1	9.1	1.1	1.4	2.9	2.7	2.1	0.6	0.3	0.7	12.2	robindu01
+Donovan Clingan	C	POR	77	4.6	8.9	1.8	2.6	1.1	11.6	2.1	0.6	1.7	1.2	12.1	clingdo01
+Moses Moody	SG	GSW	60	4.1	9.3	1.5	1.9	2.5	3.3	1.6	1.0	0.6	1.0	12.1	moodymo01
+Christian Braun	SG	DEN	44	4.6	8.8	1.8	2.3	1.0	4.8	2.7	0.7	0.3	1.0	12.0	braunch01
+Josh Hart	SF	NYK	66	4.6	9.0	1.4	1.9	1.5	7.4	4.8	1.1	0.3	1.9	12.0	hartjo01
+Miles McBride	SG	NYK	41	4.2	9.9	0.9	1.1	2.7	2.4	2.6	0.9	0.2	0.8	12.0	mcbrimi01
+Tristen Newton	SG	HOU	1	4.0	9.0	2.0	3.0	2.0	3.0	0.0	1.0	0.0	0.0	12.0	newtotr01
+Dyson Daniels	SG	ATL	76	5.3	10.2	1.0	1.6	0.3	6.8	5.9	2.0	0.4	1.8	11.9	daniedy01
+Blake Hinson	SF	UTA	14	4.2	8.2	0.9	1.1	2.6	2.4	1.1	0.4	0.1	0.4	11.9	hinsobl01
+Myles Turner	C	MIL	71	4.0	9.1	1.8	2.5	2.1	5.3	1.5	0.7	1.6	1.2	11.9	turnemy01
+Wendell Carter Jr.	C	ORL	78	4.2	8.2	2.5	3.2	0.9	7.4	2.0	0.8	0.6	1.3	11.8	cartewe01
+Dylan Harper	SG	SAS	69	4.8	9.5	1.3	1.7	0.9	3.4	3.9	0.8	0.3	1.4	11.8	harpedy01
+Julian Reese	PF	WAS	13	4.8	9.2	2.2	3.4	0.0	10.5	1.8	1.4	0.6	2.5	11.8	reeseju01
+Nic Claxton	C	BRK	69	4.8	8.4	2.0	3.3	0.0	6.9	3.7	0.7	1.1	1.4	11.7	claxtni01
+Isaiah Collier	PG	UTA	59	4.3	8.7	2.6	3.5	0.5	2.5	7.2	1.1	0.3	2.5	11.7	colliis01
+Bilal Coulibaly	SG	WAS	56	4.1	9.7	2.4	3.2	1.2	4.3	2.6	1.3	1.0	1.4	11.7	coulibi01
+Derik Queen	C	NOP	81	4.4	9.2	2.7	3.4	0.3	7.1	3.7	1.0	0.9	2.3	11.7	queende01
+Klay Thompson	SF	DAL	69	4.1	10.6	0.5	0.7	2.9	2.1	1.4	0.5	0.3	0.9	11.7	thompkl01
+Mark Williams	C	PHO	60	4.7	7.3	2.3	2.9	0.0	8.0	1.0	0.9	0.9	1.1	11.7	willima07
+Obi Toppin	PF	IND	24	4.2	8.3	1.8	1.9	1.5	4.4	2.3	0.5	0.0	1.2	11.6	toppiob01
+Jarace Walker	PF	IND	76	4.0	9.6	1.8	2.4	1.8	5.1	2.5	0.8	0.3	1.8	11.6	walkeja02
+Rui Hachimura	PF	LAL	68	4.5	8.8	0.7	1.1	1.7	3.3	0.8	0.6	0.3	0.6	11.5	hachiru01
+Kyle Filipowski	C	UTA	77	4.2	8.5	2.1	2.8	1.0	7.2	2.6	0.9	0.5	1.6	11.4	filipky01
+Pelle Larsson	SG	MIA	70	4.0	8.0	2.6	3.3	0.9	3.5	3.4	0.7	0.2	1.4	11.4	larsspe01
+Scotty Pippen Jr.	PG	MEM	10	4.3	9.6	1.8	2.3	1.0	2.2	4.7	1.9	0.4	2.7	11.4	pippesc02
+Sandro Mamukelashvili	C	TOR	80	4.1	7.9	1.5	2.0	1.4	4.9	1.9	0.8	0.5	0.8	11.2	mamuksa01
+Max Strus	SF	CLE	12	3.9	8.8	0.6	0.8	2.8	5.4	2.0	0.3	0.0	0.8	11.2	strusma01
+Julian Champagnie	SF	SAS	82	3.7	8.4	1.4	1.6	2.4	5.8	1.5	0.8	0.5	0.8	11.1	champju02
+Isaiah Joe	SG	OKC	71	3.5	7.6	1.5	1.7	2.5	2.5	1.3	0.7	0.2	0.6	11.1	joeis01
+Cam Spencer	SG	MEM	72	3.7	7.7	1.8	1.9	2.0	2.5	5.6	0.7	0.2	1.3	11.1	spencca01
+Kel'el Ware	C	MIA	77	4.5	8.4	0.9	1.2	1.2	9.0	0.7	0.8	1.1	0.8	11.1	wareke01
+Alondes Williams	SG	WAS	4	4.0	6.5	1.8	2.0	1.3	6.3	3.0	0.8	0.8	1.3	11.0	willial06
+Rudy Gobert	C	MIN	76	4.4	6.5	2.1	4.0	0.0	11.5	1.7	0.8	1.6	1.4	10.9	goberru01
+Jusuf Nurkić	C	UTA	41	4.4	8.7	1.5	2.8	0.6	10.4	4.8	1.3	0.5	2.5	10.9	nurkiju01
+Dennis Schröder	PG	2TM	70	3.6	9.0	2.4	2.9	1.1	2.7	4.9	0.8	0.2	1.8	10.8	schrode01
+Tyler Burton	SF	MEM	12	3.5	9.3	1.9	2.3	1.8	4.2	1.0	0.9	0.3	0.9	10.8	burtoty01
+Daeqwon Plowden	SG	SAC	32	3.8	8.7	1.3	1.5	1.9	3.0	1.3	0.7	0.2	0.8	10.8	plowdda01
+Bub Carrington	PG	WAS	82	3.8	9.0	1.0	1.4	2.1	3.4	4.6	0.6	0.2	2.3	10.7	carrica01
+Jakob Poeltl	C	TOR	46	4.7	6.7	1.3	2.1	0.0	7.0	2.0	0.9	0.7	1.2	10.7	poeltja01
+Jock Landale	C	2TM	68	4.1	8.1	1.2	1.9	1.1	5.7	1.7	0.5	0.5	0.9	10.6	landajo01
+Marvin Bagley III	PF	2TM	60	4.2	6.9	1.6	2.4	0.4	6.1	1.4	0.5	0.7	1.0	10.5	baglema01
+Tari Eason	PF	HOU	60	4.0	9.7	0.9	1.1	1.6	6.3	1.5	1.2	0.5	1.4	10.5	easonta01
+Adama-Alpha Bal	SG	MEM	8	3.5	8.5	1.1	1.3	2.3	3.1	2.4	1.1	0.1	0.8	10.4	balad01
+A.J. Green	SG	MIL	78	3.4	7.9	0.7	0.8	3.0	2.7	1.9	0.5	0.1	1.0	10.4	greenaj01
+Caleb Love	SG	POR	49	3.9	10.0	0.7	1.0	1.9	2.3	2.5	0.6	0.1	1.3	10.4	loveca01
+Lucas Williamson	SG	MEM	7	3.6	10.7	1.1	1.1	2.1	5.4	2.6	1.6	0.1	1.4	10.4	willilu01
+Egor Dëmin	PG	BRK	52	3.4	8.6	1.0	1.3	2.4	3.2	3.3	0.8	0.3	1.7	10.3	demineg01
+DaQuan Jeffries	SG	SAC	3	3.7	6.3	1.7	1.7	1.3	1.7	0.3	0.7	0.0	0.0	10.3	jeffrda01
+Will Riley	SF	WAS	74	3.7	8.4	1.9	2.4	1.1	2.9	2.0	0.7	0.1	1.3	10.3	rileywi01
+Khris Middleton	SF	2TM	63	3.6	8.6	1.9	2.2	1.1	3.7	2.8	0.7	0.1	1.7	10.2	middlkh01
+Neemias Queta	C	BOS	76	4.3	6.6	1.6	2.3	0.0	8.4	1.7	0.8	1.3	1.0	10.2	quetane01
+D'Angelo Russell	PG	DAL	26	3.6	8.9	1.7	2.3	1.3	2.3	4.0	0.5	0.1	1.9	10.2	russeda01
+Jalen Smith	C	CHI	53	3.7	7.6	1.3	1.8	1.5	6.7	1.2	0.5	0.8	1.0	10.2	smithja04
+Ziaire Williams	SF	BRK	56	3.3	7.7	2.1	2.5	1.5	2.4	1.1	1.4	0.4	1.1	10.2	willizi02
+Precious Achiuwa	C	SAC	73	4.3	8.2	1.1	1.9	0.4	6.7	1.4	0.9	0.7	0.9	10.1	achiupr01
+Derrick Jones Jr.	SF	LAC	50	3.8	7.6	1.4	1.9	1.1	3.5	1.4	0.9	1.0	0.8	10.1	jonesde02
+Kevin Huerter	SF	2TM	69	3.9	8.6	0.8	1.0	1.4	3.5	2.6	0.9	0.5	1.0	10.0	huertke01
+Jordan Miller	SF	LAC	60	3.5	6.7	2.3	2.9	0.6	3.0	2.3	0.8	0.2	1.1	10.0	millejo02
+Toby Okani	SG	MEM	6	4.2	11.7	0.2	1.3	1.5	3.5	1.0	0.7	0.5	0.5	10.0	okanito01
+Olivier-Maxence Prosper	PF	MEM	53	3.6	6.6	1.6	2.2	1.1	3.5	1.0	0.8	0.2	0.9	10.0	prospol01
+Isaiah Stewart	C	DET	58	3.8	6.9	1.7	2.3	0.7	5.0	1.1	0.3	1.6	1.2	10.0	stewais01
+Harrison Barnes	PF	SAS	77	3.4	7.5	1.3	1.6	1.8	2.8	1.9	0.6	0.2	0.8	9.9	barneha02
+Tristan Da Silva	SF	ORL	77	3.6	8.1	1.1	1.2	1.6	3.7	1.6	0.9	0.3	0.9	9.9	dasiltr01
+Ausar Thompson	SF	DET	73	4.2	7.9	1.5	2.6	0.1	5.7	3.1	2.0	0.9	1.5	9.9	thompau01
+Royce O'Neale	SF	PHO	78	3.4	8.0	0.3	0.5	2.7	4.8	2.7	1.1	0.4	1.3	9.8	onealro01
+Zach Collins	C	CHI	10	3.7	6.4	1.4	2.0	0.9	5.6	1.5	0.2	0.4	1.0	9.7	colliza01
+Micah Potter	C	IND	47	3.2	6.2	1.8	2.1	1.5	5.0	1.5	0.5	0.3	1.0	9.7	pottemi01
+Javon Small	PG	MEM	41	3.3	7.0	1.7	2.0	1.5	3.1	3.7	0.8	0.2	1.4	9.7	smallja01
+Zaccharie Risacher	SF	ATL	67	3.6	8.0	0.9	1.3	1.4	3.8	1.1	0.9	0.5	0.9	9.6	risacza01
+Daniel Gafford	C	DAL	55	3.8	5.7	2.0	2.9	0.0	6.9	1.1	0.8	1.3	1.1	9.5	gaffoda01
+Jay Huff	C	IND	82	3.5	7.5	1.0	1.2	1.5	4.0	1.5	0.5	1.9	0.9	9.5	huffja01
+T.J. McConnell	PG	IND	56	4.3	8.0	0.4	0.5	0.3	2.2	5.1	1.0	0.2	1.1	9.4	mccontj01
+Svi Mykhailiuk	SF	UTA	50	3.5	7.2	0.5	0.6	2.0	2.5	1.9	0.5	0.1	0.8	9.4	mykhasv01
+Aaron Wiggins	SG	OKC	65	3.6	8.2	0.8	1.1	1.5	3.1	1.7	0.9	0.4	1.2	9.4	wiggiaa01
+Daniss Jenkins	PG	DET	72	3.2	7.9	1.9	2.2	1.0	2.3	3.9	0.9	0.2	1.6	9.3	jenkida01
+Davion Mitchell	PG	MIA	70	3.7	7.6	0.6	0.9	1.3	2.7	6.5	1.0	0.2	1.5	9.3	mitchda01
+Isaac Okoro	SG	CHI	63	3.3	7.3	1.4	1.8	1.2	2.7	1.6	0.7	0.5	0.7	9.3	okorois01
+Landry Shamet	SG	NYK	51	3.1	7.1	1.1	1.5	2.0	1.8	1.4	0.6	0.2	0.6	9.3	shamela01
+Marcus Smart	SG	LAL	62	3.0	7.7	1.7	2.1	1.6	2.8	3.0	1.4	0.4	1.5	9.3	smartma01
+Jaden Hardy	SG	2TM	57	3.2	7.5	1.0	1.3	1.8	1.5	1.0	0.3	0.1	1.1	9.2	hardyja02
+Isaiah Hartenstein	C	OKC	47	3.9	6.3	1.4	2.2	0.0	9.4	3.5	1.0	0.8	1.7	9.2	harteis01
+Sam Hauser	PF	BOS	78	3.2	7.7	0.2	0.3	2.5	3.8	1.5	0.5	0.3	0.4	9.2	hausesa01
+Corey Kispert	SF	2TM	58	3.2	6.8	1.3	1.7	1.5	2.3	1.6	0.3	0.2	0.8	9.2	kispeco01
+Taurean Prince	SF	MIL	26	3.3	7.3	0.2	0.2	2.3	3.1	1.8	0.6	0.2	1.2	9.2	princta02
+Gui Santos	PF	GSW	68	3.4	6.8	1.3	1.8	1.1	3.9	2.3	0.9	0.3	1.5	9.2	santogu01
+Cam Whitmore	SF	WAS	21	3.7	8.0	1.1	1.5	0.8	2.8	0.7	0.7	0.4	0.9	9.2	whitmca01
+Quenton Jackson	PG	IND	49	3.1	6.7	2.0	2.4	0.9	2.3	2.9	0.6	0.1	1.3	9.1	jacksqu01
+Tristan Vukcevic	C	WAS	49	3.1	6.5	1.8	2.3	1.0	3.0	1.1	0.5	0.7	1.3	9.0	vukcetr01
+Devin Carter	PG	SAC	38	3.2	7.7	1.8	2.5	0.8	3.3	2.7	0.9	0.2	1.4	8.9	cartede02
+Herbert Jones	SF	NOP	56	3.3	8.5	0.9	1.1	1.4	3.4	2.8	1.6	0.5	1.3	8.9	joneshe01
+Nolan Traoré	PG	BRK	56	3.3	8.6	1.3	1.7	1.1	1.8	3.8	0.8	0.4	2.3	8.9	traorno01
+Danny Wolf	PF	BRK	57	3.1	7.7	1.5	1.9	1.2	4.9	2.2	0.5	0.6	1.3	8.9	wolfda01
+John Poulakidas	SG	DAL	13	3.0	7.0	0.5	0.5	2.4	2.3	0.8	0.5	0.3	0.3	8.8	poulajo01
+Payton Sandfort	SF	OKC	4	3.3	6.5	0.5	1.0	1.8	2.5	0.0	0.3	0.0	0.3	8.8	sandfpa01
+Cody Williams	SG	UTA	67	3.6	7.6	1.3	1.8	0.4	3.0	2.0	0.8	0.4	1.1	8.8	willico04
+Justin Champagnie	SF	WAS	69	3.4	6.7	1.2	1.5	0.8	5.6	1.2	0.9	0.6	0.7	8.7	champju01
+Jordan Goodwin	PG	PHO	70	3.3	7.9	0.6	0.8	1.6	4.9	2.2	1.5	0.2	1.0	8.7	goodwjo01
+Day'Ron Sharpe	C	BRK	62	3.5	5.7	1.7	2.5	0.1	6.7	2.3	1.1	0.4	1.7	8.7	sharpda01
+Jonas Valančiūnas	C	DEN	65	3.5	6.0	1.6	2.1	0.1	5.1	1.2	0.2	0.6	1.1	8.7	valanjo01
+Jordan Clarkson	SG	NYK	72	3.3	7.3	1.1	1.3	1.0	1.8	1.3	0.4	0.1	0.9	8.6	clarkjo01
+Nique Clifford	SG	SAC	75	3.3	7.9	0.9	1.3	1.0	3.8	2.4	0.9	0.3	1.5	8.6	cliffni01
+Cason Wallace	SG	OKC	77	3.3	7.6	0.7	0.9	1.3	3.1	2.6	1.9	0.4	0.9	8.6	wallaca01
+Jaden Ivey	SG	2TM	37	3.1	6.9	1.0	1.3	1.4	2.5	1.8	0.6	0.4	1.1	8.5	iveyja01
+Vít Krejčí	PG	2TM	65	3.0	6.6	0.6	0.8	2.0	2.3	1.5	0.7	0.3	0.6	8.5	krejcvi01
+Simone Fontecchio	SF	MIA	70	2.8	6.7	1.2	1.5	1.8	3.0	1.4	0.5	0.1	0.7	8.5	fontesi01
+Bones Hyland	PG	MIN	71	3.0	6.6	0.9	1.2	1.6	1.8	2.6	0.6	0.2	1.0	8.5	hylanbo01
+Brook Lopez	C	LAC	75	3.1	7.2	0.7	1.0	1.5	3.6	1.3	0.6	1.2	0.8	8.5	lopezbr01
+Collin Murray-Boyles	PF	TOR	57	3.5	6.0	1.2	1.9	0.3	5.0	1.9	0.9	0.9	1.0	8.5	murraco01
+Luke Kennard	SG	2TM	78	3.0	5.7	0.8	0.9	1.5	2.3	2.2	0.7	0.1	0.8	8.4	kennalu01
+Kentavious Caldwell-Pope	SG	MEM	51	2.9	7.2	1.4	1.6	1.1	2.5	2.7	0.8	0.2	1.2	8.4	caldwke01
+Draymond Green	PF	GSW	68	3.0	7.2	0.9	1.2	1.5	5.5	5.5	0.9	0.6	2.7	8.4	greendr01
+Jared McCain	SG	2TM	67	3.0	7.2	0.8	0.9	1.5	2.0	1.3	0.5	0.1	0.8	8.3	mccaija01
+Luguentz Dort	SF	OKC	69	2.9	7.6	0.6	0.8	1.9	3.6	1.2	0.9	0.4	0.8	8.3	dortlu01
+Al Horford	C	GSW	45	3.1	7.2	0.5	0.6	1.6	4.9	2.6	0.7	1.1	0.9	8.3	horfoal01
+Josh Oduro	PF	NOP	3	3.7	5.7	1.0	2.0	0.0	7.7	1.3	0.0	0.0	0.7	8.3	odurojo01
+Kadary Richmond	SG	WAS	3	3.3	5.3	1.0	1.0	0.7	3.3	2.7	2.7	0.3	0.7	8.3	richmka01
+Malachi Smith	SG	BRK	15	3.2	6.6	0.5	0.5	1.3	3.4	3.3	0.8	0.3	0.9	8.3	smithma02
+Bradley Beal	SG	LAC	6	3.0	8.0	1.0	1.3	1.2	0.8	1.7	0.5	0.0	1.5	8.2	bealbr01
+LJ Cryer	PG	GSW	18	2.6	6.5	0.9	1.1	2.1	1.6	1.0	0.2	0.0	0.8	8.2	cryerlj01
+Ron Holland	SF	DET	78	3.0	7.0	1.5	1.9	0.6	4.0	1.2	1.2	0.3	1.2	8.2	hollaro01
+Chaney Johnson	SF	BRK	17	3.0	5.5	1.6	2.1	0.5	4.6	2.1	0.9	0.5	1.2	8.2	johnsch06
+Jake LaRavia	PF	LAL	82	2.9	6.4	1.4	1.9	1.0	4.0	1.8	1.3	0.5	1.1	8.2	laravja01
+Sharife Cooper	PG	WAS	41	3.1	6.0	1.2	1.5	0.7	2.1	3.0	0.4	0.1	1.5	8.1	coopesh01
+Luka Garza	C	BOS	69	3.0	5.2	1.3	1.7	0.8	4.1	1.0	0.4	0.4	0.7	8.1	garzalu01
+Bez Mbeng	SG	UTA	15	3.3	6.7	1.1	1.7	0.4	3.8	4.1	2.3	0.3	1.5	8.1	mbengbe01
+Bryce McGowens	SG	NOP	42	2.7	5.6	1.8	2.3	0.9	2.1	1.5	0.6	0.2	0.4	8.1	mcgowbr01
+Gary Trent Jr.	SG	MIL	65	2.8	7.3	0.6	0.8	1.9	1.0	1.2	0.5	0.0	0.6	8.1	trentga02
+Mouhamadou Gueye	PF	CHI	2	3.0	5.5	1.5	2.0	0.5	3.0	3.0	1.0	0.5	1.5	8.0	gueyemo01
+DeJon Jarreau	SG	MEM	11	3.0	7.5	1.6	2.1	0.4	4.6	3.3	0.9	0.7	2.4	8.0	jarrede01
+David Roddy	PF	DEN	5	3.0	6.0	1.4	1.4	0.6	4.0	0.8	0.8	0.2	0.4	8.0	roddyda01
+Tre Scott	PF	BRK	6	3.2	8.3	0.7	1.0	1.0	5.2	1.7	1.3	0.8	0.7	8.0	scotttr01
+Nate Williams	SG	GSW	14	3.1	6.3	0.9	1.1	0.9	2.1	1.0	0.4	0.0	1.1	8.0	willije02
+Bruce Brown	SG	DEN	82	3.0	6.4	1.2	1.5	0.7	3.9	2.1	1.0	0.2	1.1	7.9	brownbr01
+Moussa Diabaté	C	CHO	73	3.1	5.0	1.6	2.4	0.0	8.7	1.9	0.8	1.0	1.0	7.9	diabamo01
+Tyson Etienne	PG	BRK	24	2.4	6.0	1.3	1.5	1.8	1.1	1.7	0.5	0.0	0.7	7.9	etienty01
+Leonard Miller	SF	2TM	46	3.2	5.7	0.8	1.2	0.7	3.9	0.9	0.4	0.3	0.8	7.8	millele01
+Walter Clayton	PG	2TM	69	2.6	6.7	1.6	1.8	1.1	2.0	4.0	0.6	0.3	1.7	7.8	claytwa01
+Paul Reed	C	DET	65	3.2	5.2	1.1	1.7	0.2	4.5	1.2	0.9	0.9	0.9	7.8	reedpa01
+Oscar Tshiebwe	C	UTA	27	3.4	5.4	1.0	1.8	0.0	6.6	1.2	0.6	0.2	0.8	7.8	tshieos01
+Dominick Barlow	PF	PHI	71	3.0	5.6	1.3	1.8	0.3	4.8	1.2	0.9	0.7	0.8	7.7	barlodo01
+Quinten Post	PF	GSW	67	2.9	6.6	0.5	0.6	1.4	4.0	1.4	0.4	0.5	0.8	7.7	postqu01
+Ousmane Dieng	C	2TM	57	2.9	7.0	0.6	0.8	1.1	3.2	2.4	0.4	0.3	1.3	7.6	diengou01
+Buddy Hield	SG	2TM	51	2.8	6.4	0.6	0.7	1.5	2.3	1.4	0.8	0.2	0.9	7.6	hieldbu01
+Ryan Kalkbrenner	C	CHO	69	3.2	4.2	1.2	1.7	0.0	5.5	0.8	0.5	1.5	0.9	7.6	kalkbry01
+Vince Williams Jr.	SG	2TM	40	2.6	7.3	1.0	1.3	1.4	3.9	4.2	0.7	0.4	1.8	7.5	willivi01
+Jaxson Hayes	C	LAL	66	3.0	4.0	1.5	2.3	0.0	4.1	0.9	0.4	0.8	0.5	7.5	hayesja02
+Gary Payton II	SG	GSW	73	3.3	5.7	0.4	0.5	0.5	3.6	1.7	0.9	0.3	0.8	7.5	paytoga02
+Ben Saraf	SG	BRK	44	2.7	6.9	1.7	2.0	0.4	2.1	3.3	0.9	0.2	2.3	7.5	sarafbe01
+Ja'Kobe Walter	SG	TOR	72	2.5	5.6	1.0	1.3	1.5	2.6	1.2	1.0	0.2	0.5	7.5	walteja01
+Josh Minott	PF	2TM	49	2.6	5.1	1.0	1.2	1.3	3.2	0.9	0.9	0.5	0.9	7.4	minotjo01
+Taylor Hendricks	PF	2TM	59	2.8	6.0	0.8	1.2	1.1	3.7	0.9	0.8	0.5	0.8	7.4	hendrta01
+Jose Alvarado	PG	2TM	69	2.7	6.5	0.5	0.7	1.5	2.5	3.4	1.0	0.1	1.1	7.4	alvarjo01
+Bogdan Bogdanović	SG	LAC	23	2.6	6.6	0.9	1.1	1.4	2.6	2.2	0.4	0.1	1.2	7.4	bogdabo01
+Caris LeVert	SG	DET	60	2.7	6.5	1.0	1.4	1.0	2.0	2.7	0.9	0.7	1.4	7.4	leverca01
+Cameron Payne	PG	PHI	22	2.5	6.8	0.9	1.0	1.5	2.0	2.6	1.1	0.3	0.5	7.4	payneca01
+Jamir Watkins	SG	WAS	50	2.6	5.9	1.1	1.6	0.9	3.9	1.3	1.1	0.5	0.8	7.4	watkija01
+Kris Dunn	PG	LAC	82	2.8	5.8	0.8	1.0	1.0	3.3	3.6	1.6	0.2	1.4	7.3	dunnkr01
+Nikola Jović	PF	MIA	47	2.4	6.7	1.5	2.1	1.0	3.3	2.2	0.6	0.4	1.4	7.3	jovicni01
+Kobe Sanders	SG	LAC	68	2.6	5.6	0.8	1.0	1.2	2.3	1.6	0.7	0.1	1.2	7.3	sandeko01
+Jalen Slawson	SF	IND	13	2.6	5.9	0.9	1.3	1.2	4.4	2.8	1.5	1.1	1.3	7.3	slawsja01
+Terance Mann	SG	BRK	63	2.7	5.8	1.0	1.3	0.9	3.2	3.0	0.7	0.2	1.1	7.2	mannte01
+Pat Spencer	PG	GSW	66	2.8	6.6	0.7	0.9	0.9	2.4	3.5	0.7	0.1	1.3	7.2	spencpa01
+Julian Strawther	SG	DEN	57	2.6	5.6	1.0	1.2	1.0	2.0	1.1	0.4	0.1	0.6	7.2	strawju01
+Jaylin Williams	PF	OKC	65	2.3	5.4	1.1	1.4	1.5	5.5	2.4	0.5	0.6	1.0	7.2	willija07
+Leaky Black	SF	WAS	15	2.7	6.9	0.5	0.5	1.3	5.0	1.5	1.2	0.5	0.9	7.1	blackle01
+Seth Curry	SG	GSW	10	2.4	4.9	1.1	1.2	1.2	1.2	1.0	0.3	0.0	0.2	7.1	curryse01
+Ben Sheppard	SG	IND	65	2.6	6.0	0.6	0.8	1.3	3.0	1.8	0.6	0.1	0.6	7.1	sheppbe01
+Lawson Lovering	C	MEM	2	3.0	5.0	1.0	2.5	0.0	7.5	1.5	1.5	0.5	1.0	7.0	loverla01
+Ethan Thompson	SG	IND	32	2.3	6.1	1.2	1.5	1.2	2.2	1.8	0.6	0.3	0.8	7.0	thompet01
+Grant Williams	PF	CHO	36	2.2	5.1	1.2	1.5	1.4	3.9	1.6	0.5	0.5	0.9	7.0	willigr01
+Patrick Williams	PF	CHI	72	2.5	6.6	0.8	1.0	1.3	3.0	1.5	0.7	0.4	1.0	7.0	willipa01
+Javonte Green	SG	DET	82	2.3	5.0	1.3	1.5	1.1	2.8	0.7	1.2	0.3	0.5	6.9	greenja02
+Moritz Wagner	C	ORL	36	2.3	5.4	1.6	2.0	0.6	3.2	0.8	0.4	0.1	0.5	6.9	wagnemo01
+MarJon Beauchamp	SF	PHI	14	2.4	5.4	0.9	1.4	1.1	2.3	1.1	0.6	0.3	0.9	6.8	beaucma01
+Elijah Harkless	SG	UTA	26	2.1	6.2	1.9	2.5	0.8	2.0	2.9	1.2	0.2	1.0	6.8	harklej01
+Keon Ellis	SG	2TM	72	2.3	5.3	0.7	1.0	1.3	1.9	1.0	1.2	0.6	0.6	6.7	elliske01
+Isaiah Jackson	C	2TM	55	2.7	4.3	1.2	1.9	0.0	5.3	0.9	0.7	0.9	1.1	6.7	jacksis01
+Cole Anthony	PG	MIL	35	2.8	6.6	0.5	0.7	0.6	2.5	3.5	0.6	0.3	1.9	6.7	anthoco01
+Kevin Love	PF	UTA	37	2.1	5.4	1.0	1.2	1.4	5.8	1.8	0.4	0.2	0.8	6.7	loveke01
+Robert Williams	C	POR	59	3.0	4.2	0.6	1.0	0.2	7.0	1.0	0.6	1.5	0.8	6.7	williro04
+Ryan Nembhard	PG	DAL	60	2.7	6.5	0.4	0.5	0.8	2.2	5.3	0.4	0.0	1.4	6.6	nembhry01
+Jamal Shead	PG	TOR	82	2.3	6.1	1.1	1.4	1.0	1.7	5.4	0.9	0.2	1.4	6.6	sheadja01
+Oso Ighodaro	PF	PHO	82	2.9	4.5	0.6	1.4	0.0	5.1	2.3	0.9	0.7	1.2	6.5	ighodos01
+Luke Kornet	C	SAS	68	2.6	4.0	1.4	1.7	0.0	6.1	1.9	0.5	1.0	0.4	6.5	kornelu01
+Drake Powell	SG	BRK	63	2.3	5.7	1.1	1.2	0.8	1.8	1.4	0.6	0.2	1.0	6.5	poweldr01
+Trendon Watford	PF	PHI	53	2.6	5.1	1.1	1.5	0.2	3.3	2.5	0.3	0.4	1.2	6.5	watfotr01
+Kenrich Williams	PF	OKC	56	2.5	5.3	0.6	0.9	0.9	3.3	1.4	0.6	0.1	0.8	6.5	willike04
+Jevon Carter	PG	2TM	53	2.3	5.8	0.3	0.4	1.5	1.7	1.6	0.8	0.2	0.7	6.4	carteje01
+Andre Drummond	C	PHI	63	2.5	5.3	0.8	1.3	0.5	8.4	1.3	0.6	0.8	1.0	6.4	drumman01
+Will Richard	SG	GSW	69	2.3	5.0	0.7	0.8	1.0	2.5	1.3	1.2	0.1	0.8	6.4	richawi02
+Jalen Wilson	PF	BRK	54	2.0	5.1	1.3	1.8	1.0	2.1	0.9	0.4	0.0	0.7	6.4	wilsoja03
+Rob Dillingham	PG	2TM	65	2.5	6.3	0.6	0.8	0.6	2.0	2.2	0.7	0.1	1.5	6.3	dilliro01
+Tyrese Martin	SG	2TM	46	2.4	6.0	0.4	0.6	1.2	2.5	1.7	0.5	0.1	0.9	6.3	martity01
+Kyle Anderson	SF	3TM	43	2.5	4.7	1.1	1.6	0.1	3.5	2.9	1.0	0.6	0.9	6.2	anderky01
+Thomas Bryant	C	CLE	60	2.3	4.5	0.9	1.1	0.8	3.4	0.6	0.3	0.4	0.5	6.2	bryanth01
+Alex Caruso	SG	OKC	56	2.3	5.4	0.7	0.9	0.9	2.8	2.0	1.3	0.3	0.9	6.2	carusal01
+Kasparas Jakučionis	PG	MIA	53	1.9	4.5	1.1	1.2	1.2	2.6	2.6	0.6	0.1	0.9	6.2	jakucka01
+Jahmai Mashack	SG	MEM	31	2.5	6.3	0.6	1.1	0.6	2.6	2.2	1.2	0.5	1.6	6.2	mashaja01
+Nick Smith Jr.	SG	LAL	30	2.3	5.4	0.4	0.5	1.1	0.8	1.0	0.3	0.1	0.7	6.2	smithni01
+Mac McClung	SG	2TM	11	2.1	5.4	1.3	1.6	0.6	0.9	0.9	1.0	0.3	0.8	6.1	mccluma01
+Gradey Dick	SG	TOR	76	2.1	5.1	1.0	1.2	0.7	1.9	0.7	0.6	0.1	0.6	6.0	dickgr01
+Justin Edwards	SF	PHI	64	2.2	5.0	0.5	0.6	1.0	1.5	1.3	0.8	0.2	0.6	6.0	edwarju01
+Hayden Gray	SG	UTA	1	2.0	3.0	2.0	2.0	0.0	0.0	1.0	1.0	1.0	1.0	6.0	grayha01
+Tidjane Salaün	PF	CHO	37	2.2	4.3	0.7	1.1	1.0	4.0	0.7	0.4	0.2	0.7	6.0	salauti01
+Goga Bitadze	C	ORL	64	2.4	3.5	1.1	1.5	0.0	5.0	1.3	0.6	1.0	0.7	5.9	bitadgo01
+Charles Bassey	C	4TM	13	2.4	3.6	1.1	1.5	0.0	4.4	0.5	0.3	0.8	0.5	5.8	bassech01
+Kobe Brown	PF	2TM	61	2.1	4.4	0.8	1.0	0.9	3.0	1.3	0.4	0.2	0.9	5.8	brownko01
+Nick Richards	C	2TM	48	2.1	4.2	1.4	2.1	0.1	5.1	0.3	0.2	0.7	1.2	5.8	richani01
+Steven Adams	C	HOU	32	2.2	4.3	1.5	2.5	0.0	8.6	1.5	0.7	0.6	1.1	5.8	adamsst01
+Branden Carlson	C	OKC	42	2.3	4.4	0.4	0.6	0.7	3.0	0.7	0.2	0.6	0.4	5.8	carlsbr01
+Ryan Dunn	SF	PHO	70	2.3	5.2	0.3	0.7	0.8	4.2	1.5	0.9	0.4	0.8	5.8	dunnry01
+Anthony Gill	PF	WAS	55	2.5	3.9	0.6	0.8	0.3	2.9	1.3	0.6	0.4	0.7	5.8	gillan01
+Kris Murray	SF	POR	57	2.3	4.8	0.7	1.0	0.6	3.6	1.4	0.9	0.4	0.8	5.8	murrakr01
+Matisse Thybulle	SG	POR	30	1.9	4.5	0.7	0.8	1.2	2.0	0.9	2.0	0.5	0.9	5.8	thybuma01
+Nae'Qwan Tomlin	PF	CLE	64	2.3	4.9	0.7	1.0	0.4	2.9	0.8	0.6	0.5	0.5	5.8	tomlina01
+Dean Wade	PF	CLE	59	2.1	4.7	0.5	0.6	1.2	4.2	1.5	0.7	0.4	0.3	5.8	wadede01
+Jamaree Bouyea	PG	PHO	46	2.3	5.1	0.5	0.8	0.5	1.8	1.8	0.6	0.3	0.7	5.7	bouyeja01
+E.J. Liddell	PF	BRK	26	2.1	4.3	0.8	1.0	0.7	2.7	0.9	0.2	0.4	0.6	5.7	liddeej01
+Karlo Matković	PF	NOP	62	2.3	3.8	0.5	0.7	0.6	3.7	0.8	0.4	0.9	0.5	5.7	matkoka01
+Doug McDermott	SF	SAC	29	1.9	4.8	0.3	0.3	1.7	1.3	0.8	0.2	0.1	0.4	5.7	mcderdo01
+Yves Missi	C	NOP	66	2.4	4.5	0.9	1.5	0.0	5.8	1.3	0.3	1.5	0.8	5.7	missiyv01
+Mitchell Robinson	C	NYK	60	2.5	3.4	0.7	1.7	0.0	8.8	0.9	0.9	1.2	0.7	5.7	robinmi01
+Guerschon Yabusele	C	2TM	67	1.9	4.7	0.8	1.1	1.0	3.5	0.9	0.4	0.2	0.6	5.6	yabusgu01
+Terrence Shannon Jr.	SG	MIN	43	1.8	4.0	1.3	1.6	0.7	1.1	0.9	0.3	0.0	0.6	5.6	shannte01
+Dru Smith	SG	MIA	70	1.9	4.6	1.2	1.5	0.5	2.5	2.6	1.4	0.3	0.8	5.6	smithdr01
+Eric Gordon	SG	PHI	6	2.0	3.5	0.2	0.3	1.3	0.3	0.5	0.7	0.2	0.5	5.5	gordoer01
+Killian Hayes	PG	SAC	23	1.8	6.0	1.1	1.2	0.7	2.3	3.5	0.9	0.2	1.2	5.5	hayeski01
+Aaron Holiday	PG	HOU	57	1.8	4.4	0.6	0.7	1.2	1.0	1.1	0.5	0.1	0.7	5.5	holidaa01
+Jett Howard	SF	ORL	55	1.9	4.6	0.7	0.7	1.0	1.6	0.8	0.2	0.2	0.3	5.5	howarje01
+Spencer Jones	SF	DEN	64	2.1	4.1	0.5	0.8	0.9	3.3	0.8	0.8	0.5	0.5	5.5	jonessp01
+Tre Mann	PG	CHO	53	2.1	5.7	0.4	0.5	0.9	1.7	1.6	0.5	0.1	1.0	5.5	manntr01
+Baylor Scheierman	SG	BOS	77	2.0	4.3	0.4	0.4	1.3	3.5	1.5	0.5	0.1	0.6	5.5	scheiba01
+Jamal Cain	SF	ORL	40	1.9	3.8	1.0	1.2	0.7	2.0	0.7	0.3	0.1	0.5	5.4	cainja01
+Dylan Cardwell	C	SAC	44	2.4	4.1	0.6	1.2	0.0	7.5	1.4	0.7	1.5	0.9	5.4	cardwdy01
+Haywood Highsmith	SF	PHO	7	1.7	3.3	0.9	1.0	1.1	1.9	1.0	0.6	0.0	0.0	5.4	highsha01
+Sion James	SG	CHO	82	1.7	4.5	1.0	1.2	1.0	3.5	2.0	0.6	0.2	0.8	5.4	jamessi01
+Pete Nance	PF	MIL	47	2.1	4.1	0.1	0.2	1.1	2.7	1.0	0.3	0.3	0.6	5.4	nancepe01
+Tyrese Proctor	PG	CLE	50	1.9	4.5	0.8	0.9	0.9	1.3	1.5	0.5	0.0	0.8	5.4	proctty01
+Jordan Walsh	PF	BOS	68	2.0	3.9	0.6	0.8	0.7	4.0	0.8	0.7	0.5	0.5	5.4	walshjo01
+Rayan Rupert	SG	2TM	64	1.9	4.9	0.7	0.8	0.7	2.9	1.1	0.9	0.1	0.9	5.2	ruperra01
+Trey Alexander	SG	NOP	9	2.1	4.1	0.3	0.6	0.7	1.2	1.0	0.7	0.2	0.3	5.2	alexatr01
+Drew Eubanks	C	SAC	42	2.2	3.7	0.8	1.4	0.0	3.0	0.5	0.4	0.6	0.7	5.2	eubandr01
+Andersson Garcia	SF	UTA	5	1.8	5.8	1.4	1.8	0.2	8.4	2.8	1.6	0.8	1.4	5.2	garcian01
+Garrison Mathews	SG	IND	15	1.4	3.5	1.3	1.5	1.1	1.1	0.7	0.4	0.2	0.2	5.2	mathega01
+Asa Newell	PF	ATL	44	2.1	3.8	0.4	0.7	0.7	2.2	0.6	0.4	0.3	0.5	5.2	newelas01
+Jalen Pickett	SG	DEN	50	2.0	4.6	0.3	0.4	1.0	2.3	2.3	0.3	0.1	0.7	5.2	pickeja02
+Marcus Sasser	PG	DET	38	1.8	4.7	0.4	0.5	1.2	1.0	2.0	0.5	0.1	0.8	5.2	sassema01
+Nikola Topić	PG	OKC	10	2.2	5.1	0.2	0.5	0.6	1.9	4.4	0.5	0.0	2.5	5.2	topicni01
+Ochai Agbaji	SG	2TM	62	2.0	4.5	0.6	0.7	0.5	2.3	0.8	0.4	0.3	0.5	5.1	agbajoc01
+Sidy Cissoko	SF	POR	75	1.8	4.5	0.8	1.2	0.8	2.2	1.5	0.7	0.3	0.9	5.1	cissosi01
+Johnny Furphy	SG	IND	35	2.0	4.3	0.5	1.0	0.7	4.4	1.2	0.6	0.2	0.8	5.1	furphjo01
+Jordan Hawkins	SG	NOP	51	1.8	5.0	0.5	0.5	0.9	1.7	0.8	0.3	0.2	0.7	5.1	hawkijo01
+Jericho Sims	C	MIL	67	2.2	2.8	0.7	1.1	0.0	5.5	1.6	0.3	0.3	1.1	5.0	simsje01
+Adem Bona	C	PHI	71	1.8	3.1	1.1	1.6	0.0	4.3	0.5	0.4	1.2	0.8	4.8	bonaad01
+Blake Wesley	SG	POR	31	1.8	4.0	0.8	1.5	0.3	1.3	2.0	0.5	0.2	1.0	4.8	weslebl01
+Tyler Smith	PF	DAL	12	1.8	4.2	0.3	0.5	0.8	2.8	0.4	0.5	0.0	0.5	4.7	smithty02
+KJ Simpson	PG	2TM	20	1.7	5.0	0.6	0.9	0.6	1.9	2.2	0.8	0.0	1.3	4.6	simpskj01
+Lonzo Ball	PG	CLE	35	1.5	5.0	0.4	0.6	1.1	4.0	3.9	1.3	0.3	1.5	4.6	balllo01
+Malaki Branham	SG	WAS	28	1.5	3.3	1.0	1.2	0.5	1.6	0.8	0.4	0.1	0.5	4.6	branhma01
+Zyon Pullin	SG	MIN	5	1.8	2.6	0.8	0.8	0.2	0.6	1.8	0.2	0.0	0.6	4.6	pullizy01
+Jeremiah Robinson-Earl	PF	2TM	22	1.7	4.5	0.8	0.8	0.5	4.7	0.7	0.4	0.0	0.5	4.6	robinje02
+PJ Hall	C	2TM	19	1.6	3.1	1.2	1.5	0.2	3.9	0.5	0.2	0.5	0.8	4.5	hallpj01
+Moussa Cisse	C	DAL	38	1.7	3.0	1.0	2.1	0.0	5.7	0.2	0.5	1.2	0.8	4.5	cissemo01
+Mike Conley	PG	MIN	54	1.3	4.0	0.8	0.9	1.0	1.7	2.9	0.6	0.3	0.6	4.5	conlemi01
+Josh Okogie	SG	HOU	78	1.6	3.8	0.5	0.9	0.8	2.6	0.9	0.8	0.2	0.5	4.5	okogijo01
+Taelon Peter	SG	IND	38	1.6	4.2	0.3	0.4	1.1	1.6	1.1	0.7	0.1	0.7	4.5	peterta01
+Craig Porter Jr.	PG	CLE	64	1.8	4.0	0.4	0.6	0.5	3.4	3.2	0.9	0.6	0.9	4.5	portecr01
+John Konchar	SG	2TM	56	1.7	3.6	0.6	0.8	0.5	4.3	2.1	1.5	0.7	0.6	4.4	konchjo01
+RayJ Dennis	PG	3TM	17	1.5	4.9	0.5	0.5	0.8	1.5	1.9	0.2	0.2	1.0	4.4	dennira01
+Gabe Vincent	PG	2TM	53	1.4	4.1	0.4	0.4	1.1	1.0	1.4	0.5	0.1	0.5	4.4	vincega01
+Mouhamed Gueye	PF	ATL	77	1.7	3.8	0.5	0.8	0.5	3.6	0.9	0.8	0.5	0.4	4.4	gueyemo02
+Kam Jones	SG	IND	37	1.8	4.6	0.1	0.2	0.6	1.6	3.2	0.5	0.0	1.0	4.4	joneska03
+DeAndre Jordan	C	NOP	12	1.8	2.7	0.9	1.4	0.0	6.3	0.9	0.3	0.8	0.8	4.4	jordade01
+Tyler Kolek	PG	NYK	62	1.7	4.0	0.2	0.3	0.7	1.6	2.7	0.4	0.1	0.9	4.4	kolekty01
+Jase Richardson	SG	ORL	54	1.6	3.5	0.6	0.9	0.5	1.2	1.1	0.4	0.0	0.5	4.4	richaja02
+Jarred Vanderbilt	PF	LAL	65	1.7	3.7	0.5	0.9	0.4	4.5	1.3	0.8	0.3	0.9	4.4	vandeja01
+Keshon Gilbert	SG	2TM	4	1.3	3.0	1.8	1.8	0.0	1.3	3.0	0.8	1.0	2.0	4.3	gilbeke01
+Rasheer Fleming	PF	PHO	55	1.6	3.9	0.3	0.6	0.8	2.3	0.3	0.4	0.4	0.5	4.3	flemira01
+Josh Green	SG	CHO	58	1.4	3.1	0.4	0.5	1.0	1.8	0.8	0.6	0.1	0.6	4.3	greenjo02
+Keshad Johnson	SF	MIA	32	1.6	3.3	0.7	0.9	0.4	1.9	0.3	0.5	0.3	0.4	4.3	johnske10
+Yanic Konan Niederhäuser	C	LAC	41	1.6	2.4	1.1	1.5	0.0	2.9	0.3	0.1	0.7	0.6	4.3	konanya01
+Skal Labissière	PF	WAS	3	2.0	3.3	0.0	0.0	0.3	3.0	1.0	0.7	0.3	0.3	4.3	labissk01
+Dereck Lively II	C	DAL	7	1.6	2.6	1.1	1.4	0.0	5.3	1.9	0.6	1.6	1.4	4.3	livelde01
+Liam McNeeley	SF	CHO	31	1.2	3.1	1.0	1.3	0.8	2.4	0.8	0.2	0.1	0.4	4.3	mcneeli01
+Grant Nelson	PF	BRK	4	1.3	2.3	1.8	2.5	0.0	1.5	1.3	0.3	1.3	1.0	4.3	nelsogr02
+Micah Peavy	SG	NOP	61	1.7	4.5	0.4	0.5	0.5	1.9	1.0	0.7	0.1	0.3	4.3	peavymi01
+Jabari Walker	PF	PHI	64	1.5	3.3	0.8	1.1	0.5	3.0	0.5	0.4	0.2	0.4	4.3	walkeja01
+Carter Bryant	PF	SAS	71	1.5	3.7	0.4	0.6	0.7	2.5	0.7	0.2	0.3	0.5	4.2	bryanca01
+Ron Harper Jr.	SF	BOS	29	1.6	3.8	0.1	0.1	1.0	1.7	0.8	0.3	0.3	0.3	4.2	harpero02
+Dalton Knecht	SF	LAL	54	1.6	3.5	0.3	0.4	0.7	1.4	0.4	0.2	0.2	0.4	4.2	knechda01
+A.J. Lawson	SG	TOR	24	1.4	3.3	0.6	0.8	0.8	1.8	0.3	0.5	0.2	0.3	4.2	lawsoaj01
+Tristan Enaruna	SF	CLE	9	1.6	3.1	0.7	0.9	0.3	1.6	0.8	0.6	0.0	0.3	4.1	enarutr01
+Nicolas Batum	PF	LAC	74	1.3	3.2	0.1	0.1	1.2	2.5	0.9	0.6	0.3	0.5	4.0	batumni01
+Tony Bradley	C	2TM	41	1.6	2.9	0.8	1.0	0.0	2.8	0.5	0.1	0.2	0.4	4.0	bradlto01
+Jaylen Clark	SG	MIN	68	1.5	3.4	0.6	1.0	0.5	1.8	0.6	0.7	0.1	0.3	4.0	clarkja02
+Brandon Clarke	PF	MEM	2	1.5	4.5	1.0	2.0	0.0	3.0	0.5	1.0	0.0	0.0	4.0	clarkbr01
+Riley Minix	SF	2TM	9	1.6	2.6	0.3	0.3	0.4	0.7	0.6	0.2	0.1	0.3	3.9	minixri01
+Joan Beringer	PF	MIN	40	1.6	2.5	0.7	0.9	0.0	2.3	0.3	0.2	0.7	0.3	3.9	berinjo01
+Hugo González	SF	BOS	74	1.6	3.3	0.2	0.4	0.6	3.3	0.5	0.6	0.3	0.5	3.9	gonzahu01
+Caleb Martin	SF	DAL	58	1.5	3.3	0.6	1.1	0.3	2.5	1.4	0.7	0.3	0.7	3.9	martica02
+Koby Brea	SG	PHO	12	1.3	3.0	0.2	0.2	1.1	0.7	0.8	0.1	0.0	0.3	3.8	breako01
+Clint Capela	C	HOU	75	1.6	3.0	0.6	1.0	0.0	4.6	0.7	0.5	0.8	0.5	3.8	capelca01
+Noah Penda	SF	ORL	59	1.4	3.4	0.6	0.8	0.5	3.2	1.2	0.5	0.3	0.7	3.8	pendano01
+Omer Yurtseven	C	GSW	9	1.2	2.9	1.3	2.0	0.0	3.3	0.9	0.2	0.1	1.0	3.8	yurtsom01
+Patrick Baldwin Jr.	SF	3TM	9	1.2	3.0	0.6	0.8	0.7	2.6	0.6	0.3	0.6	0.6	3.7	baldwpa01
+Dalen Terry	SG	2TM	48	1.4	3.2	0.3	0.6	0.5	1.8	1.4	0.6	0.3	0.5	3.7	terryda01
+DaRon Holmes	PF	DEN	25	1.2	2.4	0.4	0.6	0.8	1.4	0.6	0.0	0.2	0.5	3.7	holmeda01
+Larry Nance Jr.	PF	CLE	35	1.5	3.5	0.2	0.4	0.6	2.7	1.0	0.6	0.2	0.6	3.7	nancela02
+Zeke Nnaji	PF	DEN	52	1.4	2.9	0.7	0.8	0.3	2.6	0.6	0.3	0.5	0.5	3.7	nnajize01
+Tolu Smith	PF	DET	15	1.2	2.4	1.3	2.0	0.0	3.3	0.9	0.1	0.4	0.5	3.7	smithto05
+Jeremy Sochan	PF	2TM	44	1.5	2.9	0.4	0.6	0.3	2.4	0.9	0.4	0.2	0.5	3.6	sochaje01
+Mohamed Diawara	SF	NYK	69	1.3	3.1	0.3	0.3	0.7	1.4	0.8	0.2	0.1	0.4	3.6	diawamo01
+Myron Gardner	SF	MIA	45	1.3	2.7	0.4	0.6	0.6	2.7	1.0	0.4	0.2	0.4	3.6	gardnmy01
+Olivier Sarr	C	CLE	4	1.3	1.8	0.5	1.3	0.5	2.8	1.3	0.5	0.8	0.5	3.5	sarrol01
+Keaton Wallace	PG	ATL	53	1.3	3.2	0.2	0.3	0.7	1.1	1.8	0.5	0.1	0.5	3.5	wallake01
+Trayce Jackson-Davis	C	2TM	53	1.3	2.3	0.7	1.4	0.0	2.7	0.7	0.3	0.5	0.4	3.4	jackstr02
+Taj Gibson	C	MEM	10	1.2	2.6	0.7	0.8	0.3	2.7	0.6	0.2	0.1	0.1	3.4	gibsota01
+Yuki Kawamura	PG	CHI	18	0.9	2.9	0.9	1.1	0.6	1.8	2.6	0.5	0.0	0.8	3.4	kawamyu01
+Drew Timme	PF	LAL	27	1.4	2.4	0.2	0.3	0.4	1.2	0.9	0.2	0.0	0.5	3.4	timmedr01
+AJ Johnson	SG	2TM	48	1.2	3.7	0.7	0.8	0.3	1.1	1.0	0.2	0.1	0.6	3.3	johnsaj01
+Dorian Finney-Smith	PF	HOU	37	1.2	3.6	0.2	0.2	0.7	2.5	1.0	0.4	0.2	0.6	3.3	finnedo01
+Enrique Freeman	PF	MIN	4	1.0	2.0	0.8	1.0	0.5	2.5	0.5	0.5	0.8	0.5	3.3	freemen01
+Malevy Leons	SF	GSW	25	1.3	2.9	0.6	0.8	0.2	2.1	0.9	0.6	0.4	0.5	3.3	leonsma01
+Dwight Powell	C	DAL	63	1.0	1.6	1.2	1.8	0.0	4.1	1.1	0.5	0.3	0.7	3.3	poweldw01
+Isaiah Stevens	PG	SAC	3	1.0	2.3	1.3	1.3	0.0	1.0	3.3	1.7	0.0	0.7	3.3	steveis01
+James Wiseman	C	IND	4	1.5	2.5	0.3	0.5	0.0	2.0	0.8	0.0	0.3	1.3	3.3	wisemja01
+Amir Coffey	SG	2TM	46	1.2	2.5	0.5	0.6	0.4	1.2	0.6	0.2	0.1	0.2	3.2	coffeam01
+Alex Antetokounmpo	SF	MIL	6	0.5	1.3	1.8	2.5	0.3	1.0	0.2	0.0	0.2	0.2	3.2	antetal01
+Kelly Olynyk	C	SAS	42	1.1	2.3	0.6	0.9	0.3	1.8	1.2	0.4	0.1	0.6	3.2	olynyke01
+Jamison Battle	SF	TOR	61	1.2	2.4	0.1	0.2	0.6	1.5	0.4	0.1	0.0	0.3	3.1	battlja01
+Miles Kelly	PG	DAL	14	1.1	3.1	0.1	0.1	0.7	1.7	0.9	0.3	0.1	0.4	3.1	kellymi02
+Mark Sears	PG	MIL	7	0.9	1.9	0.9	1.1	0.6	0.3	0.3	0.0	0.0	0.6	3.1	searsma01
+Tyus Jones	PG	3TM	67	1.1	3.3	0.1	0.1	0.6	1.1	2.4	0.6	0.0	0.4	3.0	jonesty01
+CJ Huntley	SF	PHO	4	1.5	2.8	0.0	0.0	0.0	1.3	0.5	0.3	0.0	0.0	3.0	huntlcj01
+Chris Livingston	SF	CLE	3	1.3	2.3	0.3	0.3	0.0	1.0	0.3	0.3	0.0	0.0	3.0	livinch01
+Khaman Maluach	C	PHO	46	1.2	2.3	0.5	0.7	0.1	2.9	0.1	0.1	0.7	0.5	3.0	maluakh01
+Emanuel Miller	PF	CHI	5	1.2	2.6	0.2	0.4	0.4	0.6	0.8	0.4	0.0	0.0	3.0	milleem01
+Monte Morris	PG	IND	6	1.2	3.3	0.3	0.7	0.3	1.2	1.5	0.2	0.2	0.3	3.0	morrimo01
+Julian Phillips	SF	2TM	48	1.1	2.5	0.4	0.5	0.4	1.0	0.2	0.5	0.1	0.2	2.9	phillju01
+Kobe Bufkin	SG	LAL	16	0.9	3.1	0.7	0.8	0.3	0.8	0.6	0.1	0.2	0.3	2.9	bufkiko01
+Bronny James	SG	LAL	42	1.1	2.7	0.1	0.2	0.5	0.5	1.2	0.5	0.1	0.6	2.9	jamesbr02
+Curtis Jones	SG	DEN	10	1.1	2.7	0.1	0.2	0.6	1.1	1.0	0.4	0.0	0.2	2.9	jonescu01
+David Jones García	SF	SAS	11	1.2	2.3	0.3	0.5	0.3	1.2	1.6	0.5	0.1	0.5	2.9	jonesda06
+Chris Paul	PG	LAC	16	1.1	3.5	0.1	0.1	0.6	1.8	3.3	0.7	0.0	1.0	2.9	paulch01
+Duop Reath	C	POR	32	1.0	2.3	0.2	0.2	0.7	1.2	0.3	0.2	0.3	0.2	2.9	reathdu01
+Cam Christie	SG	LAC	55	1.0	2.5	0.7	0.9	0.2	1.4	0.6	0.3	0.1	0.4	2.8	chrisca02
+Kevon Looney	C	NOP	21	1.2	2.9	0.3	0.5	0.1	5.6	1.6	0.4	0.5	0.4	2.8	looneke01
+Norchad Omier	PF	LAC	6	1.2	1.7	0.5	0.5	0.0	1.2	0.3	0.2	0.0	0.0	2.8	omierno01
+Jae'Sean Tate	SF	HOU	46	1.2	2.4	0.2	0.2	0.2	1.6	0.5	0.2	0.1	0.3	2.8	tateja01
+Rocco Zikarsky	C	MIN	5	1.0	1.6	0.8	0.8	0.0	2.8	0.4	0.0	1.0	0.2	2.8	zikarro01
+Christian Koloko	C	3TM	27	1.1	2.7	0.4	0.6	0.0	3.0	0.7	0.5	0.9	0.6	2.7	kolokch01
+Gary Harris	SG	MIL	48	1.0	2.2	0.2	0.2	0.6	1.3	1.1	0.6	0.2	0.4	2.7	harriga01
+Antonio Reeves	SG	CHO	10	1.0	2.0	0.0	0.0	0.7	0.8	0.3	0.1	0.0	0.1	2.7	reevean01
+Pat Connaughton	SG	CHO	42	0.9	2.0	0.3	0.5	0.5	1.5	0.4	0.3	0.0	0.3	2.6	connapa01
+Jonathan Isaac	PF	ORL	52	0.9	2.1	0.7	1.1	0.1	2.5	0.4	0.4	0.6	0.3	2.6	isaacjo01
+Mo Bamba	C	2TM	4	1.3	2.8	0.0	0.0	0.0	5.5	0.3	0.0	0.8	0.5	2.5	bambamo01
+JD Davison	PG	HOU	28	0.9	2.3	0.5	0.7	0.3	1.2	1.3	0.2	0.2	0.3	2.5	davisjd01
+John Tonje	SG	BOS	6	0.7	2.3	0.7	0.7	0.5	1.0	0.3	0.3	0.0	0.0	2.5	tonjejo01
+Hunter Dickinson	C	NOP	5	1.0	2.8	0.4	0.4	0.0	1.0	0.4	0.2	0.4	0.6	2.4	dickihu01
+Andre Jackson Jr.	SG	MIL	48	0.8	2.5	0.4	0.7	0.3	1.5	0.9	0.4	0.1	0.6	2.4	jacksan01
+Chaz Lanier	SG	DET	34	0.8	2.6	0.1	0.2	0.6	0.7	0.5	0.2	0.0	0.1	2.4	laniech01
+Kevin McCullar Jr.	SF	NYK	21	1.0	2.2	0.1	0.2	0.4	1.3	1.0	0.4	0.0	0.6	2.4	mcculke01
+Lachlan Olbrich	C	CHI	37	1.0	2.1	0.4	1.1	0.1	3.0	1.1	0.3	0.2	0.4	2.4	olbrila01
+Lindy Waters III	SG	SAS	40	0.8	2.2	0.1	0.1	0.7	0.7	0.5	0.2	0.0	0.2	2.4	waterli01
+Chris Boucher	PF	BOS	9	0.9	2.8	0.3	0.4	0.2	2.0	0.3	0.6	0.8	0.1	2.3	bouchch01
+Caleb Houstan	SF	ATL	18	0.8	1.4	0.2	0.2	0.6	0.6	0.2	0.1	0.1	0.2	2.3	houstca01
+Luke Travers	SG	CLE	12	0.8	3.0	0.8	0.8	0.1	2.0	0.8	0.6	0.3	0.3	2.3	travelu01
+Jeff Green	PF	HOU	30	0.8	2.3	0.2	0.2	0.4	0.8	0.3	0.1	0.1	0.1	2.2	greenje02
+Yang Hansen	C	POR	43	0.7	2.3	0.7	0.8	0.1	1.5	0.5	0.1	0.2	0.7	2.2	yangha01
+Ariel Hukporti	C	NYK	54	0.8	1.5	0.5	0.6	0.0	2.9	0.5	0.2	0.5	0.6	2.2	hukpoar01
+Alijah Martin	SG	TOR	23	0.7	2.2	0.7	0.8	0.2	0.9	0.5	0.3	0.2	0.3	2.2	martial01
+Hunter Tyson	PF	DEN	21	0.7	2.5	0.5	0.6	0.3	1.7	0.8	0.1	0.0	0.2	2.2	tysonhu01
+Chris Youngblood	SG	2TM	34	0.6	1.9	0.3	0.3	0.5	0.8	0.4	0.1	0.1	0.1	2.1	youngch01
+Dalano Banton	PG	2TM	6	0.7	2.0	0.7	0.7	0.0	0.8	1.8	0.3	0.8	1.3	2.0	bantoda01
+Isaiah Crawford	SF	HOU	14	0.7	1.7	0.4	0.4	0.2	1.1	0.4	0.1	0.2	0.3	2.0	crawfis01
+Trentyn Flowers	SF	CHI	2	1.0	1.5	0.0	0.0	0.0	0.5	0.5	0.0	0.0	0.5	2.0	flowetr01
+Colby Jones	SG	DET	1	1.0	3.0	0.0	0.0	0.0	4.0	2.0	0.0	0.0	0.0	2.0	jonesco02
+Johnny Juzang	SG	MIN	21	0.8	1.8	0.2	0.4	0.3	0.8	0.3	0.1	0.0	0.2	2.0	juzanjo01
+Jayson Kent	SF	POR	5	0.8	1.4	0.2	0.2	0.2	1.0	0.0	0.2	0.2	0.0	2.0	kentja01
+Maxi Kleber	PF	LAL	43	0.8	1.7	0.3	0.6	0.1	2.0	0.6	0.4	0.3	0.4	2.0	klebima01
+Jordan McLaughlin	PG	SAS	44	0.8	1.8	0.1	0.2	0.4	0.7	0.9	0.5	0.0	0.3	2.0	mclaujo01
+Alex Morales	PG	ORL	4	0.8	1.8	0.5	0.5	0.0	0.8	1.0	0.0	0.0	1.0	2.0	moralal01
+Sean Pedulla	PG	LAC	7	0.7	2.1	0.0	0.0	0.4	0.4	0.7	0.0	0.0	0.1	1.9	pedulse01
+Adou Thiero	SF	LAL	25	0.6	1.2	0.6	0.9	0.0	1.1	0.4	0.3	0.1	0.4	1.9	thierad01
+Bobi Klintman	SF	DET	12	0.8	2.3	0.0	0.3	0.3	1.6	0.5	0.3	0.0	0.5	1.8	klintbo01
+Isaiah Livers	PF	PHO	36	0.6	1.8	0.3	0.3	0.3	1.7	0.6	0.4	0.2	0.3	1.8	liveris01
+Cody Martin	SF	IND	4	0.5	2.5	0.8	1.5	0.0	3.5	0.5	1.0	0.5	1.0	1.8	martico01
+Orlando Robinson	C	ORL	4	0.8	1.3	0.0	0.0	0.3	1.0	0.8	0.3	0.0	0.0	1.8	robinor01
+Jahmir Young	PG	MIA	14	0.7	1.8	0.1	0.1	0.2	0.3	0.6	0.1	0.0	0.2	1.8	youngja05
+Brooks Barnhizer	SG	OKC	40	0.7	1.8	0.2	0.3	0.2	2.0	0.6	0.3	0.1	0.3	1.7	barnhbr01
+Pacôme Dadiet	SG	NYK	29	0.6	1.7	0.3	0.4	0.2	0.9	0.4	0.1	0.0	0.1	1.7	dadiepa01
+Wendell Moore Jr.	SG	DET	6	0.7	1.2	0.3	0.3	0.0	1.0	0.7	0.3	0.3	0.2	1.7	moorewe01
+Mason Plumlee	C	2TM	20	0.6	0.7	0.5	0.7	0.0	2.7	1.0	0.5	0.0	0.6	1.6	plumlma01
+Harrison Ingram	SF	SAS	7	0.7	0.9	0.0	0.0	0.1	0.4	0.1	0.0	0.0	0.1	1.6	ingraha01
+Jacob Toppin	SF	ATL	5	0.8	1.2	0.0	0.0	0.0	0.2	0.2	0.0	0.2	0.0	1.6	toppija01
+Xavier Tillman Sr.	C	2TM	30	0.7	1.5	0.0	0.1	0.1	1.4	0.4	0.3	0.2	0.3	1.5	tillmxa01
+Buddy Boeheim	SF	OKC	4	0.5	1.5	0.0	0.0	0.5	0.0	0.0	0.0	0.0	0.0	1.5	boehebu01
+Joe Ingles	SF	MIN	27	0.6	1.0	0.1	0.1	0.3	0.7	1.3	0.3	0.1	0.5	1.5	inglejo01
+Jonathan Mogbo	PF	TOR	40	0.7	1.1	0.2	0.4	0.0	1.7	0.6	0.3	0.2	0.4	1.5	mogbojo01
+Thanasis Antetokounmpo	SF	MIL	34	0.4	0.9	0.5	0.9	0.0	0.9	0.4	0.4	0.2	0.3	1.4	antetth01
+Amari Williams	PF	BOS	22	0.5	0.9	0.5	0.6	0.0	1.8	0.5	0.1	0.5	0.5	1.4	william01
+Isaac Jones	PF	2TM	7	0.4	1.0	0.4	0.6	0.0	0.7	0.1	0.0	0.1	0.1	1.3	jonesis01
+Colin Castleton	C	ORL	4	0.5	1.3	0.3	0.3	0.0	2.0	0.3	0.3	0.0	0.5	1.3	castlco01
+Nigel Hayes-Davis	SF	PHO	27	0.6	1.7	0.1	0.1	0.1	1.2	0.3	0.3	0.1	0.3	1.3	hayesni01
+Dillon Jones	SF	NYK	7	0.3	1.3	0.6	0.6	0.1	1.0	0.6	0.4	0.0	0.0	1.3	jonesdi01
+TyTy Washington Jr.	PG	LAC	16	0.6	1.2	0.0	0.0	0.2	0.4	1.1	0.4	0.2	0.2	1.3	washity02
+Javonte Cooke	SG	POR	19	0.5	2.2	0.1	0.1	0.2	1.0	0.4	0.3	0.0	0.5	1.2	cookeja01
+Kyle Lowry	PG	PHI	14	0.3	1.8	0.4	0.4	0.3	0.6	0.8	0.1	0.1	0.3	1.2	lowryky01
+Trey Jemison	C	NYK	13	0.5	0.8	0.1	0.1	0.0	1.4	0.4	0.1	0.2	0.8	1.0	jemistr01
+Trevor Keels	SG	MIA	8	0.4	1.5	0.0	0.0	0.3	0.3	0.0	0.1	0.0	0.0	1.0	keelstr01
+Hunter Sallis	SG	PHI	7	0.4	0.7	0.1	0.3	0.0	0.1	0.6	0.0	0.1	0.7	1.0	sallihu01
+Dario Šarić	C	SAC	5	0.2	1.2	0.4	0.4	0.2	1.2	0.4	0.0	0.0	0.4	1.0	saricda01
+Stanley Umude	SG	SAS	2	0.5	1.0	0.0	0.0	0.0	0.0	0.5	0.5	0.0	0.0	1.0	umudest01
+Bismack Biyombo	C	SAS	25	0.4	0.6	0.2	0.3	0.0	1.0	0.2	0.2	0.1	0.3	0.9	biyombi01
+Johni Broome	C	PHI	11	0.4	2.2	0.2	0.5	0.0	1.5	0.4	0.3	0.2	0.3	0.9	broomjo01
+N'Faly Dante	C	ATL	4	0.3	1.0	0.3	0.3	0.0	1.8	0.0	0.5	0.0	0.3	0.8	nfalyda01
+Markelle Fultz	PG	TOR	5	0.4	2.2	0.0	0.0	0.0	0.2	1.6	0.4	0.0	0.8	0.8	fultzma01
+Vladislav Goldin	C	MIA	9	0.3	0.4	0.1	0.1	0.0	1.0	0.3	0.0	0.3	0.3	0.8	goldivl01
+Chris Mañon	SG	LAL	9	0.2	0.7	0.3	0.4	0.0	1.1	0.3	0.6	0.2	0.1	0.8	manonch01
+Drew Peterson	PF	CHO	6	0.3	2.7	0.2	0.3	0.0	1.5	0.3	0.5	0.2	0.0	0.8	peterdr01
+Garrett Temple	SG	TOR	22	0.2	0.7	0.3	0.4	0.1	0.4	0.4	0.2	0.1	0.3	0.8	templga01
+Max Shulga	SG	BOS	11	0.2	0.7	0.2	0.2	0.1	0.5	0.2	0.1	0.0	0.3	0.6	shulgma01
+Jahmyl Telfort	PF	LAC	8	0.0	0.5	0.1	0.5	0.0	0.4	0.1	0.1	0.0	0.1	0.1	telfoja01
+Darius Brown II	SG	CLE	1	0.0	1.0	0.0	0.0	0.0	1.0	0.0	0.0	0.0	0.0	0.0	brownda04
+Noa Essengue	PF	CHI	2	0.0	1.5	0.0	0.0	0.0	0.0	0.0	0.5	0.0	0.0	0.0	essenno01
+Tosan Evbuomwan	SF	NYK	5	0.0	0.2	0.0	0.0	0.0	0.4	0.0	0.0	0.0	0.0	0.0	evbuoto01
+Chucky Hepburn	PG	TOR	2	0.0	3.0	0.0	0.0	0.0	0.5	1.0	0.5	0.0	0.5	0.0	hepbuch01
+`.trim();
+
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const CATS = [
+  {k:"fg",  label:"FG%", pct:true},
+  {k:"ft",  label:"FT%", pct:true},
+  {k:"tpm", label:"3PM"},
+  {k:"pts", label:"PTS"},
+  {k:"reb", label:"REB"},
+  {k:"ast", label:"AST"},
+  {k:"stl", label:"STL"},
+  {k:"blk", label:"BLK"},
+  {k:"to",  label:"TO",  neg:true}
+];
+const SLOTS = ["PG","SG","SF","PF","C","G","F","UTIL","UTIL","BN","BN","BN","BN"];
+
+let cfg = {
+  teams:12, slot:5, size:13, aggr:8, k:4, gpw:0.5, scarcity:1.2,
+  /*  Per-category weight, to match your league's scoring. 1 = counts normally,
+      0 = not scored at all (8-cat leagues drop turnovers entirely). This is a
+      LEAGUE SETTING, not a strategy — punting is separate and per-roster.    */
+  catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:1},
+  names: []            // optional league team names, indexed by draft slot
+};
+const teamName = i => (cfg.names[i] && cfg.names[i].trim()) || ("Team " + (i+1));
+const shortName = i => { const n = teamName(i); return n.length > 9 ? n.slice(0,8) + "\u2026" : n; };
+const cw = k => cfg.catW[k] === undefined ? 1 : cfg.catW[k];
+const DEFAULT_SHAPE = 0.5;   // balanced starting point for category shaping
+let locks = {};
+let shape = DEFAULT_SHAPE;   // 0 = pure value, 1 = full category shaping
+let ui = {gapHidden:"", sugHidden:new Set()};                 // cat -> "punt" | "chase" (absent = auto)
+let pool = [];
+let picks = [];          // {playerId, teamIdx, overall}
+let sortKey = "fit", sortDir = -1;
+let posFilter = "ALL";
+let hoverId = null;
+let selectedId = null;   // click once to inspect, again to draft
+let ledgerTeam = null;   // null = my team
+let ledgerMode = "z";    // "z" or "tot"
+
+/* ============================================================
+   PARSING + Z-SCORES
+   ============================================================ */
+/*  Header-driven column mapping. Reads whatever header row the source gives
+    us and maps it by name, so ESPN (PTS last, FGM/FGA combined), Hashtag
+    (paren percentage cells) and plain CSV all land in the same shape.
+    Falls back to anchor detection when there's no usable header.          */
+const HDR = {
+  rank:["r#","rk","rank","#","no","pos rank"],
+  name:["player","name","players","player name"],
+  adp:["adp","avg pick","average pick"],
+  pos: ["pos","position","positions"],
+  team:["team","tm"],
+  gp:  ["gp","g","games","games played"],
+  fg:  ["fg%","fg","fgm/fga","fg made/att","fgm/a","fgm-fga"],
+  fgm: ["fgm","fg made"], fga:["fga","fg att"],
+  ft:  ["ft%","ft","ftm/fta","ft made/att","ftm/a","ftm-fta"],
+  ftm: ["ftm","ft made"], fta:["fta","ft att"],
+  tpm: ["3pm","3ptm","3s","threes","3p","3pm/3pa","3pt","3ptm/3pta","3pm-3pa"],
+  pts: ["pts","points","pt"],
+  reb: ["reb","treb","rebs","rebounds","tr","trb"],
+  ast: ["ast","asts","assists"],
+  stl: ["stl","steals","st"],
+  blk: ["blk","blocks","bs"],
+  to:  ["to","tov","turnovers","turnover","tos"],
+  pid: ["player-additional","player_additional","playeradditional","player id","slug"]
+};
+
+const PAREN = /^([\d.]+)\s*%?\s*\(\s*([\d.]+)\s*[\/\-]\s*([\d.]+)\s*\)$/;
+const MADEATT = /^([\d.]+)\s*[\/\-]\s*([\d.]+)$/;
+const POSRE = /^(PG|SG|SF|PF|C|G|F)([\/,\-](PG|SG|SF|PF|C|G|F))*$/i;
+
+const norm = s => String(s).toLowerCase().trim().replace(/\*+$/,"").replace(/\s+/g," ");
+
+/*  Accent folding. NFD splits most accented letters into base + combining mark,
+    which we then drop — but a handful of letters have no decomposition and must
+    be mapped by hand, or they vanish and the name never matches.
+    Jokić -> jokic, Dončić -> doncic, Šengün -> sengun, Đoković -> dokovic.     */
+const FOLD = {"đ":"d","ø":"o","ł":"l","ß":"ss","æ":"ae","œ":"oe","ı":"i","ð":"d","þ":"th","ħ":"h","ŋ":"n"};
+function fold(s){
+  return String(s).normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[đøłßæœıðþħŋ]/g, ch => FOLD[ch] || ch);
+}
+
+// Tokens with punctuation and generational suffixes removed.
+function nameParts(s){
+  return fold(s)
+    .replace(/[^a-z ]/g, " ")
+    .replace(/\b(jr|sr|ii|iii|iv)\b/g, " ")
+    .replace(/\s+/g, " ").trim()
+    .split(" ").filter(Boolean);
+}
+const nameKey = s => nameParts(s).join("");
+// Fallback key: surname + first initial, for Nic/Nicolas, Cam/Cameron, Herb/Herbert.
+function lastKey(s){
+  const t = nameParts(s);
+  return t.length > 1 ? t[t.length-1] + "|" + t[0][0] : (t[0] || "");
+}
+
+/*  Sites render a full name and an abbreviated one in the same cell, and ESPN
+    tacks team + position on the end. Strip both, but never to nothing.      */
+/*  Team abbreviations differ by source (NO/NOP, PHO/PHX, GS/GSW...). Matching a
+    real list rather than "any 2-3 capitals" matters: the naive version turns
+    "Trey Murphy IIINO SG/SF" into "Trey Murphy II" by eating an I.            */
+const TEAMS = ["ATL","BKN","BRK","BOS","CHA","CHO","CHI","CLE","DAL","DEN","DET","GS","GSW",
+  "HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NO","NOP","NOH","NY","NYK","OKC","ORL",
+  "PHI","PHO","PHX","POR","SA","SAS","SAC","TOR","UTA","UTAH","WAS","WSH"]
+  .sort((a,b)=>b.length-a.length);
+const POSALT = "(?:PG|SG|SF|PF|C)";
+const TEAMPOS = new RegExp(
+  `\\s*(?:${TEAMS.join("|")})\\s+${POSALT}(?:\\s*[,\\/]\\s*${POSALT})*\\s*$`);
+
+function cleanName(s){
+  let n = String(s).trim();
+  const noTeam = n.replace(TEAMPOS, "").trim();
+  if(noTeam.length >= 3) n = noTeam;
+  const noAbbrev = n.replace(/\s*[A-Z]\.[A-Za-z'’\-. ]+$/, "").trim();
+  if(noAbbrev.length >= 3) n = noAbbrev;
+  return n.trim();
+}
+
+function splitRow(line){
+  let l = line.trim().replace(/^\|/,"").replace(/\|$/,"");
+  if(l.includes("\t"))  return l.split("\t").map(s=>s.trim());
+  if(l.includes("|"))   return l.split("|").map(s=>s.trim());
+
+  // Quoted CSV: honour quotes, and don't split inside "(10.5/18.3)".
+  if(l.includes('"')){
+    const out = []; let cur = "", q = false;
+    for(let i = 0; i < l.length; i++){
+      const ch = l[i];
+      if(ch === '"'){
+        if(q && l[i+1] === '"'){ cur += '"'; i++; }
+        else q = !q;
+      }
+      else if(ch === "," && !q){ out.push(cur.trim()); cur = ""; }
+      else cur += ch;
+    }
+    out.push(cur.trim());
+    return out;
+  }
+
+  if(/\s{2,}/.test(l)) return l.split(/\s{2,}/).map(s=>s.trim());
+  return l.split(/,(?![^(]*\))/).map(s=>s.trim());
+}
+
+function mapHeader(cells){
+  const map = {};
+  cells.forEach((cell,i)=>{
+    const n = norm(cell);
+    for(const key in HDR){
+      if(map[key] !== undefined) continue;
+      if(HDR[key].includes(n)){ map[key] = i; break; }
+    }
+  });
+
+  /*  Basketball Reference calls the makes column plain "FG" / "FT" and puts
+      attempts in "FGA" / "FTA". Elsewhere "FG" means a rate or a combined
+      cell. If attempts have their own column, "FG" must be makes.          */
+  ["fg","ft"].forEach(k=>{
+    const att = k + "a", made = k + "m";
+    if(map[att] !== undefined && map[made] === undefined && map[k] !== undefined){
+      map[made] = map[k];
+      delete map[k];
+    }
+  });
+
+  const usable = map.name !== undefined &&
+                 (map.pts !== undefined || map.reb !== undefined || map.ast !== undefined);
+  return usable ? map : null;
+}
+
+/*  Traded players appear once per team plus a combined "2TM"/"3TM" row.
+    The combined row has the most games, so keeping max-GP per name gives
+    the full-season line rather than a partial stint.                      */
+function dedupe(rows){
+  const best = new Map();
+  rows.forEach(r=>{
+    const k = nameKey(r.name);
+    const prev = best.get(k);
+    if(!prev || (r.gp||0) > (prev.gp||0)) best.set(k, r);
+  });
+  const out = [...best.values()];
+  out.forEach((r,i)=> r.id = i);
+  return out;
+}
+
+function num(s){
+  const v = parseFloat(String(s).replace(/[^\d.\-]/g,""));
+  return isNaN(v) ? 0 : v;
+}
+
+// Pull made/attempted out of a cell in any of the three shapes we see.
+function volume(cell){
+  if(cell === undefined) return null;
+  const s = String(cell).trim();
+  let m = s.match(PAREN);   if(m) return {made:num(m[2]), att:num(m[3])};
+  m = s.match(MADEATT);     if(m) return {made:num(m[1]), att:num(m[2])};
+  return null;
+}
+
+function parsePool(text){
+  const lines = String(text).trim().split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const out = [], skipped = [];
+  let map = null;
+
+  for(const line of lines){
+    if(/^[-|\s:]+$/.test(line)) continue;
+    const c = splitRow(line).filter((x,i,arr)=> !(x === "" && i === arr.length-1));
+    if(c.length < 6) continue;
+
+    // Header rows repeat every dozen lines on some sites — re-read, never parse.
+    const asHeader = mapHeader(c);
+    if(asHeader){ map = asHeader; continue; }
+
+    let rec = null;
+
+    /* ---- mapped columns ---- */
+    if(map){
+      const at = k => map[k] !== undefined ? c[map[k]] : undefined;
+      const fgv = volume(at("fg")) || (map.fgm !== undefined
+                    ? {made:num(at("fgm")), att:num(at("fga"))} : null);
+      const ftv = volume(at("ft")) || (map.ftm !== undefined
+                    ? {made:num(at("ftm")), att:num(at("fta"))} : null);
+      if(!fgv || !fgv.att) { skipped.push(line); continue; }
+
+      const posCell = at("pos");
+      rec = {
+        name: cleanName(at("name") || ""),
+        pos:  posCell && POSRE.test(posCell) ? posCell.toUpperCase().split(/[\/,\-]/) : ["UTIL"],
+        team: at("team") || "—",
+        gp:   map.gp !== undefined ? Math.round(num(at("gp"))) : null,
+        adp:  map.adp !== undefined ? num(at("adp")) : null,
+        srcRank: map.rank !== undefined ? num(at("rank")) : null,
+        fgm:fgv.made, fga:fgv.att,
+        ftm:ftv?ftv.made:0, fta:ftv?ftv.att:0,
+        tpm:num(volume(at("tpm"))?volume(at("tpm")).made:at("tpm")),
+        pts:num(at("pts")), reb:num(at("reb")), ast:num(at("ast")),
+        stl:num(at("stl")), blk:num(at("blk")), to:num(at("to")),
+        pid:  map.pid !== undefined ? String(at("pid")||"").trim() : ""
+      };
+    }
+
+    /* ---- no header: anchor on paren percentage cells ---- */
+    else {
+      const pIdx = c.map((x,i)=>PAREN.test(x)?i:-1).filter(i=>i>=0);
+      if(pIdx.length >= 2){
+        const fg = c[pIdx[0]].match(PAREN), ft = c[pIdx[1]].match(PAREN);
+        const tail = c.slice(pIdx[1]+1).filter(x=>/^-?[\d.]+$/.test(x)).map(num);
+        if(tail.length < 7){ skipped.push(line); continue; }
+        const posI = c.findIndex((x,i)=> i < pIdx[0] && POSRE.test(x));
+        const head = c.slice(0, pIdx[0]);
+        const mid  = c.slice(posI+1, pIdx[0]).filter(x=>/^[\d.]+$/.test(x)).map(num);
+        const nums = head.filter(x=>/^[\d.]+$/.test(x)).map(num);
+        rec = {
+          name: cleanName(head.find(x=>/[A-Za-z]{3,}/.test(x) && !POSRE.test(x)) || ""),
+          pos:  posI>=0 ? c[posI].toUpperCase().split(/[\/,\-]/) : ["UTIL"],
+          team: posI>=0 ? (c[posI+1]||"—") : "—",
+          gp:   mid.length ? Math.round(mid[0]) : null,
+          srcRank: nums.length ? nums[0] : null,
+          adp:  nums.length > 1 ? nums[1] : null,
+          fgm:num(fg[2]), fga:num(fg[3]), ftm:num(ft[2]), fta:num(ft[3]),
+          tpm:tail[0], pts:tail[1], reb:tail[2], ast:tail[3],
+          stl:tail[4], blk:tail[5], to:tail[6]
+        };
+      }
+      /* ---- plain positional fallback ---- */
+      else if(c.length >= 14 && /^[\d.]+$/.test(c[3])){
+        rec = {
+          name:cleanName(c[0]), pos:c[1].toUpperCase().split(/[\/,]/), team:c[2],
+          fgm:num(c[3]), fga:num(c[4]), ftm:num(c[5]), fta:num(c[6]),
+          tpm:num(c[7]), pts:num(c[8]), reb:num(c[9]), ast:num(c[10]),
+          stl:num(c[11]), blk:num(c[12]), to:num(c[13]),
+          adp: c[14]!==undefined?num(c[14]):null,
+          gp:  c[15]!==undefined?Math.round(num(c[15])):null,
+          srcRank:null
+        };
+      }
+      else { skipped.push(line); continue; }
+    }
+
+    if(!rec || !rec.name || rec.name.length < 2 || rec.fga <= 0){ skipped.push(line); continue; }
+    rec.pos = rec.pos.map(s=>s.trim()).filter(Boolean);
+    if(!rec.pos.length) rec.pos = ["UTIL"];
+    rec.id = out.length;
+    out.push(rec);
+  }
+
+  parsePool.skipped = skipped;
+  return out;
+}
+
+/*  Match an imported set onto the pool. Two tiers: exact folded name, then
+    surname + first initial — but only when that key is unique on BOTH sides,
+    so "Keon Johnson" never silently absorbs "Kevin Johnson".               */
+function attachLast(rows){
+  const exact = new Map(), loose = new Map(), dupSrc = new Set();
+  rows.forEach(r=>{
+    exact.set(nameKey(r.name), r);
+    const lk = lastKey(r.name);
+    if(loose.has(lk)) dupSrc.add(lk); else loose.set(lk, r);
+  });
+
+  const poolCount = new Map();
+  pool.forEach(p=>{ const lk = lastKey(p.name); poolCount.set(lk, (poolCount.get(lk)||0)+1); });
+
+  let hit = 0, fuzzy = 0; const missed = [];
+  pool.forEach(p=>{
+    let m = exact.get(nameKey(p.name));
+    if(!m){
+      const lk = lastKey(p.name);
+      if(!dupSrc.has(lk) && poolCount.get(lk) === 1){
+        m = loose.get(lk);
+        if(m) fuzzy++;
+      }
+    }
+    p.last = m || null;
+    if(m && m.pid && !p.pid) p.pid = m.pid;   // photo id rides along with the actuals
+    if(m) hit++; else missed.push(p.name);
+  });
+
+  attachLast.fuzzy = fuzzy;
+  attachLast.missed = missed;
+
+  /*  Score the matched actuals as their own population. Colouring last season's
+      numbers by this season's projected z would be a lie — a player whose role
+      changed would show the wrong sign. Only matched rows are scored, so the
+      comparison population is the same 190-odd players either way.           */
+  const used = pool.map(p=>p.last).filter(Boolean);
+  if(used.length) scoreBoth(used);
+
+  return hit;
+}
+
+function mean(a){ return a.reduce((s,x)=>s+x,0) / (a.length||1); }
+function sd(a){ const m = mean(a); return Math.sqrt(mean(a.map(x=>(x-m)**2))) || 1; }
+
+/*  Volume-weighted percentage impact, then z-score against the pool.
+
+    Availability: a 55-game guy and a 78-game guy with identical per-game
+    lines are not worth the same. effGP blends between pure per-game
+    (weight 0) and true season totals (weight 1), so the slider decides how
+    hard durability counts.  */
+function scorePool(list, opts){
+  if(!list.length) return;
+  const o = opts || {};
+  const field = o.field || "z";
+  const totalField = o.totalField || "total";
+  const useGpw = o.gpw === undefined ? cfg.gpw : o.gpw;
+
+  const gps = list.map(p=>p.gp).filter(g=>g>0).sort((a,b)=>a-b);
+  const medGP = gps.length ? gps[Math.floor(gps.length/2)] : 72;
+  const eff = new Map();
+  list.forEach(p=>{
+    const g = p.gp > 0 ? p.gp : medGP;
+    eff.set(p, Math.pow(medGP, 1-useGpw) * Math.pow(g, useGpw));
+  });
+
+  const sum = f => list.reduce((s,p)=>s + f(p), 0);
+  const lgFG = sum(p=>p.fgm*eff.get(p)) / (sum(p=>p.fga*eff.get(p)) || 1);
+  const lgFT = sum(p=>p.ftm*eff.get(p)) / (sum(p=>p.fta*eff.get(p)) || 1);
+
+  const raws = new Map();
+  list.forEach(p=>{
+    const s = eff.get(p) / medGP;
+    raws.set(p, {
+      fg:  p.fga * s * ((p.fgm/(p.fga||1)) - lgFG),
+      ft:  p.fta * s * ((p.ftm/(p.fta||1)) - lgFT),
+      tpm:p.tpm*s, pts:p.pts*s, reb:p.reb*s, ast:p.ast*s,
+      stl:p.stl*s, blk:p.blk*s, to:p.to*s
+    });
+  });
+
+  const stats = {};
+  CATS.forEach(c=>{
+    const vals = list.map(p=>raws.get(p)[c.k]);
+    stats[c.k] = {m:mean(vals), s:sd(vals)};
+  });
+
+  list.forEach(p=>{
+    const r = raws.get(p);
+    p[field] = {};
+    CATS.forEach(c=>{
+      let z = (r[c.k] - stats[c.k].m) / stats[c.k].s;
+      if(c.neg) z = -z;                              // turnovers: fewer is better
+      p[field][c.k] = z;
+    });
+    p[totalField] = CATS.reduce((s,c)=>s + cw(c.k) * p[field][c.k], 0);
+  });
+
+  if(field === "z"){
+    // Fallback ADP = overall value rank
+    const byVal = [...list].sort((a,b)=>b.total-a.total);
+    byVal.forEach((p,i)=>{ if(p.adp === null) p.adp = i+1; });
+  }
+}
+
+/*  Two scorings per dataset:
+      z    — durability weighted, what the Fit engine ranks on
+      zpg  — pure per-game, used only to colour the per-game display modes
+    Colouring a per-game number with a games-played-adjusted score makes the
+    figure and its colour disagree: an elite rebounder who missed half a season
+    shows a strong REB average tinted red.                                    */
+function scoreBoth(list){
+  scorePool(list);
+  scorePool(list, {gpw:0, field:"zpg", totalField:"totalPg"});
+}
+
+/* ============================================================
+   THE ENGINE
+   ============================================================ */
+
+// Snake: which team is on the clock at a given overall pick (0-indexed team).
+function teamOnClock(overall){
+  const rd = Math.floor(overall / cfg.teams);
+  const idx = overall % cfg.teams;
+  return rd % 2 === 0 ? idx : cfg.teams - 1 - idx;
+}
+function myTeamIdx(){ return cfg.slot - 1; }
+function myNextPick(from){
+  for(let o = from; o < cfg.teams * cfg.size; o++)
+    if(teamOnClock(o) === myTeamIdx()) return o;
+  return null;
+}
+
+function myRoster(){
+  return picks.filter(p=>p.teamIdx === myTeamIdx()).map(p=>pool.find(x=>x.id===p.playerId)).filter(Boolean);
+}
+function takenIds(){ return new Set(picks.map(p=>p.playerId)); }
+function available(){ const t = takenIds(); return pool.filter(p=>!t.has(p.id)); }
+
+// Team's summed z per category.
+function teamZ(roster){
+  const z = {};
+  CATS.forEach(c=> z[c.k] = roster.reduce((s,p)=>s + p.z[c.k], 0));
+  return z;
+}
+
+/*  Leverage weights.
+    Win prob in a category ≈ sigmoid(teamZ / k). The marginal value of
+    adding z there is the derivative: s*(1-s). Peaks at even, dies at
+    locked-up or hopeless — which is what makes it punt on its own.  */
+/*  Leverage weights, damped by conviction.
+
+    The raw weights say "concentrate on categories that are still coin flips."
+    That's right late and badly wrong early: after three picks your category
+    standings are noise, and acting on them hands you a 36th-ranked center over
+    a 14th-ranked guard. conviction ramps 0 -> 1 as the roster fills, blending
+    the weights toward flat. Flat weights mean fit == raw value, i.e. best
+    player available, which is the correct early-round strategy.              */
+function leverage(tz, conviction){
+  const w = {};
+  CATS.forEach(c=>{
+    if(locks[c.k] === "punt"){ w[c.k] = 0; return; }
+    const s = 1 / (1 + Math.exp(-tz[c.k] / cfg.k));
+    w[c.k] = s * (1 - s);
+    if(locks[c.k] === "chase") w[c.k] = 0.25;
+  });
+  const tot = CATS.reduce((s,c)=>s + w[c.k], 0) || 1;
+  const live = CATS.filter(c=>locks[c.k] !== "punt").length || 1;
+  CATS.forEach(c=>{
+    const full = w[c.k] / tot * live;
+    // Manual locks are deliberate, so honour them at full strength immediately.
+    const forced = locks[c.k] !== undefined;
+    w[c.k] = forced ? full : 1 + conviction * (full - 1);
+  });
+  return w;
+}
+
+/*  Roster gaps are reported, never scored.
+
+    Nudging a player's fit because he plays a position you're missing is how a
+    36th-ranked centre ends up recommended over a 6th-ranked guard. Positional
+    need is real, but it's a constraint you satisfy late with a replacement-level
+    body — not a reason to pass on a better player in round four. So this returns
+    information for the UI and contributes nothing to any score.               */
+function rosterGaps(roster){
+  const counts = {};
+  roster.forEach(r => r.pos.forEach(x => counts[x] = (counts[x]||0)+1));
+  const missing = ["PG","SG","SF","PF","C"].filter(s => !(counts[s] > 0));
+  const left = cfg.size - roster.length;
+  // Urgent once you have barely enough picks left to cover the holes.
+  const urgency = !missing.length ? 0 : Math.min(1, missing.length / Math.max(1, left - 1));
+  return {missing, left, counts, urgency};
+}
+
+// P(gone before my next turn), from ADP vs picks remaining.
+function runRisk(p, gapPicks){
+  if(gapPicks <= 0) return 0;
+  const spare = p.adp - (picks.length + 1);
+  const x = (gapPicks - spare) / 4;
+  return 1 / (1 + Math.exp(-x));
+}
+
+/*  Which categories are natural punts?
+
+    A category is worth abandoning when two things are true at once: drafting
+    best-available leaves you losing it anyway, and dragging it back to even
+    would cost more total value than it's worth. Chasing a category you can't
+    win is the most expensive mistake in a category league — you pay full price
+    for players and finish ninth anyway.
+
+    This suggests; it never applies anything on its own.                      */
+function suggestPunts(state){
+  const {roster, avail, tz, nxt} = state;
+  const left = cfg.size - roster.length;
+  if(roster.length < 2 || left < 2) return [];
+
+  /*  Par matters more than zero here. Z-scores are measured against the whole
+      player pool, but only the top (teams x size) get rostered — so a rival
+      team's standing in a category is NOT zero. Turnovers are the clearest
+      case: value and turnovers are positively correlated, so every good team
+      finishes underwater in TO. Judged against zero, TO looks like a punt for
+      everyone. Judged against par, it only looks like one if you're unusually
+      bad at it.                                                              */
+  const rostered = [...pool].sort((a,b)=>b.total-a.total).slice(0, cfg.teams * cfg.size);
+  const par = {};
+  CATS.forEach(c=>{
+    const mean = rostered.reduce((s,p)=>s+p.z[c.k], 0) / (rostered.length || 1);
+    par[c.k] = mean * cfg.size;
+  });
+
+  // Players realistically still there when you pick again.
+  const cutoff = (nxt === null ? picks.length : nxt) + 1;
+  let plausible = avail.filter(p => p.adp === null || p.adp >= cutoff);
+  if(plausible.length < left * 2) plausible = avail;
+
+  const topN = (arr, key, n) => [...arr].sort((a,b)=>key(b)-key(a)).slice(0, n);
+  const bpa = topN(plausible, p=>p.total, left);
+  const bpaValue = bpa.reduce((s,p)=>s+p.total, 0);
+
+  const out = [];
+  CATS.forEach(c=>{
+    if(locks[c.k] || cw(c.k) < 0.1) return;   // weight 0 = not scored, nothing to punt
+    const chase = topN(plausible, p=>p.z[c.k], left);
+
+    const drift  = tz[c.k] + bpa.reduce((s,p)=>s+p.z[c.k], 0);
+    const chased = tz[c.k] + chase.reduce((s,p)=>s+p.z[c.k], 0);
+    const cost   = bpaValue - chase.reduce((s,p)=>s+p.total, 0);
+
+    // How far below a rival team you land on the natural path.
+    const gap = drift - par[c.k];
+    // Would chasing even get you to par? If not, it's hopeless, not expensive.
+    const reach = chased - par[c.k];
+
+    out.push({cat:c, drift, chased, cost, gap, reach, par:par[c.k]});
+  });
+
+  return out
+    .filter(x => x.gap < -2.0 && x.cost > 8)
+    .sort((a,b) => a.gap - b.gap)
+    .slice(0, 3);
+}
+
+function evaluate(){
+  const roster = myRoster();
+  const tz = teamZ(roster);
+
+  // Full category shaping once roughly half the roster is set.
+  const ramp = Math.min(roster.length / Math.max(2, cfg.size * 0.45), 1);
+  /*  The slider says exactly what gets applied — no hidden ramp. It used to
+      scale itself with roster size, which meant the reset button appeared to do
+      nothing: you were already in "auto", so clicking it changed no state.
+      ramp is still reported so the tooltip can warn when standings are thin.  */
+  const conviction = shape;
+  const w = leverage(tz, conviction);
+
+  const here = picks.length;
+  const nxt = myNextPick(here + 1);
+  const gap = nxt === null ? 0 : nxt - here - 1;
+
+  /*  At the snake turn your next pick lands immediately after this one, so
+      nobody can be taken in between and every risk computes to zero. True, but
+      useless — it wipes the board clean of markers exactly when you're making
+      two picks at once. What matters there is who survives to the pick AFTER
+      the pair, so measure against that instead.                              */
+  let riskGap = gap;
+  if(gap === 0 && nxt !== null){
+    const second = myNextPick(nxt + 1);
+    if(second !== null) riskGap = second - here - 2;
+  }
+
+  const avail = available();
+  avail.forEach(p=>{
+    p.fit = CATS.reduce((s,c)=>s + w[c.k] * cw(c.k) * p.z[c.k], 0);
+    p.risk = runRisk(p, riskGap);
+    /*  Scarcity. A player certain to survive to your next turn is worth less
+        NOW than an equal player who won't be — you can have him either way.
+        Centred on 0.5 so it's a real swing, not the old ±5% rounding error.  */
+    p.scarce = cfg.scarcity * (p.risk - 0.5);
+    p.fitAdj = p.fit + p.scarce;
+  });
+
+  return {roster, tz, w, avail, gap, riskGap, nxt, conviction, ramp, gaps: rosterGaps(roster)};
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $ = s => document.querySelector(s);
+
+function fmt(n, d=1){ return (n>=0?"":"") + n.toFixed(d); }
+/*  A z of -0.03 is noise, not a weakness. Flipping hard from blue to red at
+    exactly zero makes league-average look like a liability: Jalen Johnson's
+    .482 FG% against a pool average of .483 rendered as a red mark.           */
+const NEUTRAL = 0.22;
+function zColor(z){
+  if(Math.abs(z) < NEUTRAL) return "var(--dimmer)";
+  return z >= 0 ? "var(--cool)" : "var(--hot)";
+}
+function zOpacity(z){
+  return Math.abs(z) < NEUTRAL ? 0.55 : Math.min(1, 0.5 + Math.abs(z)/2.2);
+}
+const zText = z => Math.abs(z) < 0.05 ? "0.0" : z.toFixed(1);
+
+function renderClock(state){
+  const done = picks.length >= cfg.teams * cfg.size;
+  const overall = picks.length;
+  const onIdx = teamOnClock(overall);
+  const mine = onIdx === myTeamIdx();
+  const rd = Math.floor(overall / cfg.teams) + 1;
+  const inRd = (overall % cfg.teams) + 1;
+
+  /*  When it's your pick, "next turn" means the one AFTER this one — that's the
+      number you're actually reasoning about when deciding who'll still be there. */
+  const nxt = state.nxt;
+  const until = nxt === null ? null : (mine ? state.gap : state.gap + 1);
+  const untilText = until === null ? "—"
+    : until === 0 ? "Back-to-back"
+    : until === 1 ? "1 pick"
+    : until + " picks";
+  const nLbl = nxt === null ? "Next turn"
+    : `Next turn · ${Math.floor(nxt/cfg.teams)+1}.${String((nxt%cfg.teams)+1).padStart(2,"0")}`;
+
+  $("#clock").innerHTML = done
+    ? `<div class="clock-cell onclock"><span class="k">Draft</span><span class="v">Complete</span></div>
+       <button class="clock-btn" id="b_set">Setup</button><button class="clock-btn" id="b_imp">Projections</button>
+       <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
+       <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`
+    : `
+    <div class="clock-cell"><span class="k">Pick</span><span class="v">${overall+1}</span></div>
+    <div class="clock-cell"><span class="k">Round</span><span class="v">${rd}.${String(inRd).padStart(2,"0")}</span></div>
+    <div class="clock-cell ${mine?"you":"onclock"}">
+      <span class="k">${mine?"You're up":"On the clock"}</span>
+      <span class="v" style="${!mine && teamName(onIdx).length>9 ? "font-size:15px" : ""}">${mine ? "YOUR PICK" : teamName(onIdx)}</span>
+    </div>
+    <div class="clock-cell"><span class="k">${nLbl}</span><span class="v" style="${until===0?"font-size:15px":""}">${untilText}</span></div>
+    <button class="clock-btn" id="b_set">Setup</button>
+    <button class="clock-btn" id="b_imp">Projections</button>
+    <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
+    <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`;
+
+  $("#theme").onclick = ()=>{
+    document.body.dataset.theme = document.body.dataset.theme === "court" ? "arena" : "court";
+    render();
+  };
+  $("#b_set").onclick = openSet;
+  $("#b_imp").onclick = ()=> $("#impmask").classList.add("on");
+  $("#reset").onclick = ()=>{
+    if(!picks.length || confirm(`Clear all ${picks.length} logged picks? Your loaded projections stay.`)){
+      picks = []; locks = {}; hoverId = null; selectedId = null; ledgerTeam = null; clearState(); $("#q").value = ""; render();
+    }
+  };
+}
+
+/*  Player photo, with a monogram underneath.
+
+    The id here is Basketball Reference's player code, carried over from the
+    actuals import — NOT our internal pool index, which would have pulled up
+    whichever face happened to sit at that number. Rookies and anyone who missed
+    last season have no code, and hotlinked images can fail for reasons we can't
+    see from here, so the monogram is always rendered behind and the <img> simply
+    removes itself if it doesn't load.                                        */
+function initials(name){
+  const parts = name.replace(/[^A-Za-z\s.'-]/g,"").split(/\s+/).filter(Boolean);
+  if(!parts.length) return "?";
+  const a = parts[0][0] || "";
+  const b = parts.length > 1 ? parts[parts.length-1][0] : "";
+  return (a + b).toUpperCase();
+}
+function hueOf(name){
+  let h = 0;
+  for(let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
+}
+function photoHTML(p){
+  const mono = `<span class="mono-badge" style="--h:${hueOf(p.name)}">${initials(p.name)}</span>`;
+  const img = p.pid
+    ? `<img src="https://www.basketball-reference.com/req/202106291/images/headshots/${p.pid}.jpg"
+           alt="" loading="lazy" onerror="this.remove()">`
+    : "";
+  return `<div class="rec-photo">${mono}${img}</div>`;
+}
+
+function renderRec(state){
+  const {avail, w, riskGap, conviction} = state;
+  if(!avail.length){ $("#rec").innerHTML = `<div class="empty">No players left in the pool.</div>`; return; }
+
+  const best = [...avail].sort((a,b)=>b.fitAdj-a.fitAdj)[0];
+  const bestVal = [...avail].sort((a,b)=>b.total-a.total)[0];
+  const onIdx = teamOnClock(picks.length);
+  const mine = onIdx === myTeamIdx();
+
+  const contrib = CATS.map(c=>({c, v: w[c.k] * cw(c.k) * best.z[c.k]}))
+                      .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
+
+  // Only meaningful on your own clock — after you pick, it clears itself.
+  const cost = bestVal.total - best.total;
+  const differs = mine && bestVal.id !== best.id && cost > 0.4;
+
+  const g = state.gaps;
+  const gapSig = g.missing.join(",");
+  const gapNote = (!g.missing.length || g.left <= 0 || ui.gapHidden === gapSig) ? "" : `
+    <div class="gapnote ${g.urgency > 0.7 ? "hot" : g.urgency > 0.34 ? "warm" : ""}">
+      <div class="k">Roster check</div>
+      <button class="dismiss" id="gapx" title="Dismiss">&times;</button>
+      No ${g.missing.join(", ")} yet · ${g.left} pick${g.left===1?"":"s"} left.
+      ${g.urgency > 0.7
+        ? `You're nearly out of room — fill ${g.missing.length > 1 ? "these" : "it"} now, even at a value loss.`
+        : g.urgency > 0.34
+          ? `Worth covering in the next couple of rounds.`
+          : `No rush. Positional need doesn't affect any score below — take the better player.`}
+    </div>`;
+
+  /*  The panel follows your selection, falling back to the recommendation.
+      Clicking a row used to draft instantly, which meant you could never look
+      at anyone but the top name — and one stray click cost you a pick.       */
+  const sel = selectedId !== null ? avail.find(p => p.id === selectedId) : null;
+  if(selectedId !== null && !sel) selectedId = null;         // he just got drafted
+  const shown = sel || best;
+  const isRec = shown.id === best.id;
+
+  const shownContrib = CATS.map(c=>({c, v: w[c.k] * cw(c.k) * shown.z[c.k]}))
+                           .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
+
+  const fitGap = best.fitAdj - shown.fitAdj;
+  const compare = !isRec
+    ? `<div class="tradeoff">
+         <div class="k">${fitGap > 0.05 ? `Board rates ${best.name.split(" ").slice(-1)[0]} higher by ${fitGap.toFixed(1)}` : `Equal to the board's pick`}</div>
+         Recommendation is <b>${best.name}</b> (fit ${best.fitAdj.toFixed(1)}${best.srcRank?`, rank #${best.srcRank}`:``})
+         versus <b>${shown.name}</b> at ${shown.fitAdj.toFixed(1)}.
+         <button class="mini" id="r_back">Back to ${best.name.split(" ").slice(-1)[0]}</button>
+       </div>`
+    : (differs ? `
+      <div class="tradeoff">
+        <div class="k">Costs you ${cost.toFixed(1)} of raw value</div>
+        Highest value on the board is <b>${bestVal.name}</b> (${bestVal.total.toFixed(1)}${bestVal.srcRank?`, rank #${bestVal.srcRank}`:``}).
+        ${conviction < 0.45
+          ? `Category shaping is only ${Math.round(conviction*100)}% engaged this early, so if the gap looks big, trust the value.`
+          : `The board prefers ${best.name.split(" ").slice(-1)[0]} on category fit${best.scarce - bestVal.scarce > 0.3 ? ` and availability` : ``}.`}
+        <button class="mini" id="r_val">Inspect ${bestVal.name}</button>
+      </div>` : ``);
+
+  $("#rec").innerHTML = `
+    <div class="rec-eyebrow">${!isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}</div>
+    <div class="rec-top">
+      <div class="rec-info">
+        <div class="rec-name">${shown.name}</div>
+        <div class="rec-sub">${shown.pos.join(" / ")} · ${shown.team}${shown.srcRank?` · projected rank #${shown.srcRank}`:``} · value ${shown.total.toFixed(1)}</div>
+        <div class="rec-why">
+          ${shownContrib.map(x=>`<span class="chip up">${x.c.label} +${shown.z[x.c.k].toFixed(1)}</span>`).join("")}
+          ${shown.scarce > 0.3 ? `<span class="chip risk">Gone before your next turn</span>` : ``}
+          ${shown.scarce < -0.3 && riskGap > 0 ? `<span class="chip">Would still be there in ${riskGap}</span>` : ``}
+        </div>
+      </div>
+      ${photoHTML(shown)}
+    </div>
+    ${compare}
+    <div class="rec-actions">
+      <button class="btn primary" id="r_draft">Draft ${shown.name.split(" ").slice(-1)[0]} to ${mine ? "my team" : teamName(onIdx)}</button>
+      ${!isRec ? `<button class="btn" id="r_clear">Clear</button>` : ``}
+    </div>
+    ${gapNote}`;
+  $("#r_draft").onclick = ()=> draft(shown.id);
+  const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; render(); };
+  const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; render(); };
+  const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; render(); };
+  const gx = $("#gapx");
+  if(gx) gx.onclick = ()=>{ ui.gapHidden = gapSig; render(); };
+}
+
+/*  Every team's roster in a single pass. Cheap enough to recompute each render:
+    one walk over the pick log plus a map lookup, not a scan per team.        */
+function allRosters(){
+  const byId = new Map(pool.map(p=>[p.id, p]));
+  const out = Array.from({length: cfg.teams}, ()=>[]);
+  picks.forEach(pk=>{
+    const p = byId.get(pk.playerId);
+    if(p && pk.teamIdx >= 0 && pk.teamIdx < cfg.teams) out[pk.teamIdx].push(p);
+  });
+  return out;
+}
+
+/*  Team production in real units — the aggregate of every player's projected
+    per-game line. Counting stats add up; percentages recombine by volume
+    (total makes over total attempts), never by averaging the rates.         */
+function teamTotals(roster){
+  const t = {fgm:0,fga:0,ftm:0,fta:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+  roster.forEach(p=>{ for(const k in t) t[k] += p[k] || 0; });
+  return t;
+}
+function catTotal(t, k){
+  if(k === "fg") return t.fga ? t.fgm/t.fga : null;
+  if(k === "ft") return t.fta ? t.ftm/t.fta : null;
+  return t[k];
+}
+
+/*  Par, in real units: what one roster spot is worth if you drafted an average
+    rostered player. Gives the totals bars something to measure against even
+    when only your own team has picks — comparing to the league mean alone
+    would leave every bar flat in round one.                                 */
+function leagueRates(){
+  const rostered = [...pool].sort((a,b)=>b.total-a.total).slice(0, cfg.teams * cfg.size);
+  const s = teamTotals(rostered);
+  const n = rostered.length || 1;
+  const per = {};
+  ["tpm","pts","reb","ast","stl","blk","to"].forEach(k=> per[k] = s[k]/n);
+  per.fg = s.fga ? s.fgm/s.fga : 0;
+  per.ft = s.fta ? s.ftm/s.fta : 0;
+  return per;
+}
+
+// Reference value for a category given how many players are on the roster.
+function catRef(per, k, size){
+  return (k === "fg" || k === "ft") ? per[k] : per[k] * size;
+}
+
+function fmtTotal(k, v){
+  if(v === null) return "\u2014";
+  if(k === "fg" || k === "ft") return v.toFixed(3).replace(/^0/,"");
+  return v.toFixed(1);
+}
+
+const possessive = n => /s$/i.test(n) ? n + "\u2019" : n + "\u2019s";
+
+function renderLedger(state){
+  const rosters = allRosters();
+  const viewing = (ledgerTeam === null || ledgerTeam >= cfg.teams) ? myTeamIdx() : ledgerTeam;
+  const isMine = viewing === myTeamIdx();
+
+  const roster = isMine ? state.roster : rosters[viewing];
+  const tz = isMine ? state.tz : teamZ(roster);
+  const w = isMine ? state.w : leverage(tz, state.conviction);
+  const n = Math.max(roster.length, 1);
+
+  // Standings per category, so you can see who's actually winning each one.
+  const allZ = rosters.map((r,i)=> i === viewing ? tz : teamZ(r));
+  const live = allZ.filter((_,i)=> rosters[i].length > 0).length;
+
+  // Ghost preview only makes sense on your own board.
+  // Hover wins while the cursor is over a row; otherwise the selection stays pinned.
+  const previewId = hoverId !== null ? hoverId : selectedId;
+  const hov = (isMine && previewId !== null) ? pool.find(p=>p.id===previewId) : null;
+
+  $("#ledgerteam").innerHTML = rosters.map((r,i)=>
+    `<option value="${i}" ${i===viewing?"selected":""}>${i===myTeamIdx()?"My team":teamName(i)}${r.length?` (${r.length})`:""}</option>`).join("");
+
+  const totals = teamTotals(roster);
+  const per = leagueRates();
+  const hovTotals = hov ? teamTotals(roster.concat([hov])) : null;
+  const allTotals = rosters.map((r,i)=> i === viewing ? totals : teamTotals(r));
+  const asTotals = ledgerMode === "tot";
+
+  $("#ledger").innerHTML = CATS.map(c=>{
+    const lev = w[c.k] > 1.05;
+    const flip = c.neg ? -1 : 1;          // fewer turnovers is better
+    let barW, ghostW, valTxt, valZ, rank;
+    let nextTxt = null, better = 0;
+
+    if(asTotals){
+      const v   = catTotal(totals, c.k);
+      const ref = catRef(per, c.k, Math.max(roster.length, 1));
+      const rel = v === null ? 0
+        : (c.k === "fg" || c.k === "ft") ? (v - ref) / 0.045 : (ref ? (v - ref) / ref / 0.6 : 0);
+      const dev = roster.length ? Math.max(-1, Math.min(1, rel)) * flip : 0;
+      barW  = dev * 50;
+      valZ  = dev * 1.2;                  // reuse the z colour ramp
+      valTxt = roster.length ? fmtTotal(c.k, v) : "\u2014";
+
+      if(hovTotals){
+        const hv = catTotal(hovTotals, c.k);
+        const hr = catRef(per, c.k, roster.length + 1);
+        const hrel = hv === null ? 0
+          : (c.k === "fg" || c.k === "ft") ? (hv - hr) / 0.045 : (hr ? (hv - hr) / hr / 0.6 : 0);
+        ghostW = Math.max(-1, Math.min(1, hrel)) * flip * 50;
+        nextTxt = fmtTotal(c.k, hv);
+        // In real units, fewer turnovers is the improvement.
+        better = (hv !== null && v !== null) ? (hv - v) * flip : 0;
+      } else ghostW = null;
+
+      rank = roster.length
+        ? 1 + allTotals.filter((t,i)=>{
+            if(!rosters[i].length || i === viewing) return false;
+            const o = catTotal(t, c.k), m = catTotal(totals, c.k);
+            return o !== null && m !== null && (o - m) * flip > 0;
+          }).length
+        : null;
+    } else {
+      const cur = tz[c.k] / n;
+      const nxt = hov ? (tz[c.k] + hov.z[c.k]) / (roster.length + 1) : null;
+      const scale = v => Math.max(-1, Math.min(1, v / 2)) * 50;
+      barW = scale(cur); ghostW = nxt === null ? null : scale(nxt);
+      valZ = cur;
+      valTxt = roster.length ? fmt(cur, 2) : "\u2014";
+      if(nxt !== null){
+        nextTxt = fmt(nxt, 2);
+        better = nxt - cur;      // z is already sign-corrected, so higher is always better
+      }
+      rank = roster.length ? 1 + allZ.filter((t,i)=> rosters[i].length > 0 && t[c.k] > tz[c.k]).length : null;
+    }
+
+    const bar = `<div class="lbar ${barW>=0?"pos":"neg"}" style="${barW>=0
+      ? `left:50%;width:${barW}%`
+      : `right:50%;width:${-barW}%`}"></div>`;
+
+    const ghost = ghostW === null ? "" : `<div class="lghost" style="${ghostW>=0
+      ? `left:50%;width:${ghostW}%`
+      : `right:50%;width:${-ghostW}%`}"></div>`;
+
+    const lock = isMine ? (locks[c.k] || "") : "";
+    return `<div class="lrow ${lev?"lev":""} ${lock}">
+      <span class="lcat" data-c="${c.k}" title="${isMine ? "Click: auto \u2192 punt \u2192 chase" : "Switch back to your team to set punts"}">${c.label}${cw(c.k)!==1?`<em class="cwx">\u00d7${cw(c.k)}</em>`:""}</span>
+      <span class="ltrack"><span class="lmid"></span>${bar}${ghost}</span>
+      <span class="lval">
+        <span style="color:${roster.length?zColor(valZ):"var(--dimmer)"}">${valTxt}</span>
+        ${nextTxt !== null ? `<em class="lnext ${better>0?"up":better<0?"dn":""}">\u2192 ${nextTxt}</em>` : ``}
+      </span>
+      <span class="lrank ${rank===1?"first":""}" title="${rank?`${rank} of ${live} drafted teams`:""}">${rank?`${rank}/${live}`:"\u2014"}</span>
+    </div>`;
+  }).join("");
+
+  if(isMine){
+    [...$("#ledger").querySelectorAll(".lcat")].forEach(el=>{
+      el.onclick = ()=>{
+        const k = el.dataset.c;
+        const next = locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase" : undefined;
+        setLock(k, next);
+      };
+    });
+  }
+
+  $("#ledgerkey").innerHTML = asTotals
+    ? `Combined projected per-game production of the roster \u2014 counting stats summed, percentages recombined by volume. Bars compare against an average roster of the same size; the right-hand figure is the rank among drafted teams. Hover a player on the board to see where each line would land if you drafted him.`
+    : `Bars are the roster\u2019s per-player z-score in each category. Amber labels mark where the next pick has the most leverage \u2014 you\u2019re close enough to even that moving the bar actually flips the category. Grey labels are decided: locked up, or punted. Hover a player on the board to see where each line would land if you drafted him.`;
+
+  $("#ledgernote").textContent = isMine
+    ? (roster.length ? "hover a player to preview" : "draft someone to begin")
+    : `${roster.length} drafted \u00b7 read-only`;
+}
+
+// One stat cell. Per-game modes show the real number but keep the z-score
+// colouring, so you can read impact and raw output at the same time.
+function statCell(p, c, mode){
+  if(mode === "z"){
+    const z = p.z[c.k];
+    return `<td class="mono" style="color:${zColor(z)};opacity:${zOpacity(z)}">${zText(z)}</td>`;
+  }
+  const src = mode === "last" ? p.last : p;
+  let v = null, z = null;
+  if(src){
+    if(c.k === "fg") v = src.fga ? (src.fgm/src.fga).toFixed(3).replace(/^0/,"") : null;
+    else if(c.k === "ft") v = src.fta ? (src.ftm/src.fta).toFixed(3).replace(/^0/,"") : null;
+    else if(typeof src[c.k] === "number") v = src[c.k].toFixed(1);
+    const zs = src.zpg || src.z;
+    if(zs && typeof zs[c.k] === "number") z = zs[c.k];
+  }
+  if(v === null) return `<td class="mono" style="color:var(--dimmer)">—</td>`;
+  if(z === null) return `<td class="mono" style="color:var(--dim)">${v}</td>`;
+  return `<td class="mono" style="color:${zColor(z)};opacity:${zOpacity(z)}">${v}</td>`;
+}
+
+// Sort value for a column, so the first click always puts "best" on top.
+function sortVal(p, key, mode){
+  if(key === "fit")   return p.fitAdj;
+  if(key === "total") return p.total;
+  if(key === "rank")  return -(p.srcRank ?? p.adp ?? 9999);
+  if(mode === "z")    return p.z[key];
+  const src = mode === "last" ? p.last : p;
+  if(!src) return -Infinity;
+  if(key === "fg") return src.fga ? src.fgm/src.fga : -Infinity;
+  if(key === "ft") return src.fta ? src.ftm/src.fta : -Infinity;
+  const raw = src[key];
+  if(typeof raw !== "number") return -Infinity;
+  return key === "to" ? -raw : raw;      // fewer turnovers is better
+}
+
+function renderBoard(state){
+  const q = fold($("#q").value.trim());
+  const mode = $("#mode").value;
+  let list = state.avail;
+  if(posFilter !== "ALL") list = list.filter(p=>p.pos.includes(posFilter));
+  if(q) list = list.filter(p=>fold(p.name).includes(q));
+
+  const key = sortKey;
+  list = [...list].sort((a,b)=>{
+    if(key === "name") return a.name.localeCompare(b.name) * (sortDir === -1 ? 1 : -1);
+    return (sortVal(b,key,mode) - sortVal(a,key,mode)) * (sortDir === -1 ? 1 : -1);
+  }).slice(0, 80);
+
+  $("#board").innerHTML = list.map((p,i)=>{
+    const rk = p.srcRank ?? null;
+    /*  Only warn about availability for players you're plausibly taking. A
+        "gone soon" dot on someone ranked 40th is noise — it's true (the market
+        rates him higher than the projections do) but it isn't a decision you
+        actually face.                                                        */
+    const flagRisk = p.risk > 0.6 && i < 15 && key === "fit";
+    return `<tr data-id="${p.id}" class="${p.id===selectedId?"sel ":""}${i===0&&key==="fit"?"top":""}">
+      <td class="l">
+        <div class="pname">${p.name}${flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}</div>
+        <div class="ppos">${p.pos.join("/")} · ${p.team}${p.adp?` · adp ${p.adp.toFixed(0)}`:""}${p.gp?` · ${p.gp} gp`:""}</div>
+      </td>
+      <td class="fit mono" style="color:${p.fitAdj>=0?"var(--chalk)":"var(--dimmer)"}">${p.fitAdj.toFixed(1)}</td>
+      <td class="mono" style="color:${rk?"var(--chalk)":"var(--dimmer)"}">${rk ?? "—"}</td>
+      <td class="mono" style="color:var(--dim)">${p.total.toFixed(1)}</td>
+      ${CATS.map(c=>statCell(p,c,mode)).join("")}
+    </tr>`;
+  }).join("") || `<tr><td class="l" colspan="13" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
+
+  [...$("#board").querySelectorAll("tr[data-id]")].forEach(tr=>{
+    const id = +tr.dataset.id;
+    // First click inspects; clicking the already-selected player commits.
+    tr.onclick = ()=>{
+      if(selectedId === id) draft(id);
+      else { selectedId = id; render(); }
+    };
+    tr.ondblclick = ()=> draft(id);
+    tr.onmouseenter = ()=>{ hoverId = id; renderLedger(evaluate()); };
+    tr.onmouseleave = ()=>{ hoverId = null; renderLedger(evaluate()); };
+  });
+}
+
+/*  Applying a punt silently reshuffles the whole board, which is unnerving if
+    you can't see what moved. Snapshot the ranking before and after, then show
+    the biggest movers plus an undo.                                          */
+let lastChange = null;
+
+function rankSnapshot(){
+  const st = evaluate();
+  const m = new Map();
+  [...st.avail].sort((a,b)=>b.fitAdj-a.fitAdj).forEach((p,i)=> m.set(p.id, {rank:i+1, name:p.name}));
+  return m;
+}
+
+function setLock(k, val){
+  const before = rankSnapshot();
+  const prev = {...locks};
+  if(val === undefined) delete locks[k]; else locks[k] = val;
+  const after = rankSnapshot();
+
+  const movers = [];
+  after.forEach((a, id)=>{
+    const b = before.get(id);
+    if(!b) return;
+    if(b.rank <= 20 || a.rank <= 20) movers.push({name:a.name, from:b.rank, to:a.rank, d:b.rank-a.rank});
+  });
+  movers.sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+
+  const label = CATS.find(c=>c.k===k).label;
+  lastChange = {
+    text: val === undefined ? `Cleared ${label}` : val === "punt" ? `Punted ${label}` : `Chasing ${label}`,
+    prev,
+    up: movers.filter(m=>m.d > 0).slice(0,3),
+    down: movers.filter(m=>m.d < 0).slice(0,3)
+  };
+  render();
+}
+
+function undoLock(){
+  if(!lastChange) return;
+  locks = {...lastChange.prev};
+  lastChange = null;
+  render();
+}
+
+/*  Explain, in plain terms, what the slider is doing right now — including
+    which categories the weighting currently favours and ignores.            */
+function shapeBlurb(state){
+  const pct = Math.round(state.conviction * 100);
+  if(state.conviction === 0)
+    return "Off. The board ranks purely on projected value — a straight best-player-available cheat sheet, ignoring your roster entirely.";
+
+  const ranked = CATS.filter(c=>!locks[c.k]).sort((a,b)=>state.w[b.k]-state.w[a.k]);
+  const hi = ranked.slice(0,2).map(c=>c.label).join(" and ");
+  const lo = ranked.slice(-2).map(c=>c.label).join(" and ");
+  const punted = CATS.filter(c=>locks[c.k]==="punt").map(c=>c.label);
+
+  const base = pct < 15
+    ? `Nearly off (${pct}%). Fit stays close to raw value — effectively best player available.`
+    : pct < 60
+      ? `Balanced (${pct}%). Category fit tilts the order, but raw value still dominates.`
+      : `Heavy (${pct}%). Category fit is driving the board; a lower-rated player who fills a gap can outrank a better one.`;
+
+  const detail = pct < 15 ? ""
+    : ` It leans on ${hi} and discounts ${lo} — you're near even in the first, and the second is already decided.`;
+
+  const thin = state.roster.length < 4 && pct >= 40
+    ? ` Careful: with only ${state.roster.length} player${state.roster.length===1?"":"s"} drafted, those standings are mostly noise — consider dropping this until you have four or five.`
+    : "";
+
+  const puntNote = punted.length ? ` ${punted.join(", ")} ${punted.length===1?"is":"are"} punted and counts for nothing.` : "";
+  const note = " Positional need never affects this score — see Roster check for that.";
+
+  return base + detail + thin + puntNote + note;
+}
+
+function renderSuggest(state){
+  const el = $("#suggest");
+  const punted = CATS.filter(c=>locks[c.k]==="punt");
+  const chased = CATS.filter(c=>locks[c.k]==="chase");
+  const active = [...punted, ...chased];
+
+  // Every category, always visible — click to cycle auto -> punt -> chase.
+  const picker = `
+    <div class="active">
+      <span class="pickerlbl">Set by hand</span>
+      ${CATS.map(c=>{
+        const st = locks[c.k] || "auto";
+        return `<span class="lockchip ${st}" data-c="${c.k}" title="${
+          st==="punt" ? "Punted — counts for nothing. Click to chase instead."
+          : st==="chase" ? "Chasing — weighted at maximum. Click to return to auto."
+          : "Auto. Click to punt."}">${c.label}${st==="punt"?" ✕":st==="chase"?" ▲":""}</span>`;
+      }).join("")}
+      ${active.length ? `<span class="lockchip clear" data-all="1">Clear all</span>` : ``}
+    </div>`;
+
+  // What the last change actually did to the board.
+  const diff = !lastChange ? "" : `
+    <div class="sug diff">
+      <div class="k">${lastChange.text}</div>
+      ${lastChange.up.length ? `<div><span class="up">▲ Rose</span> — ${lastChange.up.map(m=>m.name).join(", ")}</div>` : ``}
+      ${lastChange.down.length ? `<div><span class="dn">▼ Fell</span> — ${lastChange.down.map(m=>m.name).join(", ")}</div>` : ``}
+      ${!lastChange.up.length && !lastChange.down.length ? `<div style="color:var(--dimmer)">Board order barely moved.</div>` : ``}
+      <button class="mini" id="undolock">Undo</button>
+      <button class="dismiss" id="diffx" title="Dismiss">&times;</button>
+    </div>`;
+
+  let body;
+  if(punted.length >= 4){
+    body = `<div class="sug warn">
+      <div class="k">Four punts is too many</div>
+      You need to win five of nine categories. Punting ${punted.length} leaves
+      ${9-punted.length} to fight over, so you'd have to sweep almost all of them every week.</div>`;
+  } else {
+    const all = suggestPunts(state);
+    const sug = all.filter(x=>!ui.sugHidden.has(x.cat.k));
+    if(!sug.length){
+      body = state.roster.length < 2
+        ? `<div class="sug quiet">Draft a couple of players and this will suggest categories worth abandoning. You can punt anything by hand above at any time.</div>`
+        : `<div class="sug quiet">No obvious punts${all.length?` beyond the ${all.length} you dismissed`:``}. Your roster is still balanced enough to compete across the board${active.length?`, beyond what you've set by hand`:``}.
+           ${ui.sugHidden.size ? `<a href="#" id="unhide">Show ${ui.sugHidden.size} dismissed</a>` : ``}</div>`;
+    } else {
+      body = sug.map(s=>`
+        <div class="sug">
+          <div class="k">Consider punting ${s.cat.label}</div>
+          Drafting best-available finishes you <b>${Math.abs(s.gap).toFixed(1)} behind</b> a typical team here.
+          ${s.reach < 0
+            ? `Even chasing it all draft doesn't reach par — it's not winnable.`
+            : `Chasing it back to par costs about <b>${s.cost.toFixed(0)}</b> of value spent on players you'd otherwise pass.`}
+          <button class="mini" data-c="${s.cat.k}">Punt ${s.cat.label}</button>
+          <button class="dismiss" data-hide="${s.cat.k}" title="Dismiss">&times;</button>
+        </div>`).join("") +
+        `<div class="sug quiet">Suggestions only — nothing is applied until you click.
+         ${ui.sugHidden.size ? `<a href="#" id="unhide">Show ${ui.sugHidden.size} dismissed</a>` : ``}</div>`;
+    }
+  }
+
+  el.innerHTML = picker + diff + body;
+
+  [...el.querySelectorAll(".sug button[data-c]")].forEach(b=>{
+    b.onclick = ()=> setLock(b.dataset.c, "punt");
+  });
+  [...el.querySelectorAll(".lockchip[data-c]")].forEach(b=>{
+    b.onclick = ()=>{
+      const k = b.dataset.c;
+      setLock(k, locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase" : undefined);
+    };
+  });
+  const clr = el.querySelector('.lockchip[data-all]');
+  if(clr) clr.onclick = ()=>{ locks = {}; lastChange = null; render(); };
+  const u = el.querySelector("#undolock");
+  if(u) u.onclick = undoLock;
+  const dx = el.querySelector("#diffx");
+  if(dx) dx.onclick = ()=>{ lastChange = null; render(); };
+  [...el.querySelectorAll("button[data-hide]")].forEach(b=>{
+    b.onclick = ()=>{ ui.sugHidden.add(b.dataset.hide); render(); };
+  });
+  const uh = el.querySelector("#unhide");
+  if(uh) uh.onclick = e=>{ e.preventDefault(); ui.sugHidden.clear(); render(); };
+}
+
+/*  Roster slots, assigned properly.
+
+    The panel used to drop the nth player drafted into the nth slot, which
+    happily parked an SF/PF in the centre slot and told you the roster was fine.
+    This is a bipartite matching: players on one side, slots on the other, an
+    edge where the player is actually eligible. Kuhn's algorithm finds a maximum
+    matching, so if a legal arrangement exists it gets found — and anyone left
+    over genuinely doesn't fit.                                               */
+function slotEligible(slot, p){
+  if(slot === "UTIL" || slot === "BN") return true;
+  if(slot === "G") return p.pos.some(x=>x==="PG"||x==="SG");
+  if(slot === "F") return p.pos.some(x=>x==="SF"||x==="PF");
+  return p.pos.includes(slot);
+}
+
+function assignSlots(roster){
+  const slots = SLOTS.slice(0, cfg.size);
+  const owner = new Array(slots.length).fill(-1);   // slot index -> player index
+
+  const tryPlace = (pi, seen) => {
+    for(let si = 0; si < slots.length; si++){
+      if(seen[si] || !slotEligible(slots[si], roster[pi])) continue;
+      seen[si] = true;
+      if(owner[si] === -1 || tryPlace(owner[si], seen)){ owner[si] = pi; return true; }
+    }
+    return false;
+  };
+
+  // Most constrained players first — pure bench bodies shouldn't hog real slots.
+  const order = roster.map((p,i)=>i).sort((a,b)=>{
+    const n = i => slots.filter(s=>slotEligible(s, roster[i])).length;
+    return n(a) - n(b);
+  });
+  const placed = new Set();
+  order.forEach(pi=>{ if(tryPlace(pi, new Array(slots.length).fill(false))) placed.add(pi); });
+
+  const unplaced = roster.map((p,i)=>i).filter(i=>!placed.has(i));
+  return {slots, owner, unplaced};
+}
+
+function renderRoster(state){
+  const viewing = (ledgerTeam === null || ledgerTeam >= cfg.teams) ? myTeamIdx() : ledgerTeam;
+  const isMine = viewing === myTeamIdx();
+  const r = isMine ? state.roster : allRosters()[viewing];
+  $("#rosterhead").textContent = isMine ? "My Roster" : possessive(teamName(viewing)) + " Roster";
+  $("#rostercount").textContent = `${r.length} / ${cfg.size}`;
+  const {slots, owner, unplaced} = assignSlots(r);
+
+  $("#roster").innerHTML = slots.map((s,i)=>{
+    const p = owner[i] === -1 ? null : r[owner[i]];
+    return `<div class="slot ${p?"":"open"}">
+      <span class="idx mono">${s}</span>
+      <span class="nm">${p ? p.name : "open"}</span>
+      ${p ? `<span class="rpos">${p.pos.join("/")}</span>` : ``}
+      <span class="mono" style="color:var(--dim);font-size:11px">${p ? p.total.toFixed(1) : ""}</span>
+    </div>`;
+  }).join("") + (unplaced.length ? `<div class="slot"><span class="idx mono" style="color:var(--hot)">!</span>
+      <span class="nm" style="color:var(--hot)">${unplaced.map(i=>r[i].name).join(", ")} — no eligible slot</span></div>` : ``);
+}
+
+function renderLog(){
+  $("#logcount").textContent = picks.length ? `${picks.length} pick${picks.length===1?"":"s"}` : "";
+  const recent = [...picks].reverse();
+  $("#log").innerHTML = recent.length ? recent.map(pk=>{
+    const p = pool.find(x=>x.id===pk.playerId);
+    const mine = pk.teamIdx === myTeamIdx();
+    const rd = Math.floor(pk.overall / cfg.teams) + 1;
+    return `<div class="slot">
+      <span class="idx mono">${rd}.${String((pk.overall % cfg.teams)+1).padStart(2,"0")}</span>
+      <span class="nm" style="${mine?"color:var(--ok);font-weight:600":""}">${p?p.name:"?"}</span>
+      <span class="mono" style="color:var(--dimmer);font-size:10px">${mine?"YOU":shortName(pk.teamIdx)}</span>
+      <button class="px" data-o="${pk.overall}" title="Remove this pick">×</button>
+    </div>`;
+  }).join("") : `<div class="empty" style="padding:14px 0">No picks yet. Click any player on the board to log him to whoever's on the clock.</div>`;
+
+  [...$("#log").querySelectorAll(".px")].forEach(b=>{
+    b.onclick = e=>{ e.stopPropagation(); picks = picks.filter(p=>p.overall !== +b.dataset.o); reindex(); render(); };
+  });
+}
+
+function reindex(){ picks.sort((a,b)=>a.overall-b.overall).forEach((p,i)=>p.overall=i); }
+
+function draft(id){
+  if(picks.length >= cfg.teams * cfg.size) return;
+  if(takenIds().has(id)) return;
+  picks.push({playerId:id, teamIdx:teamOnClock(picks.length), overall:picks.length});
+  $("#q").value = "";
+  hoverId = null;
+  selectedId = null;
+  render();
+}
+
+/*  Draft state survives a refresh.
+
+    Picks reference pool indices, so a saved draft is only meaningful against
+    the same pool — restoring picks onto a different projection set would
+    silently rename every player on your roster. The signature guards that.   */
+const SAVE_KEY = "draftboard.v1";
+const poolSig = () => pool.length + "|" + (pool[0] ? pool[0].name : "");
+
+function saveState(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      sig: poolSig(), picks, locks, cfg, shape, ledgerTeam,
+      theme: document.body.dataset.theme
+    }));
+  }catch(e){ /* private browsing, quota, file:// restrictions — not worth failing over */ }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(d.cfg) Object.assign(cfg, d.cfg);
+    if(typeof d.shape === "number") shape = d.shape;
+    if(d.theme) document.body.dataset.theme = d.theme;
+    if(d.sig !== poolSig()) return false;      // different data loaded; keep settings, drop picks
+    if(Array.isArray(d.picks)) picks = d.picks;
+    if(d.locks && typeof d.locks === "object") locks = d.locks;
+    ledgerTeam = (typeof d.ledgerTeam === "number") ? d.ledgerTeam : null;
+    return picks.length > 0;
+  }catch(e){ return false; }
+}
+
+function clearState(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+function render(){
+  const state = evaluate();
+  const pct = Math.round(state.conviction * 100);
+  $("#shape").value = pct;
+  $("#shapev").textContent = `${pct}%`;
+  $("#shapeauto").classList.toggle("on", Math.abs(shape - DEFAULT_SHAPE) < 0.005);
+  $("#shaperow").title = shapeBlurb(state);
+  renderClock(state);
+  renderRec(state);
+  renderLedger(state);
+  renderSuggest(state);
+  renderBoard(state);
+  renderRoster(state);
+  renderLog();
+  saveState();
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+$("#posfilter").innerHTML = ["ALL","PG","SG","SF","PF","C"]
+  .map(p=>`<button data-p="${p}" class="${p==="ALL"?"on":""}">${p}</button>`).join("");
+[...$("#posfilter").querySelectorAll("button")].forEach(b=>{
+  b.onclick = ()=>{
+    posFilter = b.dataset.p;
+    [...$("#posfilter").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  };
+});
+
+// Column sorting — click to sort, click again to flip direction.
+[...document.querySelectorAll("thead th")].forEach(th=>{
+  th.onclick = ()=>{
+    const k = th.dataset.s;
+    if(!k) return;
+    if(sortKey === k) sortDir = -sortDir;
+    else { sortKey = k; sortDir = -1; }
+    [...document.querySelectorAll("thead th")].forEach(x=>{
+      x.classList.toggle("on", x.dataset.s === sortKey);
+      const a = x.querySelector(".arw");
+      if(a) a.textContent = sortDir === -1 ? "▾" : "▴";
+    });
+    renderBoard(evaluate());
+  };
+});
+document.querySelector('thead th[data-s="fit"]').classList.add("on");
+
+// Games-played weight
+const GPW_LABEL = v => v < 0.15 ? "per game" : v < 0.4 ? "light" : v < 0.65 ? "balanced" : v < 0.9 ? "heavy" : "full season";
+$("#gpw").addEventListener("input", e=>{
+  cfg.gpw = +e.target.value / 100;
+  $("#gpwv").textContent = GPW_LABEL(cfg.gpw);
+  scorePool(pool);
+  const used = pool.map(p=>p.last).filter(Boolean);
+  if(used.length) scoreBoth(used);
+  render();
+});
+document.querySelector('thead th[data-s="fit"]').classList.add("on");
+
+$("#mode").addEventListener("change", ()=> renderBoard(evaluate()));
+[...$("#ledgermode").querySelectorAll("button")].forEach(b=>{
+  b.onclick = ()=>{
+    ledgerMode = b.dataset.m;
+    [...$("#ledgermode").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  };
+});
+$("#ledgerteam").addEventListener("change", e=>{
+  const v = +e.target.value;
+  ledgerTeam = (v === myTeamIdx()) ? null : v;
+  render();
+});
+
+// The GP slider is inert unless the loaded data actually carries a GP column.
+function syncGPW(){
+  const has = pool.some(p=>p.gp > 0);
+  $("#gpw").disabled = !has;
+  $("#gpw").style.opacity = has ? 1 : .35;
+  $("#gpwlab").textContent = has ? "Games played weight" : "Games played weight — no GP column in this data";
+  $("#gpwv").textContent = has ? GPW_LABEL(cfg.gpw) : "inactive";
+}
+
+$("#shape").addEventListener("input", e=>{ shape = +e.target.value / 100; render(); });
+$("#shapeauto").onclick = ()=>{ shape = DEFAULT_SHAPE; render(); };
+
+
+$("#q").addEventListener("input", ()=> renderBoard(evaluate()));
+$("#q").addEventListener("keydown", e=>{
+  if(e.key === "Enter"){
+    const first = $("#board").querySelector("tr[data-id]");
+    const fid = first ? +first.dataset.id : null;
+    if(fid !== null){
+      if(selectedId === fid) draft(fid);      // Enter twice to commit
+      else { selectedId = fid; render(); }
+    }
+  }
+});
+document.addEventListener("keydown", e=>{
+  if(e.key === "/" && document.activeElement !== $("#q")){ e.preventDefault(); $("#q").focus(); }
+  if((e.metaKey||e.ctrlKey) && e.key === "z"){ e.preventDefault(); undo(); }
+  if(e.key === "Escape" && selectedId !== null){ selectedId = null; render(); }
+});
+function undo(){ picks.pop(); render(); }
+$("#undo").onclick = undo;
+
+// Settings
+function paintNameGrid(){
+  // Was reading #s_teams here, so it always highlighted the last slot.
+  const slot = Math.min(cfg.teams, Math.max(1, +$("#s_slot").value || cfg.slot));
+  $("#s_names").innerHTML = Array.from({length: cfg.teams}, (_,i)=>
+    `<div class="fld"><label>${i+1 === slot ? "You \u00b7 slot " + (i+1) : "Slot " + (i+1)}</label>
+     <input type="text" data-n="${i}" maxlength="18" placeholder="Team ${i+1}"
+       value="${(cfg.names[i]||"").replace(/"/g,"&quot;")}"
+       ${i+1===slot ? 'style="border-color:var(--ok)"' : ''}></div>`).join("");
+}
+
+function paintCatGrid(){
+  $("#s_cats").innerHTML = CATS.map(c=>
+    `<div class="fld"><label>${c.label}</label>
+     <input type="number" data-w="${c.k}" min="0" max="3" step="0.25" value="${cw(c.k)}"></div>`).join("");
+}
+function openSet(){
+  $("#s_teams").value = cfg.teams; $("#s_slot").value = cfg.slot;
+  $("#s_size").value = cfg.size;   $("#s_aggr").value = cfg.aggr;
+  paintCatGrid();
+  paintNameGrid();
+  $("#setmask").classList.add("on");
+}
+function setCatPreset(o){
+  CATS.forEach(c=>{
+    const el = $("#s_cats").querySelector(`input[data-w="${c.k}"]`);
+    if(el) el.value = o[c.k] === undefined ? 1 : o[c.k];
+  });
+}
+$("#s_close").onclick = ()=> $("#setmask").classList.remove("on");
+$("#s_teams").addEventListener("input", ()=>{ cfg.teams = Math.max(4, +$("#s_teams").value || 12); paintNameGrid(); });
+$("#s_slot").addEventListener("input", paintNameGrid);
+$("#s_cats_std").onclick = ()=> setCatPreset({});
+$("#s_cats_8").onclick = ()=> setCatPreset({to:0});
+$("#s_save").onclick = ()=>{
+  cfg.teams = Math.max(4, +$("#s_teams").value || 12);
+  cfg.slot  = Math.min(cfg.teams, Math.max(1, +$("#s_slot").value || 1));
+  cfg.size  = Math.max(5, +$("#s_size").value || 13);
+  cfg.aggr  = Math.max(0, Math.min(10, +$("#s_aggr").value));
+  cfg.names = [];
+  [...$("#s_names").querySelectorAll("input[data-n]")].forEach(el=>{
+    cfg.names[+el.dataset.n] = el.value.trim();
+  });
+  [...$("#s_cats").querySelectorAll("input[data-w]")].forEach(el=>{
+    const v = parseFloat(el.value);
+    cfg.catW[el.dataset.w] = isNaN(v) ? 1 : Math.max(0, Math.min(3, v));
+  });
+  scoreBoth(pool);
+  const lastRows = pool.map(p=>p.last).filter(Boolean);
+  if(lastRows.length) scoreBoth(lastRows);
+  cfg.k     = Math.max(1, 12 - cfg.aggr);   // higher aggression = sharper sigmoid
+  picks = picks.filter(p => p.overall < cfg.teams * cfg.size);
+  reindex();
+  $("#setmask").classList.remove("on");
+  render();
+};
+
+// Import
+$("#imp_close").onclick = ()=> $("#impmask").classList.remove("on");
+let impTarget = "proj";
+[...$("#imptarget").querySelectorAll("button")].forEach(b=>{
+  b.onclick = ()=>{
+    impTarget = b.dataset.t;
+    [...$("#imptarget").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
+  };
+});
+
+$("#imp_go").onclick = ()=>{
+  const rows = dedupe(parsePool($("#impbox").value));
+  const msg = $("#impmsg");
+  const skipped = parsePool.skipped || [];
+
+  if(rows.length < 5){
+    msg.className = "msg bad";
+    msg.innerHTML = `Parsed only ${rows.length} rows. Each needs a name and a field-goal column carrying
+      makes and attempts. First unreadable row:<br>
+      <span class="mono" style="color:var(--dimmer)">${(skipped[0]||"—").slice(0,110).replace(/</g,"&lt;")}</span>`;
+    return;
+  }
+
+  /* ---- last season's actuals: match onto the existing pool, don't replace it ---- */
+  if(impTarget === "last"){
+    if(!pool.length){ msg.className="msg bad"; msg.textContent="Load this season's projections first."; return; }
+    const hit = attachLast(rows);
+    const missed = attachLast.missed || [];
+    msg.className = hit > pool.length * 0.5 ? "msg good" : "msg bad";
+    msg.innerHTML = `Matched <b>${hit}</b> of ${pool.length}
+      ${attachLast.fuzzy ? `(${attachLast.fuzzy} by surname — nickname spellings)` : ``}.
+      ${missed.length ? `<br><span style="color:var(--dimmer)">No match for ${missed.length}:
+        ${missed.slice(0,12).map(n=>n.replace(/</g,"&lt;")).join(", ")}${missed.length>12?"…":""}.
+        Usually rookies or players who didn't appear last season.</span>` : ``}`;
+    $("#mode").value = "last";
+    render();
+    return;
+  }
+
+  /* ---- this season's projections: replace the pool ---- */
+  pool = rows; picks = []; locks = {};
+  scoreBoth(pool);
+  const withGP = pool.filter(p=>p.gp>0).length;
+  const withRank = pool.filter(p=>p.srcRank!==null).length;
+  const withADP = pool.filter(p=>p.adp!==null).length;
+
+  msg.className = "msg good";
+  msg.innerHTML = `Loaded <b>${pool.length}</b> players
+    ${withGP ? `· ${withGP} with GP (durability slider live)` : `· no GP column, durability slider stays off`}
+    ${withRank ? `· ${withRank} with source rank` : ``}
+    ${withADP ? `· ${withADP} with ADP` : `· no ADP, run risk falls back to value rank`}
+    ${skipped.length ? `· skipped ${skipped.length} rows` : ``}
+    <table class="prev"><tr><th class="l">Sanity check</th><th>POS</th><th>FG</th><th>FT</th><th>PTS</th><th>REB</th><th>GP</th></tr>
+    ${pool.slice(0,4).map(p=>`<tr><td class="l">${p.name}</td><td>${p.pos.join("/")}</td>
+      <td class="mono">${p.fgm}/${p.fga}</td><td class="mono">${p.ftm}/${p.fta}</td>
+      <td class="mono">${p.pts}</td><td class="mono">${p.reb}</td><td class="mono">${p.gp||"—"}</td></tr>`).join("")}</table>`;
+
+  $("#banner").classList.add("hide");
+  syncGPW();
+  clearState();
+  render();
+};
+
+// Boot
+pool = dedupe(parsePool(RAW));
+scoreBoth(pool);
+const matched = pool.length ? attachLast(dedupe(parsePool(RAW_LAST))) : 0;
+const resumed = loadState();
+syncGPW();
+
+if(!pool.length){
+  $("#banner").innerHTML =
+    `<span>No projections loaded yet — open Projections and paste a table to begin.</span>`
+    + `<button id="b_banner2">Load projections</button>`;
+} else {
+  $("#banner").innerHTML =
+    `<span>${pool.length} players loaded with projections, ADP and games played. `
+    + `${matched} matched to last season's actuals.`
+    + `${resumed ? ` Resumed your draft at pick ${picks.length + 1}.` : ``}</span>`
+    + `<button id="b_banner2">Load different data</button>`
+    + `<button id="b_dismiss" class="x" title="Dismiss">&times;</button>`;
+}
+$("#banner").classList.remove("hide");
+$("#b_banner2").onclick = ()=> $("#impmask").classList.add("on");
+const bd = $("#b_dismiss"); if(bd) bd.onclick = ()=> $("#banner").classList.add("hide");
+if(!pool.length) $("#impmask").classList.add("on");
+render();
+
+/* ============================================================
+   YAHOO SYNC — stub, deliberately not wired up.
+
+   Yahoo now gates Fantasy API access behind an approval application
+   (sports.yahoo.com/developer/access). If you get approved, the shape
+   is: OAuth2 with an https://localhost callback, then poll
+
+     GET /fantasy/v2/league/{game_key}.l.{league_id}/draftresults?format=json
+
+   every ~5s while league draft_status is "drafting". Map each result's
+   {round, pick, team_key, player_key} onto the picks[] array below and
+   call render(). Test it in a mock draft BEFORE you rely on it — verify
+   picks actually appear mid-draft rather than only at postdraft.
+
+   async function syncYahoo(leagueKey, token){
+     const r = await fetch(`/api/yahoo/league/${leagueKey}/draftresults`,
+                           {headers:{Authorization:`Bearer ${token}`}});
+     const data = await r.json();
+     // ...map to picks[], dedupe on overall, then render()
+   }
+   Note: the fetch must go through your own small proxy — Yahoo does not
+   send CORS headers, so a browser-only call will be blocked.
+   ============================================================ */
+</script>
+</body>
+</html>

@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft Room — 9-Cat Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ---- Arena (default): dark, but lifted off pure black for legibility ---- */
+  --ink:#171D26;
+  --panel:#202834;
+  --panel-2:#293341;
+  --line:#36434F;
+  --line-soft:#2A3441;
+  --raise:#252F3C;
+  --chalk:#EEF3F9;
+  --dim:#A6B3C3;
+  --dimmer:#7E8C9E;
+  --wood:#D4A059;
+  --wood-hi:#E0B171;
+  --wood-text:var(--wood-text);
+  --cool:#57ACF2;
+  --hot:#E4636E;
+  --ok:#5CC489;
+  --pos-bg:#162E3D; --pos-fg:#A8D6F5; --pos-bd:#2B5D7C;
+  --neg-bg:#331A1E; --neg-fg:#F2B3B9; --neg-bd:#66303A;
+  --okk-bg:#183324; --okk-fg:#97DBB2; --okk-bd:#2F6647;
+  --you-bg:#1F3E2F;
+  --onclock-bg:var(--onclock-bg); --onclock-fg:#FFFFFF; --onclock-k:var(--onclock-k);
+  --banner-bg:#1C2E24; --banner-fg:#A6DEBC; --banner-bd:#2E4B39;
+  --banner-btn:#2E4B39; --banner-btnfg:#D6F0E2;
+  --mask:var(--mask);
+  --scroll:#3E4C5C; --scroll-hi:#4E5F72;
+  --r:3px;
+}
+body[data-theme="court"]{
+  /* ---- Court: light, for bright rooms ---- */
+  --ink:#F2F5F9;
+  --panel:#FFFFFF;
+  --panel-2:#E9EEF4;
+  --line:#D0D9E3;
+  --line-soft:#E3E9F0;
+  --raise:#EDF1F7;
+  --chalk:#16202C;
+  --dim:#4E5C6E;
+  --dimmer:#78869A;
+  --wood:#8F5D12;
+  --wood-hi:#A46E1E;
+  --wood-text:#FFFFFF;
+  --cool:#1668BC;
+  --hot:#AE2F3B;
+  --ok:#1C7644;
+  --pos-bg:#E2EFFA; --pos-fg:#125388; --pos-bd:#B6D6F1;
+  --neg-bg:#FBE6E8; --neg-fg:#8E2028; --neg-bd:#EFC0C5;
+  --okk-bg:#E3F2E9; --okk-fg:#1A6339; --okk-bd:#BCDFCB;
+  --you-bg:#DCEFE3;
+  --onclock-bg:#F2E1C2; --onclock-fg:#5A3E13; --onclock-k:#8A6524;
+  --banner-bg:#E5F3EB; --banner-fg:#1A6339; --banner-bd:#BCDFCB;
+  --banner-btn:#1C7644; --banner-btnfg:#FFFFFF;
+  --mask:rgba(30,40,52,.55);
+  --scroll:#C4CEDA; --scroll-hi:#AAB7C6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--ink);
+  color:var(--chalk);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.disp{font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:1px;background:var(--line);height:100vh}
+.col{background:var(--ink);overflow-y:auto;min-width:0}
+
+/* ---------- clock bar ---------- */
+.clock{
+  display:flex;align-items:stretch;gap:1px;background:var(--line);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30
+}
+.clock-cell{background:var(--panel);padding:8px 14px;display:flex;flex-direction:column;justify-content:center}
+.clock-cell .k{font-size:9px;letter-spacing:.14em;color:var(--dimmer);text-transform:uppercase}
+.clock-cell .v{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1.1}
+.clock-cell.onclock{background:var(--wood-lo);flex:1}
+.clock-cell.onclock .k{color:var(--onclock-k)}
+.clock-cell.onclock .v{color:var(--onclock-fg)}
+.clock-cell.you{background:var(--you-bg)}
+.clock-cell.you .v{color:var(--ok)}
+.clock-btn{background:var(--panel);border:0;color:var(--dim);padding:0 12px;cursor:pointer;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-family:"Saira Condensed",sans-serif;font-weight:700}
+.clock-btn:hover{background:var(--panel-2);color:var(--chalk)}
+
+/* ---------- section head ---------- */
+.head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:14px 16px 8px;border-bottom:1px solid var(--line)
+}
+.head h2{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:16px;letter-spacing:.1em;text-transform:uppercase}
+.head .note{font-size:11px;color:var(--dimmer)}
+
+/* ---------- recommendation ---------- */
+.rec{padding:16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--panel) 0%,var(--ink) 100%)}
+.rec-eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--wood);margin-bottom:4px}
+.rec-name{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;line-height:1;letter-spacing:0}
+.rec-sub{color:var(--dim);font-size:13px;margin-top:3px}
+.rec-why{margin-top:12px;display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11px;padding:4px 8px;border-radius:var(--r);border:1px solid var(--line);color:var(--dim);letter-spacing:.04em}
+.chip.up{border-color:var(--pos-bd);color:var(--pos-fg);background:var(--pos-bg)}
+.chip.risk{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
+.rec-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  font-size:12px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--line);
+  background:var(--panel-2);color:var(--chalk);cursor:pointer
+}
+.btn:hover{background:var(--line)}
+.btn.primary{background:var(--wood);border-color:var(--wood);color:var(--wood-text)}
+.btn.primary:hover{background:var(--wood-hi)}
+.btn:focus-visible,.px:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--wood);outline-offset:1px}
+.empty{padding:28px 16px;color:var(--dimmer);font-size:13px}
+
+/* ---------- ledger (signature) ---------- */
+.ledger{padding:12px 16px 18px}
+.lrow{display:grid;grid-template-columns:42px 1fr auto 34px;align-items:center;gap:9px;height:27px}
+.lcat{font-size:11px;letter-spacing:.08em;color:var(--dimmer);text-transform:uppercase}
+.lrow.lev .lcat{color:var(--wood)}
+.ltrack{position:relative;height:12px;background:var(--panel);border-radius:2px;overflow:visible}
+.lmid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
+.lbar{position:absolute;top:0;bottom:0;border-radius:2px;transition:all .18s ease}
+.lbar.pos{background:var(--cool)}
+.lbar.neg{background:var(--hot)}
+.lghost{position:absolute;top:-2px;bottom:-2px;border:1px dashed var(--wood);border-radius:2px;pointer-events:none}
+.lval{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;min-width:52px}
+.ledger-key{font-size:11px;color:var(--dimmer);padding:8px 16px 0;line-height:1.5}
+
+/* ---------- search + board ---------- */
+.searchwrap{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;position:sticky;top:0;background:var(--ink);z-index:20}
+input[type=text],input[type=number],select{
+  background:var(--panel);border:1px solid var(--line);color:var(--chalk);
+  padding:7px 10px;border-radius:var(--r);font-family:inherit;font-size:13px;width:100%
+}
+input::placeholder{color:var(--dimmer)}
+.seg{display:flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;flex:0 0 auto}
+.seg button{background:var(--panel);border:0;color:var(--dim);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:0 10px;cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700}
+.seg button.on{background:var(--wood);color:var(--wood-text)}
+
+table{width:100%;border-collapse:collapse}
+thead th{
+  position:sticky;top:0;background:var(--ink);z-index:10;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+  font-weight:600;text-align:right;padding:9px 6px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap
+}
+thead th.l{text-align:left}
+thead th:hover{color:var(--chalk)}
+tbody td{padding:8px 6px;border-bottom:1px solid var(--line-soft);font-size:13px;text-align:right;white-space:nowrap}
+tbody td.l{text-align:left}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel)}
+tbody tr.top{box-shadow:inset 2px 0 0 var(--wood)}
+.pname{font-weight:600;font-size:14px;letter-spacing:.01em}
+.ppos{color:var(--dimmer);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.fit{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px}
+.delta{font-size:10px;color:var(--dimmer)}
+.delta.up{color:var(--ok)}
+.delta.dn{color:var(--hot)}
+.risk-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--hot);margin-left:5px;vertical-align:middle}
+
+/* ---------- roster / log ---------- */
+.roster{padding:6px 16px 16px}
+.slot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+.slot .idx{color:var(--dimmer);font-size:10px;width:22px;flex:0 0 22px}
+.slot .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.open .nm{color:var(--dimmer);font-style:italic}
+.px{background:none;border:0;color:var(--dimmer);cursor:pointer;font-size:14px;padding:0 4px;line-height:1}
+.px:hover{color:var(--hot)}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:var(--mask);display:none;align-items:center;justify-content:center;padding:20px;z-index:100}
+.mask.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:6px;width:100%;max-width:620px;max-height:86vh;overflow-y:auto;padding:20px}
+.modal h3{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--dim);margin-bottom:12px}
+textarea{
+  width:100%;height:190px;background:var(--ink);border:1px solid var(--line);color:var(--chalk);
+  border-radius:var(--r);padding:10px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.5;resize:vertical
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fld label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:4px}
+.msg{font-size:12px;margin-top:10px}
+.msg.bad{color:var(--hot)}
+.msg.good{color:var(--ok)}
+
+/* sort indicator */
+thead th.on{color:var(--wood)}
+thead th .arw{opacity:0;margin-left:3px}
+thead th.on .arw{opacity:1}
+
+/* punt locks */
+.lcat{cursor:pointer;user-select:none}
+.lcat:hover{color:var(--chalk)}
+.lrow.punt .lcat{color:var(--hot);text-decoration:line-through}
+.lrow.chase .lcat{color:var(--ok)}
+.lrow.punt .ltrack{opacity:.32}
+
+/* placeholder banner */
+.banner{
+  background:var(--banner-bg);border-bottom:1px solid var(--banner-bd);color:var(--banner-fg);
+  padding:8px 16px;font-size:12px;display:flex;justify-content:space-between;
+  align-items:center;gap:12px
+}
+.banner.hide{display:none}
+.banner button.x{background:none;color:var(--banner-fg);font-size:17px;line-height:1;padding:0 4px}
+.banner button.x:hover{color:#fff}
+.banner button{background:var(--banner-btn);border:0;color:var(--banner-btnfg);padding:4px 10px;border-radius:var(--r);
+  font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;cursor:pointer;flex:0 0 auto}
+
+/* gp slider */
+.gpw{display:grid;grid-template-columns:140px 1fr 104px 46px;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--dimmer)}
+.gpw input[type=range]{width:100%;accent-color:var(--wood);margin:0}
+
+.prev{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px}
+.prev td,.prev th{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right}
+.prev th{color:var(--dimmer);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.prev td.l,.prev th.l{text-align:left}
+
+.catgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.catgrid label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:3px}
+.cwx{font-style:normal;font-size:9px;color:var(--wood);margin-left:3px}
+
+/* dismiss buttons */
+.dismiss{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--dimmer);
+  font-size:15px;line-height:1;cursor:pointer;padding:2px 4px}
+.dismiss:hover{color:var(--chalk)}
+.sug,.gapnote{position:relative}
+.sug a{color:var(--wood);text-decoration:none;margin-left:4px}
+.sug a:hover{text-decoration:underline}
+.tinybtn{background:var(--panel-2);border:1px solid var(--line);color:var(--dimmer);justify-self:stretch;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;
+  border-radius:var(--r);cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700;flex:0 0 auto}
+.tinybtn.on{border-color:var(--wood);color:var(--wood)}
+.tinybtn:hover{color:var(--chalk)}
+.pickerlbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);
+  align-self:center;margin-right:2px}
+.scrolly{max-height:340px;overflow-y:auto}
+
+/* active locks + change diff */
+.active{padding:10px 16px;border-bottom:1px solid var(--line-soft);display:flex;flex-wrap:wrap;gap:6px}
+.lockchip{
+  font-size:11px;padding:5px 9px;border-radius:var(--r);cursor:pointer;
+  letter-spacing:.04em;border:1px solid var(--line);color:var(--dim)
+}
+.lockchip b{margin-left:4px;font-weight:700}
+.lockchip.auto{opacity:.6}
+.lockchip.punt{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
+.lockchip.chase{border-color:var(--okk-bd);color:var(--okk-fg);background:var(--okk-bg)}
+.lockchip:hover{border-color:var(--wood);color:var(--chalk)}
+.lockchip.clear{color:var(--dimmer)}
+.sug.diff{background:var(--raise);font-size:11px}
+.sug.diff .up{color:var(--ok)}
+.sug.diff .dn{color:var(--hot)}
+
+/* roster gap advisory */
+.gapnote{margin-top:12px;padding:10px 12px;border-radius:var(--r);background:var(--raise);
+  border-left:2px solid var(--dimmer);font-size:13px;color:var(--dim);line-height:1.5}
+.gapnote .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);margin-bottom:3px}
+.gapnote.warm{border-left-color:var(--wood)}
+.gapnote.warm .k{color:var(--wood)}
+.gapnote.hot{border-left-color:var(--hot);background:var(--neg-bg)}
+.gapnote.hot .k{color:var(--hot)}
+
+/* punt radar */
+.sug{padding:12px 16px;border-bottom:1px solid var(--line-soft);font-size:13px;color:var(--dim);line-height:1.5}
+.sug .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:3px}
+.sug b{color:var(--chalk)}
+.sug.quiet{color:var(--dimmer);font-size:11px}
+.sug.warn{background:var(--neg-bg);border-left:2px solid var(--hot)}
+.sug.warn .k{color:var(--hot)}
+.sug .mini{margin-top:8px}
+
+/* tradeoff callout */
+.tradeoff{
+  margin-top:12px;padding:10px 12px;border-left:2px solid var(--wood);
+  background:var(--raise);font-size:13px;color:var(--dim);line-height:1.5;border-radius:0 var(--r) var(--r) 0
+}
+.tradeoff .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:3px}
+.tradeoff b{color:var(--chalk)}
+.mini{
+  display:block;margin-top:8px;background:none;border:1px solid var(--line);color:var(--dim);
+  padding:5px 9px;border-radius:var(--r);cursor:pointer;font-size:11px;font-family:inherit
+}
+.mini:hover{border-color:var(--wood);color:var(--chalk)}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr;height:auto}
+  .col{height:auto;overflow:visible}
+  .rec-name{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+
+/* ---------- selected row ---------- */
+tbody tr.sel{background:var(--pos-bg);box-shadow:inset 3px 0 0 var(--wood)}
+tbody tr.sel .pname{color:var(--chalk)}
+tbody tr.sel:hover{background:var(--pos-bg)}
+
+/* ---------- recommendation photo ---------- */
+.rec-top{display:flex;gap:14px;align-items:flex-start}
+.rec-info{flex:1;min-width:0}
+.rec-photo{
+  position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;
+  overflow:hidden;border:2px solid var(--line);background:var(--panel-2)
+}
+.rec-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.mono-badge{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;letter-spacing:.02em;
+  color:hsl(var(--h) 45% 78%);background:hsl(var(--h) 30% 22%)
+}
+body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(var(--h) 45% 88%)}
+@media (max-width:900px){ .rec-photo{width:72px;height:72px} .mono-badge{font-size:26px} }
+
+/* ---------- hover projection in the ledger ---------- */
+.lnext{font-style:normal;font-size:11px;color:var(--dimmer);margin-left:5px}
+.lnext.up{color:var(--ok)}
+.lnext.dn{color:var(--hot)}
+
+/* ---------- ledger: team selector + standings rank ---------- */
+.ledgersel{
+  background:var(--panel);border:1px solid var(--line);color:var(--dim);
+  font-family:inherit;font-size:11px;padding:3px 6px;border-radius:var(--r);width:auto;max-width:150px
+}
+.lrank{
+  font-size:10px;color:var(--dimmer);text-align:right;font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums
+}
+.lrank.first{color:var(--ok);font-weight:600}
+
+/* ---------- themed scrollbars ---------- */
+*{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:6px;
+  border:3px solid var(--ink);background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--scroll-hi);border:3px solid var(--ink);background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+
+/* ---------- roster position tag ---------- */
+.rpos{font-size:10px;letter-spacing:.06em;color:var(--dimmer);
+  border:1px solid var(--line);border-radius:var(--r);padding:1px 5px;flex:0 0 auto}
+.slot .nm{flex:1}
+
+/* ---------- team name grid ---------- */
+.namegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:220px;overflow-y:auto}
+</style>
+</head>
+<body data-theme="arena">
+
+<div class="shell">
+
+  <!-- ============ LEFT: BOARD ============ -->
+  <div class="col">
+    <div class="clock" id="clock"></div>
+
+    <div class="banner" id="banner">
+      <span>Loading…</span>
+    </div>
+
+    <div class="gpw">
+      <span id="gpwlab">Games played weight</span>
+      <input type="range" id="gpw" min="0" max="100" value="50">
+      <span class="mono" id="gpwv" style="text-align:right">balanced</span>
+      <span></span>
+    </div>
+
+    <div class="gpw" id="shaperow">
+      <span>Value → Category fit</span>
+      <input type="range" id="shape" min="0" max="100" value="50">
+      <span class="mono" id="shapev" style="text-align:right">50%</span>
+      <button class="tinybtn" id="shapeauto" title="Reset to a balanced 50%">50%</button>
+    </div>
+
+    <div class="searchwrap">
+      <input type="text" id="q" placeholder="Search a player, then Enter to draft him  ( / to focus )" autocomplete="off">
+      <select id="mode" style="width:auto;flex:0 0 auto">
+        <option value="z">Z-scores</option>
+        <option value="proj">Projected per game</option>
+        <option value="last">Last season per game</option>
+      </select>
+      <div class="seg" id="posfilter"></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th class="l" data-s="name">Player<span class="arw">▾</span></th>
+          <th data-s="fit">Fit<span class="arw">▾</span></th>
+          <th data-s="rank" title="Your projection source's own rank. It can disagree with VAL: this Hashtag export was built with turnovers weighted x0.25, while VAL counts all nine categories equally.">Rk<span class="arw">▾</span></th>
+          <th data-s="total">Val<span class="arw">▾</span></th>
+          <th data-s="fg">FG%<span class="arw">▾</span></th>
+          <th data-s="ft">FT%<span class="arw">▾</span></th>
+          <th data-s="tpm">3PM<span class="arw">▾</span></th>
+          <th data-s="pts">PTS<span class="arw">▾</span></th>
+          <th data-s="reb">REB<span class="arw">▾</span></th>
+          <th data-s="ast">AST<span class="arw">▾</span></th>
+          <th data-s="stl">STL<span class="arw">▾</span></th>
+          <th data-s="blk">BLK<span class="arw">▾</span></th>
+          <th data-s="to">TO<span class="arw">▾</span></th>
+        </tr>
+      </thead>
+      <tbody id="board"></tbody>
+    </table>
+  </div>
+
+  <!-- ============ RIGHT: BRAIN ============ -->
+  <div class="col">
+    <div class="rec" id="rec"></div>
+
+    <div class="head">
+      <h2>Category Ledger</h2>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span class="note" id="ledgernote">hover a player to preview</span>
+        <span class="seg" id="ledgermode">
+          <button data-m="z" class="on">Z</button><button data-m="tot">Totals</button>
+        </span>
+        <select id="ledgerteam" class="ledgersel"></select>
+      </span>
+    </div>
+    <div class="ledger" id="ledger"></div>
+    <div class="ledger-key" id="ledgerkey"></div>
+
+    <div class="head"><h2>Punt Radar</h2><span class="note">click a ledger label to punt by hand</span></div>
+    <div id="suggest"></div>
+
+    <div class="head"><h2 id="rosterhead">My Roster</h2><span class="note" id="rostercount"></span></div>
+    <div class="roster" id="roster"></div>
+
+    <div class="head"><h2>Pick Log</h2><span class="note" id="logcount"></span><button class="clock-btn" id="undo">Undo last</button></div>
+    <div class="roster scrolly" id="log"></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS MODAL ============ -->
+<div class="mask" id="setmask">
+  <div class="modal">
+    <h3>League setup</h3>
+    <p>Snake order is derived from these. Change them before the draft starts.</p>
+    <div class="grid2">
+      <div class="fld"><label>Teams</label><input type="number" id="s_teams" min="4" max="20"></div>
+      <div class="fld"><label>Your draft slot</label><input type="number" id="s_slot" min="1" max="20"></div>
+      <div class="fld"><label>Roster spots</label><input type="number" id="s_size" min="5" max="20"></div>
+      <div class="fld"><label>Punt aggression (0–10)</label><input type="number" id="s_aggr" min="0" max="10" step="1"></div>
+    </div>
+    <p style="margin-bottom:16px">How readily the engine writes a category off. <b style="color:var(--chalk)">0</b> keeps chasing all nine to the end; <b style="color:var(--chalk)">10</b> abandons a losing category the moment it slips. <b style="color:var(--chalk)">8</b> is a sane default.</p>
+    <h3 style="margin-top:20px">Team names <span style="font-weight:400;font-size:11px;color:var(--dimmer);text-transform:none;letter-spacing:0">optional</span></h3>
+    <p>Leave blank for "Team 1", "Team 2" and so on. Your own slot is highlighted.</p>
+    <div class="namegrid" id="s_names"></div>
+
+    <h3 style="margin-top:20px">Category weights</h3>
+    <p>Match your league's scoring. <b style="color:var(--chalk)">1</b> = counts normally,
+       <b style="color:var(--chalk)">0</b> = not scored at all. This is a league setting —
+       punting a category you're losing is a separate, per-roster choice.</p>
+    <div class="catgrid" id="s_cats"></div>
+    <div style="margin:10px 0 16px">
+      <button class="mini" id="s_cats_std" style="display:inline-block;margin-right:6px">Standard 9-cat</button>
+      <button class="mini" id="s_cats_8" style="display:inline-block">8-cat (drop TO)</button>
+    </div>
+    <button class="btn primary" id="s_save">Save setup</button>
+    <button class="btn" id="s_close">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ IMPORT MODAL ============ -->
+<div class="mask" id="impmask">
+  <div class="modal">
+    <h3>Load projections</h3>
+
+    <div class="seg" id="imptarget" style="margin-bottom:12px;width:100%">
+      <button data-t="proj" class="on" style="flex:1;padding:7px 0">This season's projections</button>
+      <button data-t="last" style="flex:1;padding:7px 0">Last season's actuals</button>
+    </div>
+
+    <p>
+      Column headers are read automatically, so paste whatever the site gives you — ESPN, Hashtag,
+      Basketball Monster, or your own CSV. Repeated header rows, doubled names, <span class="mono">0.573 (10.5/18.3)</span>
+      and <span class="mono">9.5/19.0</span> cells all parse. Don't clean anything up first.
+      <br><br>
+      The one hard requirement is <b style="color:var(--chalk)">makes and attempts, not just a percentage</b> —
+      a bare rate can't tell the engine whether 54% came on 20 shots a night or on 4.
+      Include <span class="mono">GP</span> if the source has it and the durability slider comes alive.
+    </p>
+
+    <details style="margin-bottom:12px" open>
+      <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Export a whole table without hand-selecting rows</summary>
+      <p style="margin-top:8px">
+        Set the page to show every player first, then open the console (F12) and paste this. It copies the
+        biggest table on the page as tab-separated text, ready to paste below. Tabs beat CSV here —
+        nothing needs escaping.
+      </p>
+      <textarea readonly style="height:88px" onclick="this.select()">copy([...[...document.querySelectorAll('table')]
+  .sort((a,b)=>b.rows.length-a.rows.length)[0].rows]
+  .map(r=>[...r.cells].map(c=>c.innerText.replace(/\s+/g,' ').trim()).join('\t'))
+  .join('\n'))</textarea>
+      <p style="margin-top:8px">Or download it as a CSV file instead:</p>
+      <textarea readonly style="height:110px" onclick="this.select()">(()=>{const t=[...document.querySelectorAll('table')]
+  .sort((a,b)=>b.rows.length-a.rows.length)[0];
+const esc=s=>/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+const csv=[...t.rows].map(r=>[...r.cells]
+  .map(c=>esc(c.innerText.replace(/\s+/g,' ').trim())).join(',')).join('\n');
+const a=document.createElement('a');
+a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+a.download='projections.csv';a.click();})()</textarea>
+      <p style="margin-top:6px;color:var(--dimmer)">
+        On lazy-loading pages like ESPN, scroll to the bottom first — the snippet only sees rendered rows.
+      </p>
+    </details>
+
+    <textarea id="impbox" placeholder="R#	PLAYER	ADP	POS	TEAM	GP	MPG	FG%	FT%	3PM	PTS	TREB	AST	STL	BLK	TO"></textarea>
+    <div class="msg" id="impmsg"></div>
+    <div style="margin-top:12px">
+      <button class="btn primary" id="imp_go">Replace pool</button>
+      <button class="btn" id="imp_close">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   PLAYER POOL  —  APPROXIMATE per-game lines, placeholders only.
+   Replace via the "Load projections" button before you draft for real.
+   [name, pos, team, FGM, FGA, FTM, FTA, 3PM, PTS, REB, AST, STL, BLK, TO]
+   ============================================================ */
+/* ============================================================
+   NO EMBEDDED DATA — public build.
+
+   The local copy ships with projections baked in. This one does
+   not: those come from a paid subscription and aren't ours to
+   redistribute. Visitors paste their own via the Projections
+   dialog, which explains where to get them.
+   ============================================================ */
+const RAW = ``.trim();
+
+const RAW_LAST = ``.trim();
+
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const CATS = [
+  {k:"fg",  label:"FG%", pct:true},
+  {k:"ft",  label:"FT%", pct:true},
+  {k:"tpm", label:"3PM"},
+  {k:"pts", label:"PTS"},
+  {k:"reb", label:"REB"},
+  {k:"ast", label:"AST"},
+  {k:"stl", label:"STL"},
+  {k:"blk", label:"BLK"},
+  {k:"to",  label:"TO",  neg:true}
+];
+const SLOTS = ["PG","SG","SF","PF","C","G","F","UTIL","UTIL","BN","BN","BN","BN"];
+
+let cfg = {
+  teams:12, slot:5, size:13, aggr:8, k:4, gpw:0.5, scarcity:1.2,
+  /*  Per-category weight, to match your league's scoring. 1 = counts normally,
+      0 = not scored at all (8-cat leagues drop turnovers entirely). This is a
+      LEAGUE SETTING, not a strategy — punting is separate and per-roster.    */
+  catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:1},
+  names: []            // optional league team names, indexed by draft slot
+};
+const teamName = i => (cfg.names[i] && cfg.names[i].trim()) || ("Team " + (i+1));
+const shortName = i => { const n = teamName(i); return n.length > 9 ? n.slice(0,8) + "\u2026" : n; };
+const cw = k => cfg.catW[k] === undefined ? 1 : cfg.catW[k];
+const DEFAULT_SHAPE = 0.5;   // balanced starting point for category shaping
+let locks = {};
+let shape = DEFAULT_SHAPE;   // 0 = pure value, 1 = full category shaping
+let ui = {gapHidden:"", sugHidden:new Set()};                 // cat -> "punt" | "chase" (absent = auto)
+let pool = [];
+let picks = [];          // {playerId, teamIdx, overall}
+let sortKey = "fit", sortDir = -1;
+let posFilter = "ALL";
+let hoverId = null;
+let selectedId = null;   // click once to inspect, again to draft
+let ledgerTeam = null;   // null = my team
+let ledgerMode = "z";    // "z" or "tot"
+
+/* ============================================================
+   PARSING + Z-SCORES
+   ============================================================ */
+/*  Header-driven column mapping. Reads whatever header row the source gives
+    us and maps it by name, so ESPN (PTS last, FGM/FGA combined), Hashtag
+    (paren percentage cells) and plain CSV all land in the same shape.
+    Falls back to anchor detection when there's no usable header.          */
+const HDR = {
+  rank:["r#","rk","rank","#","no","pos rank"],
+  name:["player","name","players","player name"],
+  adp:["adp","avg pick","average pick"],
+  pos: ["pos","position","positions"],
+  team:["team","tm"],
+  gp:  ["gp","g","games","games played"],
+  fg:  ["fg%","fg","fgm/fga","fg made/att","fgm/a","fgm-fga"],
+  fgm: ["fgm","fg made"], fga:["fga","fg att"],
+  ft:  ["ft%","ft","ftm/fta","ft made/att","ftm/a","ftm-fta"],
+  ftm: ["ftm","ft made"], fta:["fta","ft att"],
+  tpm: ["3pm","3ptm","3s","threes","3p","3pm/3pa","3pt","3ptm/3pta","3pm-3pa"],
+  pts: ["pts","points","pt"],
+  reb: ["reb","treb","rebs","rebounds","tr","trb"],
+  ast: ["ast","asts","assists"],
+  stl: ["stl","steals","st"],
+  blk: ["blk","blocks","bs"],
+  to:  ["to","tov","turnovers","turnover","tos"],
+  pid: ["player-additional","player_additional","playeradditional","player id","slug"]
+};
+
+const PAREN = /^([\d.]+)\s*%?\s*\(\s*([\d.]+)\s*[\/\-]\s*([\d.]+)\s*\)$/;
+const MADEATT = /^([\d.]+)\s*[\/\-]\s*([\d.]+)$/;
+const POSRE = /^(PG|SG|SF|PF|C|G|F)([\/,\-](PG|SG|SF|PF|C|G|F))*$/i;
+
+const norm = s => String(s).toLowerCase().trim().replace(/\*+$/,"").replace(/\s+/g," ");
+
+/*  Accent folding. NFD splits most accented letters into base + combining mark,
+    which we then drop — but a handful of letters have no decomposition and must
+    be mapped by hand, or they vanish and the name never matches.
+    Jokić -> jokic, Dončić -> doncic, Šengün -> sengun, Đoković -> dokovic.     */
+const FOLD = {"đ":"d","ø":"o","ł":"l","ß":"ss","æ":"ae","œ":"oe","ı":"i","ð":"d","þ":"th","ħ":"h","ŋ":"n"};
+function fold(s){
+  return String(s).normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[đøłßæœıðþħŋ]/g, ch => FOLD[ch] || ch);
+}
+
+// Tokens with punctuation and generational suffixes removed.
+function nameParts(s){
+  return fold(s)
+    .replace(/[^a-z ]/g, " ")
+    .replace(/\b(jr|sr|ii|iii|iv)\b/g, " ")
+    .replace(/\s+/g, " ").trim()
+    .split(" ").filter(Boolean);
+}
+const nameKey = s => nameParts(s).join("");
+// Fallback key: surname + first initial, for Nic/Nicolas, Cam/Cameron, Herb/Herbert.
+function lastKey(s){
+  const t = nameParts(s);
+  return t.length > 1 ? t[t.length-1] + "|" + t[0][0] : (t[0] || "");
+}
+
+/*  Sites render a full name and an abbreviated one in the same cell, and ESPN
+    tacks team + position on the end. Strip both, but never to nothing.      */
+/*  Team abbreviations differ by source (NO/NOP, PHO/PHX, GS/GSW...). Matching a
+    real list rather than "any 2-3 capitals" matters: the naive version turns
+    "Trey Murphy IIINO SG/SF" into "Trey Murphy II" by eating an I.            */
+const TEAMS = ["ATL","BKN","BRK","BOS","CHA","CHO","CHI","CLE","DAL","DEN","DET","GS","GSW",
+  "HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NO","NOP","NOH","NY","NYK","OKC","ORL",
+  "PHI","PHO","PHX","POR","SA","SAS","SAC","TOR","UTA","UTAH","WAS","WSH"]
+  .sort((a,b)=>b.length-a.length);
+const POSALT = "(?:PG|SG|SF|PF|C)";
+const TEAMPOS = new RegExp(
+  `\\s*(?:${TEAMS.join("|")})\\s+${POSALT}(?:\\s*[,\\/]\\s*${POSALT})*\\s*$`);
+
+function cleanName(s){
+  let n = String(s).trim();
+  const noTeam = n.replace(TEAMPOS, "").trim();
+  if(noTeam.length >= 3) n = noTeam;
+  const noAbbrev = n.replace(/\s*[A-Z]\.[A-Za-z'’\-. ]+$/, "").trim();
+  if(noAbbrev.length >= 3) n = noAbbrev;
+  return n.trim();
+}
+
+function splitRow(line){
+  let l = line.trim().replace(/^\|/,"").replace(/\|$/,"");
+  if(l.includes("\t"))  return l.split("\t").map(s=>s.trim());
+  if(l.includes("|"))   return l.split("|").map(s=>s.trim());
+
+  // Quoted CSV: honour quotes, and don't split inside "(10.5/18.3)".
+  if(l.includes('"')){
+    const out = []; let cur = "", q = false;
+    for(let i = 0; i < l.length; i++){
+      const ch = l[i];
+      if(ch === '"'){
+        if(q && l[i+1] === '"'){ cur += '"'; i++; }
+        else q = !q;
+      }
+      else if(ch === "," && !q){ out.push(cur.trim()); cur = ""; }
+      else cur += ch;
+    }
+    out.push(cur.trim());
+    return out;
+  }
+
+  if(/\s{2,}/.test(l)) return l.split(/\s{2,}/).map(s=>s.trim());
+  return l.split(/,(?![^(]*\))/).map(s=>s.trim());
+}
+
+function mapHeader(cells){
+  const map = {};
+  cells.forEach((cell,i)=>{
+    const n = norm(cell);
+    for(const key in HDR){
+      if(map[key] !== undefined) continue;
+      if(HDR[key].includes(n)){ map[key] = i; break; }
+    }
+  });
+
+  /*  Basketball Reference calls the makes column plain "FG" / "FT" and puts
+      attempts in "FGA" / "FTA". Elsewhere "FG" means a rate or a combined
+      cell. If attempts have their own column, "FG" must be makes.          */
+  ["fg","ft"].forEach(k=>{
+    const att = k + "a", made = k + "m";
+    if(map[att] !== undefined && map[made] === undefined && map[k] !== undefined){
+      map[made] = map[k];
+      delete map[k];
+    }
+  });
+
+  const usable = map.name !== undefined &&
+                 (map.pts !== undefined || map.reb !== undefined || map.ast !== undefined);
+  return usable ? map : null;
+}
+
+/*  Traded players appear once per team plus a combined "2TM"/"3TM" row.
+    The combined row has the most games, so keeping max-GP per name gives
+    the full-season line rather than a partial stint.                      */
+function dedupe(rows){
+  const best = new Map();
+  rows.forEach(r=>{
+    const k = nameKey(r.name);
+    const prev = best.get(k);
+    if(!prev || (r.gp||0) > (prev.gp||0)) best.set(k, r);
+  });
+  const out = [...best.values()];
+  out.forEach((r,i)=> r.id = i);
+  return out;
+}
+
+function num(s){
+  const v = parseFloat(String(s).replace(/[^\d.\-]/g,""));
+  return isNaN(v) ? 0 : v;
+}
+
+// Pull made/attempted out of a cell in any of the three shapes we see.
+function volume(cell){
+  if(cell === undefined) return null;
+  const s = String(cell).trim();
+  let m = s.match(PAREN);   if(m) return {made:num(m[2]), att:num(m[3])};
+  m = s.match(MADEATT);     if(m) return {made:num(m[1]), att:num(m[2])};
+  return null;
+}
+
+function parsePool(text){
+  const lines = String(text).trim().split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const out = [], skipped = [];
+  let map = null;
+
+  for(const line of lines){
+    if(/^[-|\s:]+$/.test(line)) continue;
+    const c = splitRow(line).filter((x,i,arr)=> !(x === "" && i === arr.length-1));
+    if(c.length < 6) continue;
+
+    // Header rows repeat every dozen lines on some sites — re-read, never parse.
+    const asHeader = mapHeader(c);
+    if(asHeader){ map = asHeader; continue; }
+
+    let rec = null;
+
+    /* ---- mapped columns ---- */
+    if(map){
+      const at = k => map[k] !== undefined ? c[map[k]] : undefined;
+      const fgv = volume(at("fg")) || (map.fgm !== undefined
+                    ? {made:num(at("fgm")), att:num(at("fga"))} : null);
+      const ftv = volume(at("ft")) || (map.ftm !== undefined
+                    ? {made:num(at("ftm")), att:num(at("fta"))} : null);
+      if(!fgv || !fgv.att) { skipped.push(line); continue; }
+
+      const posCell = at("pos");
+      rec = {
+        name: cleanName(at("name") || ""),
+        pos:  posCell && POSRE.test(posCell) ? posCell.toUpperCase().split(/[\/,\-]/) : ["UTIL"],
+        team: at("team") || "—",
+        gp:   map.gp !== undefined ? Math.round(num(at("gp"))) : null,
+        adp:  map.adp !== undefined ? num(at("adp")) : null,
+        srcRank: map.rank !== undefined ? num(at("rank")) : null,
+        fgm:fgv.made, fga:fgv.att,
+        ftm:ftv?ftv.made:0, fta:ftv?ftv.att:0,
+        tpm:num(volume(at("tpm"))?volume(at("tpm")).made:at("tpm")),
+        pts:num(at("pts")), reb:num(at("reb")), ast:num(at("ast")),
+        stl:num(at("stl")), blk:num(at("blk")), to:num(at("to")),
+        pid:  map.pid !== undefined ? String(at("pid")||"").trim() : ""
+      };
+    }
+
+    /* ---- no header: anchor on paren percentage cells ---- */
+    else {
+      const pIdx = c.map((x,i)=>PAREN.test(x)?i:-1).filter(i=>i>=0);
+      if(pIdx.length >= 2){
+        const fg = c[pIdx[0]].match(PAREN), ft = c[pIdx[1]].match(PAREN);
+        const tail = c.slice(pIdx[1]+1).filter(x=>/^-?[\d.]+$/.test(x)).map(num);
+        if(tail.length < 7){ skipped.push(line); continue; }
+        const posI = c.findIndex((x,i)=> i < pIdx[0] && POSRE.test(x));
+        const head = c.slice(0, pIdx[0]);
+        const mid  = c.slice(posI+1, pIdx[0]).filter(x=>/^[\d.]+$/.test(x)).map(num);
+        const nums = head.filter(x=>/^[\d.]+$/.test(x)).map(num);
+        rec = {
+          name: cleanName(head.find(x=>/[A-Za-z]{3,}/.test(x) && !POSRE.test(x)) || ""),
+          pos:  posI>=0 ? c[posI].toUpperCase().split(/[\/,\-]/) : ["UTIL"],
+          team: posI>=0 ? (c[posI+1]||"—") : "—",
+          gp:   mid.length ? Math.round(mid[0]) : null,
+          srcRank: nums.length ? nums[0] : null,
+          adp:  nums.length > 1 ? nums[1] : null,
+          fgm:num(fg[2]), fga:num(fg[3]), ftm:num(ft[2]), fta:num(ft[3]),
+          tpm:tail[0], pts:tail[1], reb:tail[2], ast:tail[3],
+          stl:tail[4], blk:tail[5], to:tail[6]
+        };
+      }
+      /* ---- plain positional fallback ---- */
+      else if(c.length >= 14 && /^[\d.]+$/.test(c[3])){
+        rec = {
+          name:cleanName(c[0]), pos:c[1].toUpperCase().split(/[\/,]/), team:c[2],
+          fgm:num(c[3]), fga:num(c[4]), ftm:num(c[5]), fta:num(c[6]),
+          tpm:num(c[7]), pts:num(c[8]), reb:num(c[9]), ast:num(c[10]),
+          stl:num(c[11]), blk:num(c[12]), to:num(c[13]),
+          adp: c[14]!==undefined?num(c[14]):null,
+          gp:  c[15]!==undefined?Math.round(num(c[15])):null,
+          srcRank:null
+        };
+      }
+      else { skipped.push(line); continue; }
+    }
+
+    if(!rec || !rec.name || rec.name.length < 2 || rec.fga <= 0){ skipped.push(line); continue; }
+    rec.pos = rec.pos.map(s=>s.trim()).filter(Boolean);
+    if(!rec.pos.length) rec.pos = ["UTIL"];
+    rec.id = out.length;
+    out.push(rec);
+  }
+
+  parsePool.skipped = skipped;
+  return out;
+}
+
+/*  Match an imported set onto the pool. Two tiers: exact folded name, then
+    surname + first initial — but only when that key is unique on BOTH sides,
+    so "Keon Johnson" never silently absorbs "Kevin Johnson".               */
+function attachLast(rows){
+  const exact = new Map(), loose = new Map(), dupSrc = new Set();
+  rows.forEach(r=>{
+    exact.set(nameKey(r.name), r);
+    const lk = lastKey(r.name);
+    if(loose.has(lk)) dupSrc.add(lk); else loose.set(lk, r);
+  });
+
+  const poolCount = new Map();
+  pool.forEach(p=>{ const lk = lastKey(p.name); poolCount.set(lk, (poolCount.get(lk)||0)+1); });
+
+  let hit = 0, fuzzy = 0; const missed = [];
+  pool.forEach(p=>{
+    let m = exact.get(nameKey(p.name));
+    if(!m){
+      const lk = lastKey(p.name);
+      if(!dupSrc.has(lk) && poolCount.get(lk) === 1){
+        m = loose.get(lk);
+        if(m) fuzzy++;
+      }
+    }
+    p.last = m || null;
+    if(m && m.pid && !p.pid) p.pid = m.pid;   // photo id rides along with the actuals
+    if(m) hit++; else missed.push(p.name);
+  });
+
+  attachLast.fuzzy = fuzzy;
+  attachLast.missed = missed;
+
+  /*  Score the matched actuals as their own population. Colouring last season's
+      numbers by this season's projected z would be a lie — a player whose role
+      changed would show the wrong sign. Only matched rows are scored, so the
+      comparison population is the same 190-odd players either way.           */
+  const used = pool.map(p=>p.last).filter(Boolean);
+  if(used.length) scoreBoth(used);
+
+  return hit;
+}
+
+function mean(a){ return a.reduce((s,x)=>s+x,0) / (a.length||1); }
+function sd(a){ const m = mean(a); return Math.sqrt(mean(a.map(x=>(x-m)**2))) || 1; }
+
+/*  Volume-weighted percentage impact, then z-score against the pool.
+
+    Availability: a 55-game guy and a 78-game guy with identical per-game
+    lines are not worth the same. effGP blends between pure per-game
+    (weight 0) and true season totals (weight 1), so the slider decides how
+    hard durability counts.  */
+function scorePool(list, opts){
+  if(!list.length) return;
+  const o = opts || {};
+  const field = o.field || "z";
+  const totalField = o.totalField || "total";
+  const useGpw = o.gpw === undefined ? cfg.gpw : o.gpw;
+
+  const gps = list.map(p=>p.gp).filter(g=>g>0).sort((a,b)=>a-b);
+  const medGP = gps.length ? gps[Math.floor(gps.length/2)] : 72;
+  const eff = new Map();
+  list.forEach(p=>{
+    const g = p.gp > 0 ? p.gp : medGP;
+    eff.set(p, Math.pow(medGP, 1-useGpw) * Math.pow(g, useGpw));
+  });
+
+  const sum = f => list.reduce((s,p)=>s + f(p), 0);
+  const lgFG = sum(p=>p.fgm*eff.get(p)) / (sum(p=>p.fga*eff.get(p)) || 1);
+  const lgFT = sum(p=>p.ftm*eff.get(p)) / (sum(p=>p.fta*eff.get(p)) || 1);
+
+  const raws = new Map();
+  list.forEach(p=>{
+    const s = eff.get(p) / medGP;
+    raws.set(p, {
+      fg:  p.fga * s * ((p.fgm/(p.fga||1)) - lgFG),
+      ft:  p.fta * s * ((p.ftm/(p.fta||1)) - lgFT),
+      tpm:p.tpm*s, pts:p.pts*s, reb:p.reb*s, ast:p.ast*s,
+      stl:p.stl*s, blk:p.blk*s, to:p.to*s
+    });
+  });
+
+  const stats = {};
+  CATS.forEach(c=>{
+    const vals = list.map(p=>raws.get(p)[c.k]);
+    stats[c.k] = {m:mean(vals), s:sd(vals)};
+  });
+
+  list.forEach(p=>{
+    const r = raws.get(p);
+    p[field] = {};
+    CATS.forEach(c=>{
+      let z = (r[c.k] - stats[c.k].m) / stats[c.k].s;
+      if(c.neg) z = -z;                              // turnovers: fewer is better
+      p[field][c.k] = z;
+    });
+    p[totalField] = CATS.reduce((s,c)=>s + cw(c.k) * p[field][c.k], 0);
+  });
+
+  if(field === "z"){
+    // Fallback ADP = overall value rank
+    const byVal = [...list].sort((a,b)=>b.total-a.total);
+    byVal.forEach((p,i)=>{ if(p.adp === null) p.adp = i+1; });
+  }
+}
+
+/*  Two scorings per dataset:
+      z    — durability weighted, what the Fit engine ranks on
+      zpg  — pure per-game, used only to colour the per-game display modes
+    Colouring a per-game number with a games-played-adjusted score makes the
+    figure and its colour disagree: an elite rebounder who missed half a season
+    shows a strong REB average tinted red.                                    */
+function scoreBoth(list){
+  scorePool(list);
+  scorePool(list, {gpw:0, field:"zpg", totalField:"totalPg"});
+}
+
+/* ============================================================
+   THE ENGINE
+   ============================================================ */
+
+// Snake: which team is on the clock at a given overall pick (0-indexed team).
+function teamOnClock(overall){
+  const rd = Math.floor(overall / cfg.teams);
+  const idx = overall % cfg.teams;
+  return rd % 2 === 0 ? idx : cfg.teams - 1 - idx;
+}
+function myTeamIdx(){ return cfg.slot - 1; }
+function myNextPick(from){
+  for(let o = from; o < cfg.teams * cfg.size; o++)
+    if(teamOnClock(o) === myTeamIdx()) return o;
+  return null;
+}
+
+function myRoster(){
+  return picks.filter(p=>p.teamIdx === myTeamIdx()).map(p=>pool.find(x=>x.id===p.playerId)).filter(Boolean);
+}
+function takenIds(){ return new Set(picks.map(p=>p.playerId)); }
+function available(){ const t = takenIds(); return pool.filter(p=>!t.has(p.id)); }
+
+// Team's summed z per category.
+function teamZ(roster){
+  const z = {};
+  CATS.forEach(c=> z[c.k] = roster.reduce((s,p)=>s + p.z[c.k], 0));
+  return z;
+}
+
+/*  Leverage weights.
+    Win prob in a category ≈ sigmoid(teamZ / k). The marginal value of
+    adding z there is the derivative: s*(1-s). Peaks at even, dies at
+    locked-up or hopeless — which is what makes it punt on its own.  */
+/*  Leverage weights, damped by conviction.
+
+    The raw weights say "concentrate on categories that are still coin flips."
+    That's right late and badly wrong early: after three picks your category
+    standings are noise, and acting on them hands you a 36th-ranked center over
+    a 14th-ranked guard. conviction ramps 0 -> 1 as the roster fills, blending
+    the weights toward flat. Flat weights mean fit == raw value, i.e. best
+    player available, which is the correct early-round strategy.              */
+function leverage(tz, conviction){
+  const w = {};
+  CATS.forEach(c=>{
+    if(locks[c.k] === "punt"){ w[c.k] = 0; return; }
+    const s = 1 / (1 + Math.exp(-tz[c.k] / cfg.k));
+    w[c.k] = s * (1 - s);
+    if(locks[c.k] === "chase") w[c.k] = 0.25;
+  });
+  const tot = CATS.reduce((s,c)=>s + w[c.k], 0) || 1;
+  const live = CATS.filter(c=>locks[c.k] !== "punt").length || 1;
+  CATS.forEach(c=>{
+    const full = w[c.k] / tot * live;
+    // Manual locks are deliberate, so honour them at full strength immediately.
+    const forced = locks[c.k] !== undefined;
+    w[c.k] = forced ? full : 1 + conviction * (full - 1);
+  });
+  return w;
+}
+
+/*  Roster gaps are reported, never scored.
+
+    Nudging a player's fit because he plays a position you're missing is how a
+    36th-ranked centre ends up recommended over a 6th-ranked guard. Positional
+    need is real, but it's a constraint you satisfy late with a replacement-level
+    body — not a reason to pass on a better player in round four. So this returns
+    information for the UI and contributes nothing to any score.               */
+function rosterGaps(roster){
+  const counts = {};
+  roster.forEach(r => r.pos.forEach(x => counts[x] = (counts[x]||0)+1));
+  const missing = ["PG","SG","SF","PF","C"].filter(s => !(counts[s] > 0));
+  const left = cfg.size - roster.length;
+  // Urgent once you have barely enough picks left to cover the holes.
+  const urgency = !missing.length ? 0 : Math.min(1, missing.length / Math.max(1, left - 1));
+  return {missing, left, counts, urgency};
+}
+
+// P(gone before my next turn), from ADP vs picks remaining.
+function runRisk(p, gapPicks){
+  if(gapPicks <= 0) return 0;
+  const spare = p.adp - (picks.length + 1);
+  const x = (gapPicks - spare) / 4;
+  return 1 / (1 + Math.exp(-x));
+}
+
+/*  Which categories are natural punts?
+
+    A category is worth abandoning when two things are true at once: drafting
+    best-available leaves you losing it anyway, and dragging it back to even
+    would cost more total value than it's worth. Chasing a category you can't
+    win is the most expensive mistake in a category league — you pay full price
+    for players and finish ninth anyway.
+
+    This suggests; it never applies anything on its own.                      */
+function suggestPunts(state){
+  const {roster, avail, tz, nxt} = state;
+  const left = cfg.size - roster.length;
+  if(roster.length < 2 || left < 2) return [];
+
+  /*  Par matters more than zero here. Z-scores are measured against the whole
+      player pool, but only the top (teams x size) get rostered — so a rival
+      team's standing in a category is NOT zero. Turnovers are the clearest
+      case: value and turnovers are positively correlated, so every good team
+      finishes underwater in TO. Judged against zero, TO looks like a punt for
+      everyone. Judged against par, it only looks like one if you're unusually
+      bad at it.                                                              */
+  const rostered = [...pool].sort((a,b)=>b.total-a.total).slice(0, cfg.teams * cfg.size);
+  const par = {};
+  CATS.forEach(c=>{
+    const mean = rostered.reduce((s,p)=>s+p.z[c.k], 0) / (rostered.length || 1);
+    par[c.k] = mean * cfg.size;
+  });
+
+  // Players realistically still there when you pick again.
+  const cutoff = (nxt === null ? picks.length : nxt) + 1;
+  let plausible = avail.filter(p => p.adp === null || p.adp >= cutoff);
+  if(plausible.length < left * 2) plausible = avail;
+
+  const topN = (arr, key, n) => [...arr].sort((a,b)=>key(b)-key(a)).slice(0, n);
+  const bpa = topN(plausible, p=>p.total, left);
+  const bpaValue = bpa.reduce((s,p)=>s+p.total, 0);
+
+  const out = [];
+  CATS.forEach(c=>{
+    if(locks[c.k] || cw(c.k) < 0.1) return;   // weight 0 = not scored, nothing to punt
+    const chase = topN(plausible, p=>p.z[c.k], left);
+
+    const drift  = tz[c.k] + bpa.reduce((s,p)=>s+p.z[c.k], 0);
+    const chased = tz[c.k] + chase.reduce((s,p)=>s+p.z[c.k], 0);
+    const cost   = bpaValue - chase.reduce((s,p)=>s+p.total, 0);
+
+    // How far below a rival team you land on the natural path.
+    const gap = drift - par[c.k];
+    // Would chasing even get you to par? If not, it's hopeless, not expensive.
+    const reach = chased - par[c.k];
+
+    out.push({cat:c, drift, chased, cost, gap, reach, par:par[c.k]});
+  });
+
+  return out
+    .filter(x => x.gap < -2.0 && x.cost > 8)
+    .sort((a,b) => a.gap - b.gap)
+    .slice(0, 3);
+}
+
+function evaluate(){
+  const roster = myRoster();
+  const tz = teamZ(roster);
+
+  // Full category shaping once roughly half the roster is set.
+  const ramp = Math.min(roster.length / Math.max(2, cfg.size * 0.45), 1);
+  /*  The slider says exactly what gets applied — no hidden ramp. It used to
+      scale itself with roster size, which meant the reset button appeared to do
+      nothing: you were already in "auto", so clicking it changed no state.
+      ramp is still reported so the tooltip can warn when standings are thin.  */
+  const conviction = shape;
+  const w = leverage(tz, conviction);
+
+  const here = picks.length;
+  const nxt = myNextPick(here + 1);
+  const gap = nxt === null ? 0 : nxt - here - 1;
+
+  /*  At the snake turn your next pick lands immediately after this one, so
+      nobody can be taken in between and every risk computes to zero. True, but
+      useless — it wipes the board clean of markers exactly when you're making
+      two picks at once. What matters there is who survives to the pick AFTER
+      the pair, so measure against that instead.                              */
+  let riskGap = gap;
+  if(gap === 0 && nxt !== null){
+    const second = myNextPick(nxt + 1);
+    if(second !== null) riskGap = second - here - 2;
+  }
+
+  const avail = available();
+  avail.forEach(p=>{
+    p.fit = CATS.reduce((s,c)=>s + w[c.k] * cw(c.k) * p.z[c.k], 0);
+    p.risk = runRisk(p, riskGap);
+    /*  Scarcity. A player certain to survive to your next turn is worth less
+        NOW than an equal player who won't be — you can have him either way.
+        Centred on 0.5 so it's a real swing, not the old ±5% rounding error.  */
+    p.scarce = cfg.scarcity * (p.risk - 0.5);
+    p.fitAdj = p.fit + p.scarce;
+  });
+
+  return {roster, tz, w, avail, gap, riskGap, nxt, conviction, ramp, gaps: rosterGaps(roster)};
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const $ = s => document.querySelector(s);
+
+function fmt(n, d=1){ return (n>=0?"":"") + n.toFixed(d); }
+/*  A z of -0.03 is noise, not a weakness. Flipping hard from blue to red at
+    exactly zero makes league-average look like a liability: Jalen Johnson's
+    .482 FG% against a pool average of .483 rendered as a red mark.           */
+const NEUTRAL = 0.22;
+function zColor(z){
+  if(Math.abs(z) < NEUTRAL) return "var(--dimmer)";
+  return z >= 0 ? "var(--cool)" : "var(--hot)";
+}
+function zOpacity(z){
+  return Math.abs(z) < NEUTRAL ? 0.55 : Math.min(1, 0.5 + Math.abs(z)/2.2);
+}
+const zText = z => Math.abs(z) < 0.05 ? "0.0" : z.toFixed(1);
+
+function renderClock(state){
+  const done = picks.length >= cfg.teams * cfg.size;
+  const overall = picks.length;
+  const onIdx = teamOnClock(overall);
+  const mine = onIdx === myTeamIdx();
+  const rd = Math.floor(overall / cfg.teams) + 1;
+  const inRd = (overall % cfg.teams) + 1;
+
+  /*  When it's your pick, "next turn" means the one AFTER this one — that's the
+      number you're actually reasoning about when deciding who'll still be there. */
+  const nxt = state.nxt;
+  const until = nxt === null ? null : (mine ? state.gap : state.gap + 1);
+  const untilText = until === null ? "—"
+    : until === 0 ? "Back-to-back"
+    : until === 1 ? "1 pick"
+    : until + " picks";
+  const nLbl = nxt === null ? "Next turn"
+    : `Next turn · ${Math.floor(nxt/cfg.teams)+1}.${String((nxt%cfg.teams)+1).padStart(2,"0")}`;
+
+  $("#clock").innerHTML = done
+    ? `<div class="clock-cell onclock"><span class="k">Draft</span><span class="v">Complete</span></div>
+       <button class="clock-btn" id="b_set">Setup</button><button class="clock-btn" id="b_imp">Projections</button>
+       <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
+       <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`
+    : `
+    <div class="clock-cell"><span class="k">Pick</span><span class="v">${overall+1}</span></div>
+    <div class="clock-cell"><span class="k">Round</span><span class="v">${rd}.${String(inRd).padStart(2,"0")}</span></div>
+    <div class="clock-cell ${mine?"you":"onclock"}">
+      <span class="k">${mine?"You're up":"On the clock"}</span>
+      <span class="v" style="${!mine && teamName(onIdx).length>9 ? "font-size:15px" : ""}">${mine ? "YOUR PICK" : teamName(onIdx)}</span>
+    </div>
+    <div class="clock-cell"><span class="k">${nLbl}</span><span class="v" style="${until===0?"font-size:15px":""}">${untilText}</span></div>
+    <button class="clock-btn" id="b_set">Setup</button>
+    <button class="clock-btn" id="b_imp">Projections</button>
+    <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
+    <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`;
+
+  $("#theme").onclick = ()=>{
+    document.body.dataset.theme = document.body.dataset.theme === "court" ? "arena" : "court";
+    render();
+  };
+  $("#b_set").onclick = openSet;
+  $("#b_imp").onclick = ()=> $("#impmask").classList.add("on");
+  $("#reset").onclick = ()=>{
+    if(!picks.length || confirm(`Clear all ${picks.length} logged picks? Your loaded projections stay.`)){
+      picks = []; locks = {}; hoverId = null; selectedId = null; ledgerTeam = null; clearState(); $("#q").value = ""; render();
+    }
+  };
+}
+
+/*  Player photo, with a monogram underneath.
+
+    The id here is Basketball Reference's player code, carried over from the
+    actuals import — NOT our internal pool index, which would have pulled up
+    whichever face happened to sit at that number. Rookies and anyone who missed
+    last season have no code, and hotlinked images can fail for reasons we can't
+    see from here, so the monogram is always rendered behind and the <img> simply
+    removes itself if it doesn't load.                                        */
+function initials(name){
+  const parts = name.replace(/[^A-Za-z\s.'-]/g,"").split(/\s+/).filter(Boolean);
+  if(!parts.length) return "?";
+  const a = parts[0][0] || "";
+  const b = parts.length > 1 ? parts[parts.length-1][0] : "";
+  return (a + b).toUpperCase();
+}
+function hueOf(name){
+  let h = 0;
+  for(let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return h;
+}
+function photoHTML(p){
+  const mono = `<span class="mono-badge" style="--h:${hueOf(p.name)}">${initials(p.name)}</span>`;
+  const img = p.pid
+    ? `<img src="https://www.basketball-reference.com/req/202106291/images/headshots/${p.pid}.jpg"
+           alt="" loading="lazy" onerror="this.remove()">`
+    : "";
+  return `<div class="rec-photo">${mono}${img}</div>`;
+}
+
+function renderRec(state){
+  const {avail, w, riskGap, conviction} = state;
+  if(!avail.length){ $("#rec").innerHTML = `<div class="empty">No players left in the pool.</div>`; return; }
+
+  const best = [...avail].sort((a,b)=>b.fitAdj-a.fitAdj)[0];
+  const bestVal = [...avail].sort((a,b)=>b.total-a.total)[0];
+  const onIdx = teamOnClock(picks.length);
+  const mine = onIdx === myTeamIdx();
+
+  const contrib = CATS.map(c=>({c, v: w[c.k] * cw(c.k) * best.z[c.k]}))
+                      .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
+
+  // Only meaningful on your own clock — after you pick, it clears itself.
+  const cost = bestVal.total - best.total;
+  const differs = mine && bestVal.id !== best.id && cost > 0.4;
+
+  const g = state.gaps;
+  const gapSig = g.missing.join(",");
+  const gapNote = (!g.missing.length || g.left <= 0 || ui.gapHidden === gapSig) ? "" : `
+    <div class="gapnote ${g.urgency > 0.7 ? "hot" : g.urgency > 0.34 ? "warm" : ""}">
+      <div class="k">Roster check</div>
+      <button class="dismiss" id="gapx" title="Dismiss">&times;</button>
+      No ${g.missing.join(", ")} yet · ${g.left} pick${g.left===1?"":"s"} left.
+      ${g.urgency > 0.7
+        ? `You're nearly out of room — fill ${g.missing.length > 1 ? "these" : "it"} now, even at a value loss.`
+        : g.urgency > 0.34
+          ? `Worth covering in the next couple of rounds.`
+          : `No rush. Positional need doesn't affect any score below — take the better player.`}
+    </div>`;
+
+  /*  The panel follows your selection, falling back to the recommendation.
+      Clicking a row used to draft instantly, which meant you could never look
+      at anyone but the top name — and one stray click cost you a pick.       */
+  const sel = selectedId !== null ? avail.find(p => p.id === selectedId) : null;
+  if(selectedId !== null && !sel) selectedId = null;         // he just got drafted
+  const shown = sel || best;
+  const isRec = shown.id === best.id;
+
+  const shownContrib = CATS.map(c=>({c, v: w[c.k] * cw(c.k) * shown.z[c.k]}))
+                           .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
+
+  const fitGap = best.fitAdj - shown.fitAdj;
+  const compare = !isRec
+    ? `<div class="tradeoff">
+         <div class="k">${fitGap > 0.05 ? `Board rates ${best.name.split(" ").slice(-1)[0]} higher by ${fitGap.toFixed(1)}` : `Equal to the board's pick`}</div>
+         Recommendation is <b>${best.name}</b> (fit ${best.fitAdj.toFixed(1)}${best.srcRank?`, rank #${best.srcRank}`:``})
+         versus <b>${shown.name}</b> at ${shown.fitAdj.toFixed(1)}.
+         <button class="mini" id="r_back">Back to ${best.name.split(" ").slice(-1)[0]}</button>
+       </div>`
+    : (differs ? `
+      <div class="tradeoff">
+        <div class="k">Costs you ${cost.toFixed(1)} of raw value</div>
+        Highest value on the board is <b>${bestVal.name}</b> (${bestVal.total.toFixed(1)}${bestVal.srcRank?`, rank #${bestVal.srcRank}`:``}).
+        ${conviction < 0.45
+          ? `Category shaping is only ${Math.round(conviction*100)}% engaged this early, so if the gap looks big, trust the value.`
+          : `The board prefers ${best.name.split(" ").slice(-1)[0]} on category fit${best.scarce - bestVal.scarce > 0.3 ? ` and availability` : ``}.`}
+        <button class="mini" id="r_val">Inspect ${bestVal.name}</button>
+      </div>` : ``);
+
+  $("#rec").innerHTML = `
+    <div class="rec-eyebrow">${!isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}</div>
+    <div class="rec-top">
+      <div class="rec-info">
+        <div class="rec-name">${shown.name}</div>
+        <div class="rec-sub">${shown.pos.join(" / ")} · ${shown.team}${shown.srcRank?` · projected rank #${shown.srcRank}`:``} · value ${shown.total.toFixed(1)}</div>
+        <div class="rec-why">
+          ${shownContrib.map(x=>`<span class="chip up">${x.c.label} +${shown.z[x.c.k].toFixed(1)}</span>`).join("")}
+          ${shown.scarce > 0.3 ? `<span class="chip risk">Gone before your next turn</span>` : ``}
+          ${shown.scarce < -0.3 && riskGap > 0 ? `<span class="chip">Would still be there in ${riskGap}</span>` : ``}
+        </div>
+      </div>
+      ${photoHTML(shown)}
+    </div>
+    ${compare}
+    <div class="rec-actions">
+      <button class="btn primary" id="r_draft">Draft ${shown.name.split(" ").slice(-1)[0]} to ${mine ? "my team" : teamName(onIdx)}</button>
+      ${!isRec ? `<button class="btn" id="r_clear">Clear</button>` : ``}
+    </div>
+    ${gapNote}`;
+  $("#r_draft").onclick = ()=> draft(shown.id);
+  const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; render(); };
+  const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; render(); };
+  const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; render(); };
+  const gx = $("#gapx");
+  if(gx) gx.onclick = ()=>{ ui.gapHidden = gapSig; render(); };
+}
+
+/*  Every team's roster in a single pass. Cheap enough to recompute each render:
+    one walk over the pick log plus a map lookup, not a scan per team.        */
+function allRosters(){
+  const byId = new Map(pool.map(p=>[p.id, p]));
+  const out = Array.from({length: cfg.teams}, ()=>[]);
+  picks.forEach(pk=>{
+    const p = byId.get(pk.playerId);
+    if(p && pk.teamIdx >= 0 && pk.teamIdx < cfg.teams) out[pk.teamIdx].push(p);
+  });
+  return out;
+}
+
+/*  Team production in real units — the aggregate of every player's projected
+    per-game line. Counting stats add up; percentages recombine by volume
+    (total makes over total attempts), never by averaging the rates.         */
+function teamTotals(roster){
+  const t = {fgm:0,fga:0,ftm:0,fta:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+  roster.forEach(p=>{ for(const k in t) t[k] += p[k] || 0; });
+  return t;
+}
+function catTotal(t, k){
+  if(k === "fg") return t.fga ? t.fgm/t.fga : null;
+  if(k === "ft") return t.fta ? t.ftm/t.fta : null;
+  return t[k];
+}
+
+/*  Par, in real units: what one roster spot is worth if you drafted an average
+    rostered player. Gives the totals bars something to measure against even
+    when only your own team has picks — comparing to the league mean alone
+    would leave every bar flat in round one.                                 */
+function leagueRates(){
+  const rostered = [...pool].sort((a,b)=>b.total-a.total).slice(0, cfg.teams * cfg.size);
+  const s = teamTotals(rostered);
+  const n = rostered.length || 1;
+  const per = {};
+  ["tpm","pts","reb","ast","stl","blk","to"].forEach(k=> per[k] = s[k]/n);
+  per.fg = s.fga ? s.fgm/s.fga : 0;
+  per.ft = s.fta ? s.ftm/s.fta : 0;
+  return per;
+}
+
+// Reference value for a category given how many players are on the roster.
+function catRef(per, k, size){
+  return (k === "fg" || k === "ft") ? per[k] : per[k] * size;
+}
+
+function fmtTotal(k, v){
+  if(v === null) return "\u2014";
+  if(k === "fg" || k === "ft") return v.toFixed(3).replace(/^0/,"");
+  return v.toFixed(1);
+}
+
+const possessive = n => /s$/i.test(n) ? n + "\u2019" : n + "\u2019s";
+
+function renderLedger(state){
+  const rosters = allRosters();
+  const viewing = (ledgerTeam === null || ledgerTeam >= cfg.teams) ? myTeamIdx() : ledgerTeam;
+  const isMine = viewing === myTeamIdx();
+
+  const roster = isMine ? state.roster : rosters[viewing];
+  const tz = isMine ? state.tz : teamZ(roster);
+  const w = isMine ? state.w : leverage(tz, state.conviction);
+  const n = Math.max(roster.length, 1);
+
+  // Standings per category, so you can see who's actually winning each one.
+  const allZ = rosters.map((r,i)=> i === viewing ? tz : teamZ(r));
+  const live = allZ.filter((_,i)=> rosters[i].length > 0).length;
+
+  // Ghost preview only makes sense on your own board.
+  // Hover wins while the cursor is over a row; otherwise the selection stays pinned.
+  const previewId = hoverId !== null ? hoverId : selectedId;
+  const hov = (isMine && previewId !== null) ? pool.find(p=>p.id===previewId) : null;
+
+  $("#ledgerteam").innerHTML = rosters.map((r,i)=>
+    `<option value="${i}" ${i===viewing?"selected":""}>${i===myTeamIdx()?"My team":teamName(i)}${r.length?` (${r.length})`:""}</option>`).join("");
+
+  const totals = teamTotals(roster);
+  const per = leagueRates();
+  const hovTotals = hov ? teamTotals(roster.concat([hov])) : null;
+  const allTotals = rosters.map((r,i)=> i === viewing ? totals : teamTotals(r));
+  const asTotals = ledgerMode === "tot";
+
+  $("#ledger").innerHTML = CATS.map(c=>{
+    const lev = w[c.k] > 1.05;
+    const flip = c.neg ? -1 : 1;          // fewer turnovers is better
+    let barW, ghostW, valTxt, valZ, rank;
+    let nextTxt = null, better = 0;
+
+    if(asTotals){
+      const v   = catTotal(totals, c.k);
+      const ref = catRef(per, c.k, Math.max(roster.length, 1));
+      const rel = v === null ? 0
+        : (c.k === "fg" || c.k === "ft") ? (v - ref) / 0.045 : (ref ? (v - ref) / ref / 0.6 : 0);
+      const dev = roster.length ? Math.max(-1, Math.min(1, rel)) * flip : 0;
+      barW  = dev * 50;
+      valZ  = dev * 1.2;                  // reuse the z colour ramp
+      valTxt = roster.length ? fmtTotal(c.k, v) : "\u2014";
+
+      if(hovTotals){
+        const hv = catTotal(hovTotals, c.k);
+        const hr = catRef(per, c.k, roster.length + 1);
+        const hrel = hv === null ? 0
+          : (c.k === "fg" || c.k === "ft") ? (hv - hr) / 0.045 : (hr ? (hv - hr) / hr / 0.6 : 0);
+        ghostW = Math.max(-1, Math.min(1, hrel)) * flip * 50;
+        nextTxt = fmtTotal(c.k, hv);
+        // In real units, fewer turnovers is the improvement.
+        better = (hv !== null && v !== null) ? (hv - v) * flip : 0;
+      } else ghostW = null;
+
+      rank = roster.length
+        ? 1 + allTotals.filter((t,i)=>{
+            if(!rosters[i].length || i === viewing) return false;
+            const o = catTotal(t, c.k), m = catTotal(totals, c.k);
+            return o !== null && m !== null && (o - m) * flip > 0;
+          }).length
+        : null;
+    } else {
+      const cur = tz[c.k] / n;
+      const nxt = hov ? (tz[c.k] + hov.z[c.k]) / (roster.length + 1) : null;
+      const scale = v => Math.max(-1, Math.min(1, v / 2)) * 50;
+      barW = scale(cur); ghostW = nxt === null ? null : scale(nxt);
+      valZ = cur;
+      valTxt = roster.length ? fmt(cur, 2) : "\u2014";
+      if(nxt !== null){
+        nextTxt = fmt(nxt, 2);
+        better = nxt - cur;      // z is already sign-corrected, so higher is always better
+      }
+      rank = roster.length ? 1 + allZ.filter((t,i)=> rosters[i].length > 0 && t[c.k] > tz[c.k]).length : null;
+    }
+
+    const bar = `<div class="lbar ${barW>=0?"pos":"neg"}" style="${barW>=0
+      ? `left:50%;width:${barW}%`
+      : `right:50%;width:${-barW}%`}"></div>`;
+
+    const ghost = ghostW === null ? "" : `<div class="lghost" style="${ghostW>=0
+      ? `left:50%;width:${ghostW}%`
+      : `right:50%;width:${-ghostW}%`}"></div>`;
+
+    const lock = isMine ? (locks[c.k] || "") : "";
+    return `<div class="lrow ${lev?"lev":""} ${lock}">
+      <span class="lcat" data-c="${c.k}" title="${isMine ? "Click: auto \u2192 punt \u2192 chase" : "Switch back to your team to set punts"}">${c.label}${cw(c.k)!==1?`<em class="cwx">\u00d7${cw(c.k)}</em>`:""}</span>
+      <span class="ltrack"><span class="lmid"></span>${bar}${ghost}</span>
+      <span class="lval">
+        <span style="color:${roster.length?zColor(valZ):"var(--dimmer)"}">${valTxt}</span>
+        ${nextTxt !== null ? `<em class="lnext ${better>0?"up":better<0?"dn":""}">\u2192 ${nextTxt}</em>` : ``}
+      </span>
+      <span class="lrank ${rank===1?"first":""}" title="${rank?`${rank} of ${live} drafted teams`:""}">${rank?`${rank}/${live}`:"\u2014"}</span>
+    </div>`;
+  }).join("");
+
+  if(isMine){
+    [...$("#ledger").querySelectorAll(".lcat")].forEach(el=>{
+      el.onclick = ()=>{
+        const k = el.dataset.c;
+        const next = locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase" : undefined;
+        setLock(k, next);
+      };
+    });
+  }
+
+  $("#ledgerkey").innerHTML = asTotals
+    ? `Combined projected per-game production of the roster \u2014 counting stats summed, percentages recombined by volume. Bars compare against an average roster of the same size; the right-hand figure is the rank among drafted teams. Hover a player on the board to see where each line would land if you drafted him.`
+    : `Bars are the roster\u2019s per-player z-score in each category. Amber labels mark where the next pick has the most leverage \u2014 you\u2019re close enough to even that moving the bar actually flips the category. Grey labels are decided: locked up, or punted. Hover a player on the board to see where each line would land if you drafted him.`;
+
+  $("#ledgernote").textContent = isMine
+    ? (roster.length ? "hover a player to preview" : "draft someone to begin")
+    : `${roster.length} drafted \u00b7 read-only`;
+}
+
+// One stat cell. Per-game modes show the real number but keep the z-score
+// colouring, so you can read impact and raw output at the same time.
+function statCell(p, c, mode){
+  if(mode === "z"){
+    const z = p.z[c.k];
+    return `<td class="mono" style="color:${zColor(z)};opacity:${zOpacity(z)}">${zText(z)}</td>`;
+  }
+  const src = mode === "last" ? p.last : p;
+  let v = null, z = null;
+  if(src){
+    if(c.k === "fg") v = src.fga ? (src.fgm/src.fga).toFixed(3).replace(/^0/,"") : null;
+    else if(c.k === "ft") v = src.fta ? (src.ftm/src.fta).toFixed(3).replace(/^0/,"") : null;
+    else if(typeof src[c.k] === "number") v = src[c.k].toFixed(1);
+    const zs = src.zpg || src.z;
+    if(zs && typeof zs[c.k] === "number") z = zs[c.k];
+  }
+  if(v === null) return `<td class="mono" style="color:var(--dimmer)">—</td>`;
+  if(z === null) return `<td class="mono" style="color:var(--dim)">${v}</td>`;
+  return `<td class="mono" style="color:${zColor(z)};opacity:${zOpacity(z)}">${v}</td>`;
+}
+
+// Sort value for a column, so the first click always puts "best" on top.
+function sortVal(p, key, mode){
+  if(key === "fit")   return p.fitAdj;
+  if(key === "total") return p.total;
+  if(key === "rank")  return -(p.srcRank ?? p.adp ?? 9999);
+  if(mode === "z")    return p.z[key];
+  const src = mode === "last" ? p.last : p;
+  if(!src) return -Infinity;
+  if(key === "fg") return src.fga ? src.fgm/src.fga : -Infinity;
+  if(key === "ft") return src.fta ? src.ftm/src.fta : -Infinity;
+  const raw = src[key];
+  if(typeof raw !== "number") return -Infinity;
+  return key === "to" ? -raw : raw;      // fewer turnovers is better
+}
+
+function renderBoard(state){
+  const q = fold($("#q").value.trim());
+  const mode = $("#mode").value;
+  let list = state.avail;
+  if(posFilter !== "ALL") list = list.filter(p=>p.pos.includes(posFilter));
+  if(q) list = list.filter(p=>fold(p.name).includes(q));
+
+  const key = sortKey;
+  list = [...list].sort((a,b)=>{
+    if(key === "name") return a.name.localeCompare(b.name) * (sortDir === -1 ? 1 : -1);
+    return (sortVal(b,key,mode) - sortVal(a,key,mode)) * (sortDir === -1 ? 1 : -1);
+  }).slice(0, 80);
+
+  $("#board").innerHTML = list.map((p,i)=>{
+    const rk = p.srcRank ?? null;
+    /*  Only warn about availability for players you're plausibly taking. A
+        "gone soon" dot on someone ranked 40th is noise — it's true (the market
+        rates him higher than the projections do) but it isn't a decision you
+        actually face.                                                        */
+    const flagRisk = p.risk > 0.6 && i < 15 && key === "fit";
+    return `<tr data-id="${p.id}" class="${p.id===selectedId?"sel ":""}${i===0&&key==="fit"?"top":""}">
+      <td class="l">
+        <div class="pname">${p.name}${flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}</div>
+        <div class="ppos">${p.pos.join("/")} · ${p.team}${p.adp?` · adp ${p.adp.toFixed(0)}`:""}${p.gp?` · ${p.gp} gp`:""}</div>
+      </td>
+      <td class="fit mono" style="color:${p.fitAdj>=0?"var(--chalk)":"var(--dimmer)"}">${p.fitAdj.toFixed(1)}</td>
+      <td class="mono" style="color:${rk?"var(--chalk)":"var(--dimmer)"}">${rk ?? "—"}</td>
+      <td class="mono" style="color:var(--dim)">${p.total.toFixed(1)}</td>
+      ${CATS.map(c=>statCell(p,c,mode)).join("")}
+    </tr>`;
+  }).join("") || `<tr><td class="l" colspan="13" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
+
+  [...$("#board").querySelectorAll("tr[data-id]")].forEach(tr=>{
+    const id = +tr.dataset.id;
+    // First click inspects; clicking the already-selected player commits.
+    tr.onclick = ()=>{
+      if(selectedId === id) draft(id);
+      else { selectedId = id; render(); }
+    };
+    tr.ondblclick = ()=> draft(id);
+    tr.onmouseenter = ()=>{ hoverId = id; renderLedger(evaluate()); };
+    tr.onmouseleave = ()=>{ hoverId = null; renderLedger(evaluate()); };
+  });
+}
+
+/*  Applying a punt silently reshuffles the whole board, which is unnerving if
+    you can't see what moved. Snapshot the ranking before and after, then show
+    the biggest movers plus an undo.                                          */
+let lastChange = null;
+
+function rankSnapshot(){
+  const st = evaluate();
+  const m = new Map();
+  [...st.avail].sort((a,b)=>b.fitAdj-a.fitAdj).forEach((p,i)=> m.set(p.id, {rank:i+1, name:p.name}));
+  return m;
+}
+
+function setLock(k, val){
+  const before = rankSnapshot();
+  const prev = {...locks};
+  if(val === undefined) delete locks[k]; else locks[k] = val;
+  const after = rankSnapshot();
+
+  const movers = [];
+  after.forEach((a, id)=>{
+    const b = before.get(id);
+    if(!b) return;
+    if(b.rank <= 20 || a.rank <= 20) movers.push({name:a.name, from:b.rank, to:a.rank, d:b.rank-a.rank});
+  });
+  movers.sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+
+  const label = CATS.find(c=>c.k===k).label;
+  lastChange = {
+    text: val === undefined ? `Cleared ${label}` : val === "punt" ? `Punted ${label}` : `Chasing ${label}`,
+    prev,
+    up: movers.filter(m=>m.d > 0).slice(0,3),
+    down: movers.filter(m=>m.d < 0).slice(0,3)
+  };
+  render();
+}
+
+function undoLock(){
+  if(!lastChange) return;
+  locks = {...lastChange.prev};
+  lastChange = null;
+  render();
+}
+
+/*  Explain, in plain terms, what the slider is doing right now — including
+    which categories the weighting currently favours and ignores.            */
+function shapeBlurb(state){
+  const pct = Math.round(state.conviction * 100);
+  if(state.conviction === 0)
+    return "Off. The board ranks purely on projected value — a straight best-player-available cheat sheet, ignoring your roster entirely.";
+
+  const ranked = CATS.filter(c=>!locks[c.k]).sort((a,b)=>state.w[b.k]-state.w[a.k]);
+  const hi = ranked.slice(0,2).map(c=>c.label).join(" and ");
+  const lo = ranked.slice(-2).map(c=>c.label).join(" and ");
+  const punted = CATS.filter(c=>locks[c.k]==="punt").map(c=>c.label);
+
+  const base = pct < 15
+    ? `Nearly off (${pct}%). Fit stays close to raw value — effectively best player available.`
+    : pct < 60
+      ? `Balanced (${pct}%). Category fit tilts the order, but raw value still dominates.`
+      : `Heavy (${pct}%). Category fit is driving the board; a lower-rated player who fills a gap can outrank a better one.`;
+
+  const detail = pct < 15 ? ""
+    : ` It leans on ${hi} and discounts ${lo} — you're near even in the first, and the second is already decided.`;
+
+  const thin = state.roster.length < 4 && pct >= 40
+    ? ` Careful: with only ${state.roster.length} player${state.roster.length===1?"":"s"} drafted, those standings are mostly noise — consider dropping this until you have four or five.`
+    : "";
+
+  const puntNote = punted.length ? ` ${punted.join(", ")} ${punted.length===1?"is":"are"} punted and counts for nothing.` : "";
+  const note = " Positional need never affects this score — see Roster check for that.";
+
+  return base + detail + thin + puntNote + note;
+}
+
+function renderSuggest(state){
+  const el = $("#suggest");
+  const punted = CATS.filter(c=>locks[c.k]==="punt");
+  const chased = CATS.filter(c=>locks[c.k]==="chase");
+  const active = [...punted, ...chased];
+
+  // Every category, always visible — click to cycle auto -> punt -> chase.
+  const picker = `
+    <div class="active">
+      <span class="pickerlbl">Set by hand</span>
+      ${CATS.map(c=>{
+        const st = locks[c.k] || "auto";
+        return `<span class="lockchip ${st}" data-c="${c.k}" title="${
+          st==="punt" ? "Punted — counts for nothing. Click to chase instead."
+          : st==="chase" ? "Chasing — weighted at maximum. Click to return to auto."
+          : "Auto. Click to punt."}">${c.label}${st==="punt"?" ✕":st==="chase"?" ▲":""}</span>`;
+      }).join("")}
+      ${active.length ? `<span class="lockchip clear" data-all="1">Clear all</span>` : ``}
+    </div>`;
+
+  // What the last change actually did to the board.
+  const diff = !lastChange ? "" : `
+    <div class="sug diff">
+      <div class="k">${lastChange.text}</div>
+      ${lastChange.up.length ? `<div><span class="up">▲ Rose</span> — ${lastChange.up.map(m=>m.name).join(", ")}</div>` : ``}
+      ${lastChange.down.length ? `<div><span class="dn">▼ Fell</span> — ${lastChange.down.map(m=>m.name).join(", ")}</div>` : ``}
+      ${!lastChange.up.length && !lastChange.down.length ? `<div style="color:var(--dimmer)">Board order barely moved.</div>` : ``}
+      <button class="mini" id="undolock">Undo</button>
+      <button class="dismiss" id="diffx" title="Dismiss">&times;</button>
+    </div>`;
+
+  let body;
+  if(punted.length >= 4){
+    body = `<div class="sug warn">
+      <div class="k">Four punts is too many</div>
+      You need to win five of nine categories. Punting ${punted.length} leaves
+      ${9-punted.length} to fight over, so you'd have to sweep almost all of them every week.</div>`;
+  } else {
+    const all = suggestPunts(state);
+    const sug = all.filter(x=>!ui.sugHidden.has(x.cat.k));
+    if(!sug.length){
+      body = state.roster.length < 2
+        ? `<div class="sug quiet">Draft a couple of players and this will suggest categories worth abandoning. You can punt anything by hand above at any time.</div>`
+        : `<div class="sug quiet">No obvious punts${all.length?` beyond the ${all.length} you dismissed`:``}. Your roster is still balanced enough to compete across the board${active.length?`, beyond what you've set by hand`:``}.
+           ${ui.sugHidden.size ? `<a href="#" id="unhide">Show ${ui.sugHidden.size} dismissed</a>` : ``}</div>`;
+    } else {
+      body = sug.map(s=>`
+        <div class="sug">
+          <div class="k">Consider punting ${s.cat.label}</div>
+          Drafting best-available finishes you <b>${Math.abs(s.gap).toFixed(1)} behind</b> a typical team here.
+          ${s.reach < 0
+            ? `Even chasing it all draft doesn't reach par — it's not winnable.`
+            : `Chasing it back to par costs about <b>${s.cost.toFixed(0)}</b> of value spent on players you'd otherwise pass.`}
+          <button class="mini" data-c="${s.cat.k}">Punt ${s.cat.label}</button>
+          <button class="dismiss" data-hide="${s.cat.k}" title="Dismiss">&times;</button>
+        </div>`).join("") +
+        `<div class="sug quiet">Suggestions only — nothing is applied until you click.
+         ${ui.sugHidden.size ? `<a href="#" id="unhide">Show ${ui.sugHidden.size} dismissed</a>` : ``}</div>`;
+    }
+  }
+
+  el.innerHTML = picker + diff + body;
+
+  [...el.querySelectorAll(".sug button[data-c]")].forEach(b=>{
+    b.onclick = ()=> setLock(b.dataset.c, "punt");
+  });
+  [...el.querySelectorAll(".lockchip[data-c]")].forEach(b=>{
+    b.onclick = ()=>{
+      const k = b.dataset.c;
+      setLock(k, locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase" : undefined);
+    };
+  });
+  const clr = el.querySelector('.lockchip[data-all]');
+  if(clr) clr.onclick = ()=>{ locks = {}; lastChange = null; render(); };
+  const u = el.querySelector("#undolock");
+  if(u) u.onclick = undoLock;
+  const dx = el.querySelector("#diffx");
+  if(dx) dx.onclick = ()=>{ lastChange = null; render(); };
+  [...el.querySelectorAll("button[data-hide]")].forEach(b=>{
+    b.onclick = ()=>{ ui.sugHidden.add(b.dataset.hide); render(); };
+  });
+  const uh = el.querySelector("#unhide");
+  if(uh) uh.onclick = e=>{ e.preventDefault(); ui.sugHidden.clear(); render(); };
+}
+
+/*  Roster slots, assigned properly.
+
+    The panel used to drop the nth player drafted into the nth slot, which
+    happily parked an SF/PF in the centre slot and told you the roster was fine.
+    This is a bipartite matching: players on one side, slots on the other, an
+    edge where the player is actually eligible. Kuhn's algorithm finds a maximum
+    matching, so if a legal arrangement exists it gets found — and anyone left
+    over genuinely doesn't fit.                                               */
+function slotEligible(slot, p){
+  if(slot === "UTIL" || slot === "BN") return true;
+  if(slot === "G") return p.pos.some(x=>x==="PG"||x==="SG");
+  if(slot === "F") return p.pos.some(x=>x==="SF"||x==="PF");
+  return p.pos.includes(slot);
+}
+
+function assignSlots(roster){
+  const slots = SLOTS.slice(0, cfg.size);
+  const owner = new Array(slots.length).fill(-1);   // slot index -> player index
+
+  const tryPlace = (pi, seen) => {
+    for(let si = 0; si < slots.length; si++){
+      if(seen[si] || !slotEligible(slots[si], roster[pi])) continue;
+      seen[si] = true;
+      if(owner[si] === -1 || tryPlace(owner[si], seen)){ owner[si] = pi; return true; }
+    }
+    return false;
+  };
+
+  // Most constrained players first — pure bench bodies shouldn't hog real slots.
+  const order = roster.map((p,i)=>i).sort((a,b)=>{
+    const n = i => slots.filter(s=>slotEligible(s, roster[i])).length;
+    return n(a) - n(b);
+  });
+  const placed = new Set();
+  order.forEach(pi=>{ if(tryPlace(pi, new Array(slots.length).fill(false))) placed.add(pi); });
+
+  const unplaced = roster.map((p,i)=>i).filter(i=>!placed.has(i));
+  return {slots, owner, unplaced};
+}
+
+function renderRoster(state){
+  const viewing = (ledgerTeam === null || ledgerTeam >= cfg.teams) ? myTeamIdx() : ledgerTeam;
+  const isMine = viewing === myTeamIdx();
+  const r = isMine ? state.roster : allRosters()[viewing];
+  $("#rosterhead").textContent = isMine ? "My Roster" : possessive(teamName(viewing)) + " Roster";
+  $("#rostercount").textContent = `${r.length} / ${cfg.size}`;
+  const {slots, owner, unplaced} = assignSlots(r);
+
+  $("#roster").innerHTML = slots.map((s,i)=>{
+    const p = owner[i] === -1 ? null : r[owner[i]];
+    return `<div class="slot ${p?"":"open"}">
+      <span class="idx mono">${s}</span>
+      <span class="nm">${p ? p.name : "open"}</span>
+      ${p ? `<span class="rpos">${p.pos.join("/")}</span>` : ``}
+      <span class="mono" style="color:var(--dim);font-size:11px">${p ? p.total.toFixed(1) : ""}</span>
+    </div>`;
+  }).join("") + (unplaced.length ? `<div class="slot"><span class="idx mono" style="color:var(--hot)">!</span>
+      <span class="nm" style="color:var(--hot)">${unplaced.map(i=>r[i].name).join(", ")} — no eligible slot</span></div>` : ``);
+}
+
+function renderLog(){
+  $("#logcount").textContent = picks.length ? `${picks.length} pick${picks.length===1?"":"s"}` : "";
+  const recent = [...picks].reverse();
+  $("#log").innerHTML = recent.length ? recent.map(pk=>{
+    const p = pool.find(x=>x.id===pk.playerId);
+    const mine = pk.teamIdx === myTeamIdx();
+    const rd = Math.floor(pk.overall / cfg.teams) + 1;
+    return `<div class="slot">
+      <span class="idx mono">${rd}.${String((pk.overall % cfg.teams)+1).padStart(2,"0")}</span>
+      <span class="nm" style="${mine?"color:var(--ok);font-weight:600":""}">${p?p.name:"?"}</span>
+      <span class="mono" style="color:var(--dimmer);font-size:10px">${mine?"YOU":shortName(pk.teamIdx)}</span>
+      <button class="px" data-o="${pk.overall}" title="Remove this pick">×</button>
+    </div>`;
+  }).join("") : `<div class="empty" style="padding:14px 0">No picks yet. Click any player on the board to log him to whoever's on the clock.</div>`;
+
+  [...$("#log").querySelectorAll(".px")].forEach(b=>{
+    b.onclick = e=>{ e.stopPropagation(); picks = picks.filter(p=>p.overall !== +b.dataset.o); reindex(); render(); };
+  });
+}
+
+function reindex(){ picks.sort((a,b)=>a.overall-b.overall).forEach((p,i)=>p.overall=i); }
+
+function draft(id){
+  if(picks.length >= cfg.teams * cfg.size) return;
+  if(takenIds().has(id)) return;
+  picks.push({playerId:id, teamIdx:teamOnClock(picks.length), overall:picks.length});
+  $("#q").value = "";
+  hoverId = null;
+  selectedId = null;
+  render();
+}
+
+/*  Draft state survives a refresh.
+
+    Picks reference pool indices, so a saved draft is only meaningful against
+    the same pool — restoring picks onto a different projection set would
+    silently rename every player on your roster. The signature guards that.   */
+const SAVE_KEY = "draftboard.v1";
+const poolSig = () => pool.length + "|" + (pool[0] ? pool[0].name : "");
+
+function saveState(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      sig: poolSig(), picks, locks, cfg, shape, ledgerTeam,
+      theme: document.body.dataset.theme
+    }));
+  }catch(e){ /* private browsing, quota, file:// restrictions — not worth failing over */ }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(d.cfg) Object.assign(cfg, d.cfg);
+    if(typeof d.shape === "number") shape = d.shape;
+    if(d.theme) document.body.dataset.theme = d.theme;
+    if(d.sig !== poolSig()) return false;      // different data loaded; keep settings, drop picks
+    if(Array.isArray(d.picks)) picks = d.picks;
+    if(d.locks && typeof d.locks === "object") locks = d.locks;
+    ledgerTeam = (typeof d.ledgerTeam === "number") ? d.ledgerTeam : null;
+    return picks.length > 0;
+  }catch(e){ return false; }
+}
+
+function clearState(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+function render(){
+  const state = evaluate();
+  const pct = Math.round(state.conviction * 100);
+  $("#shape").value = pct;
+  $("#shapev").textContent = `${pct}%`;
+  $("#shapeauto").classList.toggle("on", Math.abs(shape - DEFAULT_SHAPE) < 0.005);
+  $("#shaperow").title = shapeBlurb(state);
+  renderClock(state);
+  renderRec(state);
+  renderLedger(state);
+  renderSuggest(state);
+  renderBoard(state);
+  renderRoster(state);
+  renderLog();
+  saveState();
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+$("#posfilter").innerHTML = ["ALL","PG","SG","SF","PF","C"]
+  .map(p=>`<button data-p="${p}" class="${p==="ALL"?"on":""}">${p}</button>`).join("");
+[...$("#posfilter").querySelectorAll("button")].forEach(b=>{
+  b.onclick = ()=>{
+    posFilter = b.dataset.p;
+    [...$("#posfilter").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  };
+});
+
+// Column sorting — click to sort, click again to flip direction.
+[...document.querySelectorAll("thead th")].forEach(th=>{
+  th.onclick = ()=>{
+    const k = th.dataset.s;
+    if(!k) return;
+    if(sortKey === k) sortDir = -sortDir;
+    else { sortKey = k; sortDir = -1; }
+    [...document.querySelectorAll("thead th")].forEach(x=>{
+      x.classList.toggle("on", x.dataset.s === sortKey);
+      const a = x.querySelector(".arw");
+      if(a) a.textContent = sortDir === -1 ? "▾" : "▴";
+    });
+    renderBoard(evaluate());
+  };
+});
+document.querySelector('thead th[data-s="fit"]').classList.add("on");
+
+// Games-played weight
+const GPW_LABEL = v => v < 0.15 ? "per game" : v < 0.4 ? "light" : v < 0.65 ? "balanced" : v < 0.9 ? "heavy" : "full season";
+$("#gpw").addEventListener("input", e=>{
+  cfg.gpw = +e.target.value / 100;
+  $("#gpwv").textContent = GPW_LABEL(cfg.gpw);
+  scorePool(pool);
+  const used = pool.map(p=>p.last).filter(Boolean);
+  if(used.length) scoreBoth(used);
+  render();
+});
+document.querySelector('thead th[data-s="fit"]').classList.add("on");
+
+$("#mode").addEventListener("change", ()=> renderBoard(evaluate()));
+[...$("#ledgermode").querySelectorAll("button")].forEach(b=>{
+  b.onclick = ()=>{
+    ledgerMode = b.dataset.m;
+    [...$("#ledgermode").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
+    render();
+  };
+});
+$("#ledgerteam").addEventListener("change", e=>{
+  const v = +e.target.value;
+  ledgerTeam = (v === myTeamIdx()) ? null : v;
+  render();
+});
+
+// The GP slider is inert unless the loaded data actually carries a GP column.
+function syncGPW(){
+  const has = pool.some(p=>p.gp > 0);
+  $("#gpw").disabled = !has;
+  $("#gpw").style.opacity = has ? 1 : .35;
+  $("#gpwlab").textContent = has ? "Games played weight" : "Games played weight — no GP column in this data";
+  $("#gpwv").textContent = has ? GPW_LABEL(cfg.gpw) : "inactive";
+}
+
+$("#shape").addEventListener("input", e=>{ shape = +e.target.value / 100; render(); });
+$("#shapeauto").onclick = ()=>{ shape = DEFAULT_SHAPE; render(); };
+
+
+$("#q").addEventListener("input", ()=> renderBoard(evaluate()));
+$("#q").addEventListener("keydown", e=>{
+  if(e.key === "Enter"){
+    const first = $("#board").querySelector("tr[data-id]");
+    const fid = first ? +first.dataset.id : null;
+    if(fid !== null){
+      if(selectedId === fid) draft(fid);      // Enter twice to commit
+      else { selectedId = fid; render(); }
+    }
+  }
+});
+document.addEventListener("keydown", e=>{
+  if(e.key === "/" && document.activeElement !== $("#q")){ e.preventDefault(); $("#q").focus(); }
+  if((e.metaKey||e.ctrlKey) && e.key === "z"){ e.preventDefault(); undo(); }
+  if(e.key === "Escape" && selectedId !== null){ selectedId = null; render(); }
+});
+function undo(){ picks.pop(); render(); }
+$("#undo").onclick = undo;
+
+// Settings
+function paintNameGrid(){
+  // Was reading #s_teams here, so it always highlighted the last slot.
+  const slot = Math.min(cfg.teams, Math.max(1, +$("#s_slot").value || cfg.slot));
+  $("#s_names").innerHTML = Array.from({length: cfg.teams}, (_,i)=>
+    `<div class="fld"><label>${i+1 === slot ? "You \u00b7 slot " + (i+1) : "Slot " + (i+1)}</label>
+     <input type="text" data-n="${i}" maxlength="18" placeholder="Team ${i+1}"
+       value="${(cfg.names[i]||"").replace(/"/g,"&quot;")}"
+       ${i+1===slot ? 'style="border-color:var(--ok)"' : ''}></div>`).join("");
+}
+
+function paintCatGrid(){
+  $("#s_cats").innerHTML = CATS.map(c=>
+    `<div class="fld"><label>${c.label}</label>
+     <input type="number" data-w="${c.k}" min="0" max="3" step="0.25" value="${cw(c.k)}"></div>`).join("");
+}
+function openSet(){
+  $("#s_teams").value = cfg.teams; $("#s_slot").value = cfg.slot;
+  $("#s_size").value = cfg.size;   $("#s_aggr").value = cfg.aggr;
+  paintCatGrid();
+  paintNameGrid();
+  $("#setmask").classList.add("on");
+}
+function setCatPreset(o){
+  CATS.forEach(c=>{
+    const el = $("#s_cats").querySelector(`input[data-w="${c.k}"]`);
+    if(el) el.value = o[c.k] === undefined ? 1 : o[c.k];
+  });
+}
+$("#s_close").onclick = ()=> $("#setmask").classList.remove("on");
+$("#s_teams").addEventListener("input", ()=>{ cfg.teams = Math.max(4, +$("#s_teams").value || 12); paintNameGrid(); });
+$("#s_slot").addEventListener("input", paintNameGrid);
+$("#s_cats_std").onclick = ()=> setCatPreset({});
+$("#s_cats_8").onclick = ()=> setCatPreset({to:0});
+$("#s_save").onclick = ()=>{
+  cfg.teams = Math.max(4, +$("#s_teams").value || 12);
+  cfg.slot  = Math.min(cfg.teams, Math.max(1, +$("#s_slot").value || 1));
+  cfg.size  = Math.max(5, +$("#s_size").value || 13);
+  cfg.aggr  = Math.max(0, Math.min(10, +$("#s_aggr").value));
+  cfg.names = [];
+  [...$("#s_names").querySelectorAll("input[data-n]")].forEach(el=>{
+    cfg.names[+el.dataset.n] = el.value.trim();
+  });
+  [...$("#s_cats").querySelectorAll("input[data-w]")].forEach(el=>{
+    const v = parseFloat(el.value);
+    cfg.catW[el.dataset.w] = isNaN(v) ? 1 : Math.max(0, Math.min(3, v));
+  });
+  scoreBoth(pool);
+  const lastRows = pool.map(p=>p.last).filter(Boolean);
+  if(lastRows.length) scoreBoth(lastRows);
+  cfg.k     = Math.max(1, 12 - cfg.aggr);   // higher aggression = sharper sigmoid
+  picks = picks.filter(p => p.overall < cfg.teams * cfg.size);
+  reindex();
+  $("#setmask").classList.remove("on");
+  render();
+};
+
+// Import
+$("#imp_close").onclick = ()=> $("#impmask").classList.remove("on");
+let impTarget = "proj";
+[...$("#imptarget").querySelectorAll("button")].forEach(b=>{
+  b.onclick = ()=>{
+    impTarget = b.dataset.t;
+    [...$("#imptarget").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
+  };
+});
+
+$("#imp_go").onclick = ()=>{
+  const rows = dedupe(parsePool($("#impbox").value));
+  const msg = $("#impmsg");
+  const skipped = parsePool.skipped || [];
+
+  if(rows.length < 5){
+    msg.className = "msg bad";
+    msg.innerHTML = `Parsed only ${rows.length} rows. Each needs a name and a field-goal column carrying
+      makes and attempts. First unreadable row:<br>
+      <span class="mono" style="color:var(--dimmer)">${(skipped[0]||"—").slice(0,110).replace(/</g,"&lt;")}</span>`;
+    return;
+  }
+
+  /* ---- last season's actuals: match onto the existing pool, don't replace it ---- */
+  if(impTarget === "last"){
+    if(!pool.length){ msg.className="msg bad"; msg.textContent="Load this season's projections first."; return; }
+    const hit = attachLast(rows);
+    const missed = attachLast.missed || [];
+    msg.className = hit > pool.length * 0.5 ? "msg good" : "msg bad";
+    msg.innerHTML = `Matched <b>${hit}</b> of ${pool.length}
+      ${attachLast.fuzzy ? `(${attachLast.fuzzy} by surname — nickname spellings)` : ``}.
+      ${missed.length ? `<br><span style="color:var(--dimmer)">No match for ${missed.length}:
+        ${missed.slice(0,12).map(n=>n.replace(/</g,"&lt;")).join(", ")}${missed.length>12?"…":""}.
+        Usually rookies or players who didn't appear last season.</span>` : ``}`;
+    $("#mode").value = "last";
+    render();
+    return;
+  }
+
+  /* ---- this season's projections: replace the pool ---- */
+  pool = rows; picks = []; locks = {};
+  scoreBoth(pool);
+  const withGP = pool.filter(p=>p.gp>0).length;
+  const withRank = pool.filter(p=>p.srcRank!==null).length;
+  const withADP = pool.filter(p=>p.adp!==null).length;
+
+  msg.className = "msg good";
+  msg.innerHTML = `Loaded <b>${pool.length}</b> players
+    ${withGP ? `· ${withGP} with GP (durability slider live)` : `· no GP column, durability slider stays off`}
+    ${withRank ? `· ${withRank} with source rank` : ``}
+    ${withADP ? `· ${withADP} with ADP` : `· no ADP, run risk falls back to value rank`}
+    ${skipped.length ? `· skipped ${skipped.length} rows` : ``}
+    <table class="prev"><tr><th class="l">Sanity check</th><th>POS</th><th>FG</th><th>FT</th><th>PTS</th><th>REB</th><th>GP</th></tr>
+    ${pool.slice(0,4).map(p=>`<tr><td class="l">${p.name}</td><td>${p.pos.join("/")}</td>
+      <td class="mono">${p.fgm}/${p.fga}</td><td class="mono">${p.ftm}/${p.fta}</td>
+      <td class="mono">${p.pts}</td><td class="mono">${p.reb}</td><td class="mono">${p.gp||"—"}</td></tr>`).join("")}</table>`;
+
+  $("#banner").classList.add("hide");
+  syncGPW();
+  clearState();
+  render();
+};
+
+// Boot
+pool = dedupe(parsePool(RAW));
+scoreBoth(pool);
+const matched = pool.length ? attachLast(dedupe(parsePool(RAW_LAST))) : 0;
+const resumed = loadState();
+syncGPW();
+
+if(!pool.length){
+  $("#banner").innerHTML =
+    `<span>No projections loaded yet — open Projections and paste a table to begin.</span>`
+    + `<button id="b_banner2">Load projections</button>`;
+} else {
+  $("#banner").innerHTML =
+    `<span>${pool.length} players loaded with projections, ADP and games played. `
+    + `${matched} matched to last season's actuals.`
+    + `${resumed ? ` Resumed your draft at pick ${picks.length + 1}.` : ``}</span>`
+    + `<button id="b_banner2">Load different data</button>`
+    + `<button id="b_dismiss" class="x" title="Dismiss">&times;</button>`;
+}
+$("#banner").classList.remove("hide");
+$("#b_banner2").onclick = ()=> $("#impmask").classList.add("on");
+const bd = $("#b_dismiss"); if(bd) bd.onclick = ()=> $("#banner").classList.add("hide");
+if(!pool.length) $("#impmask").classList.add("on");
+render();
+
+/* ============================================================
+   YAHOO SYNC — stub, deliberately not wired up.
+
+   Yahoo now gates Fantasy API access behind an approval application
+   (sports.yahoo.com/developer/access). If you get approved, the shape
+   is: OAuth2 with an https://localhost callback, then poll
+
+     GET /fantasy/v2/league/{game_key}.l.{league_id}/draftresults?format=json
+
+   every ~5s while league draft_status is "drafting". Map each result's
+   {round, pick, team_key, player_key} onto the picks[] array below and
+   call render(). Test it in a mock draft BEFORE you rely on it — verify
+   picks actually appear mid-draft rather than only at postdraft.
+
+   async function syncYahoo(leagueKey, token){
+     const r = await fetch(`/api/yahoo/league/${leagueKey}/draftresults`,
+                           {headers:{Authorization:`Bearer ${token}`}});
+     const data = await r.json();
+     // ...map to picks[], dedupe on overall, then render()
+   }
+   Note: the fetch must go through your own small proxy — Yahoo does not
+   send CORS headers, so a browser-only call will be blocked.
+   ============================================================ */
+</script>
+</body>
+</html>
