@@ -162,7 +162,9 @@ tbody td{padding:8px 6px;border-bottom:1px solid var(--line-soft);font-size:13px
 tbody td.l{text-align:left}
 tbody tr{cursor:pointer}
 tbody tr:hover{background:var(--panel)}
-tbody tr.top{box-shadow:inset 2px 0 0 var(--wood)}
+/*  Row 1 is already identifiable by sitting at the top of a Fit-sorted board;
+    a permanent gold trim just competes with the selection highlight.        */
+tbody tr.top{}
 .pname{font-weight:600;font-size:14px;letter-spacing:.01em}
 .ppos{color:var(--dimmer);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
 .fit{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px}
@@ -260,6 +262,8 @@ thead th.on .arw{opacity:1}
 .lockchip.auto{opacity:.6}
 .lockchip.punt{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
 .lockchip.chase{border-color:var(--okk-bd);color:var(--okk-fg);background:var(--okk-bg)}
+.lockchip.chase2{border-color:var(--ok);color:var(--okk-fg);background:var(--okk-bg);box-shadow:inset 0 0 0 1px var(--ok)}
+.lrow.chase2 .lcat{color:var(--ok);font-weight:700}
 .lockchip:hover{border-color:var(--wood);color:var(--chalk)}
 .lockchip.clear{color:var(--dimmer)}
 .sug.diff{background:var(--raise);font-size:11px}
@@ -305,7 +309,28 @@ thead th.on .arw{opacity:1}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 
+/* ---------- head to head ---------- */
+#h2h{padding:12px 16px;border-bottom:1px solid var(--line-soft);background:var(--raise)}
+.h2h-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+.h2h-head .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood)}
+.h2h-head .score{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1}
+.h2h-head .score.win{color:var(--ok)} .h2h-head .score.lose{color:var(--hot)} .h2h-head .score.tie{color:var(--dim)}
+.h2h-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.h2hc{
+  font-size:10px;text-align:center;padding:4px 2px;border-radius:var(--r);
+  border:1px solid var(--line);color:var(--dim);line-height:1.3
+}
+.h2hc em{display:block;font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px}
+.h2hc.w{border-color:var(--okk-bd);background:var(--okk-bg);color:var(--okk-fg)}
+.h2hc.l{border-color:var(--neg-bd);background:var(--neg-bg);color:var(--neg-fg)}
+.h2h-note{margin-top:9px;font-size:11px;color:var(--dimmer);line-height:1.5}
+
 /* ---------- selected row ---------- */
+.again{
+  margin-left:8px;font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:9px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--wood);
+  border:1px solid var(--wood-lo,var(--line));border-radius:var(--r);padding:1px 5px;vertical-align:middle
+}
 tbody tr.sel{background:var(--pos-bg);box-shadow:inset 3px 0 0 var(--wood)}
 tbody tr.sel .pname{color:var(--chalk)}
 tbody tr.sel:hover{background:var(--pos-bg)}
@@ -317,7 +342,12 @@ tbody tr.sel:hover{background:var(--pos-bg)}
   position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;
   overflow:hidden;border:2px solid var(--line);background:var(--panel-2)
 }
-.rec-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center}
+.rec-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;
+  background:var(--panel-2)}
+/* A loaded photo replaces the monogram outright — cutout PNGs are transparent,
+   so leaving the badge behind shows initials through the player's head. */
+.rec-photo.has-photo .mono-badge{display:none}
+.rec-photo.has-photo{background:var(--panel-2)}
 .mono-badge{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;letter-spacing:.02em;
@@ -373,21 +403,21 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
     </div>
 
     <div class="gpw">
-      <span id="gpwlab">Games played weight</span>
+      <span id="gpwlab">Games Played Weight</span>
       <input type="range" id="gpw" min="0" max="100" value="50">
       <span class="mono" id="gpwv" style="text-align:right">balanced</span>
       <span></span>
     </div>
 
     <div class="gpw" id="shaperow">
-      <span>Value → Category fit</span>
+      <span>Value → Category Fit</span>
       <input type="range" id="shape" min="0" max="100" value="50">
       <span class="mono" id="shapev" style="text-align:right">50%</span>
       <button class="tinybtn" id="shapeauto" title="Reset to a balanced 50%">50%</button>
     </div>
 
     <div class="searchwrap">
-      <input type="text" id="q" placeholder="Search a player, then Enter to draft him  ( / to focus )" autocomplete="off">
+      <input type="text" id="q" placeholder="Search a player · Enter to inspect, Enter again to draft  ( / to focus )" autocomplete="off">
       <select id="mode" style="width:auto;flex:0 0 auto">
         <option value="z">Z-scores</option>
         <option value="proj">Projected per game</option>
@@ -402,6 +432,7 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
           <th class="l" data-s="name">Player<span class="arw">▾</span></th>
           <th data-s="fit">Fit<span class="arw">▾</span></th>
           <th data-s="rank" title="Your projection source's own rank. It can disagree with VAL: this Hashtag export was built with turnovers weighted x0.25, while VAL counts all nine categories equally.">Rk<span class="arw">▾</span></th>
+          <th data-s="adp" title="Average draft position — where the market is taking him, regardless of what the projections say.">ADP<span class="arw">▾</span></th>
           <th data-s="total">Val<span class="arw">▾</span></th>
           <th data-s="fg">FG%<span class="arw">▾</span></th>
           <th data-s="ft">FT%<span class="arw">▾</span></th>
@@ -425,7 +456,7 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
     <div class="head">
       <h2>Category Ledger</h2>
       <span style="display:flex;align-items:center;gap:8px">
-        <span class="note" id="ledgernote">hover a player to preview</span>
+        <span class="note" id="ledgernote">Hover a player to preview</span>
         <span class="seg" id="ledgermode">
           <button data-m="z" class="on">Z</button><button data-m="tot">Totals</button>
         </span>
@@ -433,15 +464,16 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       </span>
     </div>
     <div class="ledger" id="ledger"></div>
+    <div id="h2h" style="display:none"></div>
     <div class="ledger-key" id="ledgerkey"></div>
 
-    <div class="head"><h2>Punt Radar</h2><span class="note">click a ledger label to punt by hand</span></div>
+    <div class="head"><h2>Punt Radar</h2><span class="note">Click a ledger label to punt by hand</span></div>
     <div id="suggest"></div>
 
     <div class="head"><h2 id="rosterhead">My Roster</h2><span class="note" id="rostercount"></span></div>
     <div class="roster" id="roster"></div>
 
-    <div class="head"><h2>Pick Log</h2><span class="note" id="logcount"></span><button class="clock-btn" id="undo">Undo last</button></div>
+    <div class="head"><h2>Pick Log</h2><span class="note" id="logcount"></span></div>
     <div class="roster scrolly" id="log"></div>
   </div>
 </div>
@@ -457,7 +489,7 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       <div class="fld"><label>Roster spots</label><input type="number" id="s_size" min="5" max="20"></div>
       <div class="fld"><label>Punt aggression (0–10)</label><input type="number" id="s_aggr" min="0" max="10" step="1"></div>
     </div>
-    <p style="margin-bottom:16px">How readily the engine writes a category off. <b style="color:var(--chalk)">0</b> keeps chasing all nine to the end; <b style="color:var(--chalk)">10</b> abandons a losing category the moment it slips. <b style="color:var(--chalk)">8</b> is a sane default.</p>
+    <p style="margin-bottom:16px">How readily the engine writes a category off. <b style="color:var(--chalk)">0</b> keeps chasing all nine to the end; <b style="color:var(--chalk)">10</b> abandons a losing category the moment it slips. <b style="color:var(--chalk)">5</b> is a sane default.</p>
     <h3 style="margin-top:20px">Team names <span style="font-weight:400;font-size:11px;color:var(--dimmer);text-transform:none;letter-spacing:0">optional</span></h3>
     <p>Leave blank for "Team 1", "Team 2" and so on. Your own slot is highlighted.</p>
     <div class="namegrid" id="s_names"></div>
@@ -492,6 +524,29 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       Basketball Monster, or your own CSV. Repeated header rows, doubled names, <span class="mono">0.573 (10.5/18.3)</span>
       and <span class="mono">9.5/19.0</span> cells all parse. Don't clean anything up first.
     </p>
+
+    <details style="margin-bottom:12px" id="photodetails" open>
+      <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Player photos — <span id="photostat">not set up</span></summary>
+      <p style="margin-top:8px">
+        None of the stat sources carry player ids, so photos need a name-to-id index. This fetches
+        one and caches it in your browser — once, then never again.
+      </p>
+      <button class="mini" id="i_photoauto" style="display:inline-block">Fetch photos automatically</button>
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;font-size:11px;color:var(--dimmer)">If that fails, paste ids manually</summary>
+        <p style="margin-top:8px">
+          Open <span class="mono">nba.com/players</span>, scroll to the bottom so every row renders,
+          then run this in the console (F12) and paste the result below.
+        </p>
+      <textarea readonly style="height:74px" onclick="this.select()">copy([...new Set([...document.querySelectorAll('a[href*="/player/"]')]
+  .map(a=>{const m=a.getAttribute('href').match(/\/player\/(\d+)\//);
+    return m ? a.innerText.replace(/\s+/g,' ').trim()+'\t'+m[1] : null})
+  .filter(x=>x&&x.split('\t')[0].length>3))].join('\n'))</textarea>
+      <textarea id="i_photos" placeholder="Nikola Jokic&#9;203999&#10;Luka Doncic&#9;1629029" style="height:74px;margin-top:8px"></textarea>
+        <button class="mini" id="i_photogo" style="display:inline-block">Save photo ids</button>
+        <span class="mono" id="i_photomsg" style="font-size:11px;color:var(--dimmer);margin-left:8px"></span>
+      </details>
+    </details>
 
     <details style="margin-bottom:12px" open>
       <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Export a whole table without hand-selecting rows</summary>
@@ -1182,7 +1237,7 @@ const CATS = [
 const SLOTS = ["PG","SG","SF","PF","C","G","F","UTIL","UTIL","BN","BN","BN","BN"];
 
 let cfg = {
-  teams:12, slot:5, size:13, aggr:8, k:4, gpw:0.5, scarcity:1.2,
+  teams:12, slot:5, size:13, aggr:5, k:7, gpw:0.5, scarcity:1.2,
   /*  Per-category weight, to match your league's scoring. 1 = counts normally,
       0 = not scored at all (8-cat leagues drop turnovers entirely). This is a
       LEAGUE SETTING, not a strategy — punting is separate and per-roster.    */
@@ -1630,7 +1685,15 @@ function leverage(tz, conviction){
     if(locks[c.k] === "punt"){ w[c.k] = 0; return; }
     const s = 1 / (1 + Math.exp(-tz[c.k] / cfg.k));
     w[c.k] = s * (1 - s);
-    if(locks[c.k] === "chase") w[c.k] = 0.25;
+    /*  chase pins a category at the natural maximum of s(1-s); chase2 goes past
+        it, which no roster state can produce on its own. Use it when you've
+        decided to win a category outright rather than merely contest it.     */
+    /*  0.25 is the natural ceiling of s(1-s), so pinning chase there did nothing
+        at all when a category was already even — it only ever undid the damping
+        on categories you'd locked up or abandoned. Both tiers now sit above the
+        ceiling, so chase actually tilts the board and hard chase dominates.   */
+    if(locks[c.k] === "chase")  w[c.k] = 0.40;
+    if(locks[c.k] === "chase2") w[c.k] = 0.80;
   });
   const tot = CATS.reduce((s,c)=>s + w[c.k], 0) || 1;
   const live = CATS.filter(c=>locks[c.k] !== "punt").length || 1;
@@ -1765,6 +1828,14 @@ function evaluate(){
         Centred on 0.5 so it's a real swing, not the old ±5% rounding error.  */
     p.scarce = cfg.scarcity * (p.risk - 0.5);
     p.fitAdj = p.fit + p.scarce;
+
+    /*  The same fit, recomputed from what the player actually did last season:
+        same category weights, same roster leverage, same scarcity — only the
+        production changes. Answers "what if the projection is wrong and he just
+        repeats himself?" Null when there's no prior season to draw on.       */
+    p.fitLast = (p.last && p.last.z)
+      ? CATS.reduce((s,c)=>s + w[c.k] * cw(c.k) * p.last.z[c.k], 0) + p.scarce
+      : null;
   });
 
   return {roster, tz, w, avail, gap, riskGap, nxt, conviction, ramp, gaps: rosterGaps(roster)};
@@ -1811,6 +1882,7 @@ function renderClock(state){
   $("#clock").innerHTML = done
     ? `<div class="clock-cell onclock"><span class="k">Draft</span><span class="v">Complete</span></div>
        <button class="clock-btn" id="b_set">Setup</button><button class="clock-btn" id="b_imp">Projections</button>
+       <button class="clock-btn" id="undo">↶ Undo</button>
        <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
        <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`
     : `
@@ -1823,6 +1895,7 @@ function renderClock(state){
     <div class="clock-cell"><span class="k">${nLbl}</span><span class="v" style="${until===0?"font-size:15px":""}">${untilText}</span></div>
     <button class="clock-btn" id="b_set">Setup</button>
     <button class="clock-btn" id="b_imp">Projections</button>
+    <button class="clock-btn" id="undo">↶ Undo</button>
     <button class="clock-btn" id="reset" style="color:var(--hot)">Reset</button>
     <button class="clock-btn" id="theme" title="Switch theme">${document.body.dataset.theme === "court" ? "\u25D3 Court" : "\u25D2 Arena"}</button>`;
 
@@ -1830,6 +1903,13 @@ function renderClock(state){
     document.body.dataset.theme = document.body.dataset.theme === "court" ? "arena" : "court";
     render();
   };
+  /*  The clock is rebuilt on every render, so its buttons must be rewired here —
+      a one-time binding at boot would be dropped the first time a pick landed. */
+  const ub = $("#undo");
+  ub.onclick = undo;
+  ub.disabled = !picks.length;
+  ub.style.opacity = picks.length ? 1 : .35;
+  ub.title = picks.length ? `Undo pick ${picks.length} (${(picks[picks.length-1]&&(pool.find(x=>x.id===picks[picks.length-1].playerId)||{}).name) || ""})` : "Nothing to undo";
   $("#b_set").onclick = openSet;
   $("#b_imp").onclick = ()=> $("#impmask").classList.add("on");
   $("#reset").onclick = ()=>{
@@ -1859,11 +1939,99 @@ function hueOf(name){
   for(let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
   return h;
 }
+/*  Photos need a real NBA person id. Basketball Reference blocks hotlinking, and
+    the BoxScore Lab export carries no id column at all, so there is nothing in
+    the data to build a URL from. Instead the map is imported once and cached;
+    nba.com serves its headshot CDN without referrer checks.                  */
+const PHOTO_KEY = "draftboard.photos.v2";
+const PHOTO_TRY = "draftboard.phototry.v1";
+
+/*  A photo record is {s, i}: which service, and that service's id. Two services
+    because they're reached differently — Sleeper publishes a player index that
+    browsers may read cross-origin, so it can be fetched automatically; NBA's
+    index cannot, so those ids arrive via the manual paste.                    */
+let photoIds = {};
+try{ photoIds = JSON.parse(localStorage.getItem(PHOTO_KEY) || "{}"); }catch(e){ photoIds = {}; }
+
+function savePhotoIds(){
+  try{ localStorage.setItem(PHOTO_KEY, JSON.stringify(photoIds)); }catch(e){}
+}
+
+function photoUrl(rec){
+  if(!rec) return null;
+  return rec.s === "s"
+    ? `https://sleepercdn.com/content/nba/players/${rec.i}.jpg`
+    : `https://cdn.nba.com/headshots/nba/latest/1040x760/${rec.i}.png`;
+}
+
+/*  Pull the whole player index and keep only name -> id. Runs once, then lives
+    in localStorage. Any failure here is non-fatal: monograms already work, so
+    this never blocks a draft.                                                */
+async function fetchPhotoIds(){
+  const res = await fetch("https://api.sleeper.app/v1/players/nba", {cache:"force-cache"});
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  let n = 0;
+  Object.keys(data).forEach(id=>{
+    const p = data[id];
+    const full = p && (p.full_name || [p.first_name, p.last_name].filter(Boolean).join(" "));
+    if(!full || !/[a-z]/i.test(full)) return;
+    const rec = {s:"s", i:String(p.player_id || id)};
+    photoIds[nameKey(full)] = rec;
+    const lk = "~" + lastKey(full);
+    if(!photoIds[lk]) photoIds[lk] = rec;
+    n++;
+  });
+  savePhotoIds();
+  return n;
+}
+
+async function autoPhotos(silent){
+  const st = $("#photostat");
+  if(st && !silent){ st.textContent = "fetching\u2026"; st.style.color = "var(--dim)"; }
+  try{
+    await fetchPhotoIds();
+    try{ localStorage.setItem(PHOTO_TRY, "ok"); }catch(e){}
+    syncPhotoStat();
+    render();
+    return true;
+  }catch(e){
+    try{ localStorage.setItem(PHOTO_TRY, String(Date.now())); }catch(e2){}
+    if(st && !silent){
+      st.textContent = "automatic fetch failed \u2014 use the paste method below";
+      st.style.color = "var(--hot)";
+    }
+    return false;
+  }
+}
+
+function importPhotoIds(text){
+  const map = {};
+  String(text).split(/\r?\n/).forEach(line=>{
+    const cells = line.split(/\t|,/).map(x=>x.trim()).filter(Boolean);
+    if(cells.length < 2) return;
+    const id = cells.find(x=>/^\d{3,9}$/.test(x));
+    const name = cells.find(x=>/[A-Za-z]{2,}/.test(x) && !/^\d+$/.test(x));
+    if(id && name){ const rec = {s:"n", i:id}; map[nameKey(name)] = rec; map["~" + lastKey(name)] = rec; }
+  });
+  const n = Object.keys(map).length;
+  if(n){ photoIds = Object.assign({}, photoIds, map); savePhotoIds(); }
+  return n;
+}
+
+function photoIdFor(p){
+  const r = photoIds[nameKey(p.name)] || photoIds["~" + lastKey(p.name)] || null;
+  if(!r) return null;
+  return typeof r === "string" ? {s:"n", i:r} : r;   // tolerate the old flat format
+}
+
 function photoHTML(p){
   const mono = `<span class="mono-badge" style="--h:${hueOf(p.name)}">${initials(p.name)}</span>`;
-  const img = p.pid
-    ? `<img src="https://www.basketball-reference.com/req/202106291/images/headshots/${p.pid}.jpg"
-           alt="" loading="lazy" onerror="this.remove()">`
+  const url = photoUrl(photoIdFor(p));
+  const img = url
+    ? `<img src="${url}" alt="" loading="lazy"
+           onload="this.parentNode.classList.add('has-photo')"
+           onerror="this.remove()">`
     : "";
   return `<div class="rec-photo">${mono}${img}</div>`;
 }
@@ -1872,7 +2040,7 @@ function renderRec(state){
   const {avail, w, riskGap, conviction} = state;
   if(!avail.length){ $("#rec").innerHTML = `<div class="empty">No players left in the pool.</div>`; return; }
 
-  const best = [...avail].sort((a,b)=>b.fitAdj-a.fitAdj)[0];
+  const best = [...avail].sort((a,b)=>fitFor(b)-fitFor(a))[0];
   const bestVal = [...avail].sort((a,b)=>b.total-a.total)[0];
   const onIdx = teamOnClock(picks.length);
   const mine = onIdx === myTeamIdx();
@@ -1909,12 +2077,13 @@ function renderRec(state){
   const shownContrib = CATS.map(c=>({c, v: w[c.k] * cw(c.k) * shown.z[c.k]}))
                            .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
 
-  const fitGap = best.fitAdj - shown.fitAdj;
+  const fg1 = fitFor(best), fg2 = fitFor(shown);
+  const fitGap = (isFinite(fg1)?fg1:0) - (isFinite(fg2)?fg2:0);
   const compare = !isRec
     ? `<div class="tradeoff">
          <div class="k">${fitGap > 0.05 ? `Board rates ${best.name.split(" ").slice(-1)[0]} higher by ${fitGap.toFixed(1)}` : `Equal to the board's pick`}</div>
-         Recommendation is <b>${best.name}</b> (fit ${best.fitAdj.toFixed(1)}${best.srcRank?`, rank #${best.srcRank}`:``})
-         versus <b>${shown.name}</b> at ${shown.fitAdj.toFixed(1)}.
+         Recommendation is <b>${best.name}</b> (fit ${isFinite(fg1)?fg1.toFixed(1):"—"}${best.srcRank?`, rank #${best.srcRank}`:``})
+         versus <b>${shown.name}</b> at ${isFinite(fg2)?fg2.toFixed(1):"—"}.
          <button class="mini" id="r_back">Back to ${best.name.split(" ").slice(-1)[0]}</button>
        </div>`
     : (differs ? `
@@ -1928,15 +2097,16 @@ function renderRec(state){
       </div>` : ``);
 
   $("#rec").innerHTML = `
-    <div class="rec-eyebrow">${!isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}</div>
+    <div class="rec-eyebrow">${!isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}${
+      fitMode() ? ` <span style="color:var(--dimmer)">· fit from last season</span>` : ``}</div>
     <div class="rec-top">
       <div class="rec-info">
         <div class="rec-name">${shown.name}</div>
-        <div class="rec-sub">${shown.pos.join(" / ")} · ${shown.team}${shown.srcRank?` · projected rank #${shown.srcRank}`:``} · value ${shown.total.toFixed(1)}</div>
+        <div class="rec-sub">${shown.pos.join(" / ")} · ${shown.team}${shown.srcRank?` · Projected Rank #${shown.srcRank}`:``} · <span title="Sum of z-scores across all nine categories — total production added, before any adjustment for your roster.">9-cat Value ${shown.total.toFixed(1)}</span></div>
         <div class="rec-why">
           ${shownContrib.map(x=>`<span class="chip up">${x.c.label} +${shown.z[x.c.k].toFixed(1)}</span>`).join("")}
           ${shown.scarce > 0.3 ? `<span class="chip risk">Gone before your next turn</span>` : ``}
-          ${shown.scarce < -0.3 && riskGap > 0 ? `<span class="chip">Would still be there in ${riskGap}</span>` : ``}
+          ${shown.scarce < -0.3 && riskGap > 0 ? `<span class="chip">Would still be there in ${riskGap} pick${riskGap===1?"":"s"}</span>` : ``}
         </div>
       </div>
       ${photoHTML(shown)}
@@ -2095,7 +2265,7 @@ function renderLedger(state){
 
     const lock = isMine ? (locks[c.k] || "") : "";
     return `<div class="lrow ${lev?"lev":""} ${lock}">
-      <span class="lcat" data-c="${c.k}" title="${isMine ? "Click: auto \u2192 punt \u2192 chase" : "Switch back to your team to set punts"}">${c.label}${cw(c.k)!==1?`<em class="cwx">\u00d7${cw(c.k)}</em>`:""}</span>
+      <span class="lcat" data-c="${c.k}" title="${isMine ? "Click through: auto \u2192 punt \u2192 chase \u2192 hard chase" : "Switch back to your team to set punts"}">${c.label}${cw(c.k)!==1?`<em class="cwx">\u00d7${cw(c.k)}</em>`:""}</span>
       <span class="ltrack"><span class="lmid"></span>${bar}${ghost}</span>
       <span class="lval">
         <span style="color:${roster.length?zColor(valZ):"var(--dimmer)"}">${valTxt}</span>
@@ -2109,10 +2279,42 @@ function renderLedger(state){
     [...$("#ledger").querySelectorAll(".lcat")].forEach(el=>{
       el.onclick = ()=>{
         const k = el.dataset.c;
-        const next = locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase" : undefined;
+        const next = locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase"
+                   : locks[k] === "chase" ? "chase2" : undefined;
         setLock(k, next);
       };
     });
+  }
+
+  /*  Head-to-head, when you're looking at somebody else's board. Category
+      leagues are won category by category, so the only number that matters is
+      how many you'd take — not how far ahead you are in any one.            */
+  if(!isMine && roster.length && state.roster.length){
+    const mineTz = state.tz;
+    const rows = CATS.filter(c=>cw(c.k) > 0.05).map(c=>{
+      const d = mineTz[c.k] - tz[c.k];       // z is already sign-corrected
+      return {c, d, win: d > 0};
+    });
+    const won = rows.filter(r=>r.win).length;
+    const tot = rows.length;
+    const verdict = won > tot/2 ? "win" : won < tot/2 ? "lose" : "tie";
+    $("#h2h").innerHTML = `
+      <div class="h2h-head">
+        <span class="k">You vs ${teamName(viewing)}</span>
+        <span class="score ${verdict}">${won}\u2013${tot-won}</span>
+      </div>
+      <div class="h2h-grid">
+        ${rows.map(r=>`<span class="h2hc ${r.win?"w":"l"}" title="${r.d>0?"+":""}${r.d.toFixed(1)} z">
+          ${r.c.label}<em>${r.d>0?"+":""}${r.d.toFixed(1)}</em></span>`).join("")}
+      </div>
+      <div class="h2h-note">${
+        verdict === "win" ? `You take ${won} of ${tot} on current rosters.`
+        : verdict === "lose" ? `They take ${tot-won} of ${tot}. Closest gaps are the ones worth attacking.`
+        : `Dead even at ${won}\u2013${tot-won}.`
+      } Margins are per-team z totals, so a category won by 0.1 counts the same as one won by 10.</div>`;
+    $("#h2h").style.display = "";
+  } else {
+    $("#h2h").style.display = "none";
   }
 
   $("#ledgerkey").innerHTML = asTotals
@@ -2120,8 +2322,8 @@ function renderLedger(state){
     : ``;
 
   $("#ledgernote").textContent = isMine
-    ? (roster.length ? "hover a player to preview" : "draft someone to begin")
-    : `${roster.length} drafted \u00b7 read-only`;
+    ? (roster.length ? "Hover a player to preview" : "Draft someone to begin")
+    : `${roster.length} drafted \u00b7 Read-only`;
 }
 
 // One stat cell. Per-game modes show the real number but keep the z-score
@@ -2145,11 +2347,22 @@ function statCell(p, c, mode){
   return `<td class="mono" style="color:${zColor(z)};opacity:${zOpacity(z)}">${v}</td>`;
 }
 
+/*  Which fit to display. In "Last season per game" the Fit column answers the
+    same question against last year's real production instead of a projection.
+    The ledger deliberately stays on projections — it describes the roster you
+    are actually building, not a hypothetical replay of last season.         */
+function fitMode(){ return $("#mode").value === "last"; }
+function fitFor(p){
+  if(!fitMode()) return p.fitAdj;
+  return (p.fitLast === null || p.fitLast === undefined) ? -Infinity : p.fitLast;
+}
+
 // Sort value for a column, so the first click always puts "best" on top.
 function sortVal(p, key, mode){
-  if(key === "fit")   return p.fitAdj;
+  if(key === "fit")   return fitFor(p);
   if(key === "total") return p.total;
   if(key === "rank")  return -(p.srcRank ?? p.adp ?? 9999);
+  if(key === "adp")   return -(p.adp ?? 9999);      // earlier ADP sorts first
   if(mode === "z")    return p.z[key];
   const src = mode === "last" ? p.last : p;
   if(!src) return -Infinity;
@@ -2182,15 +2395,18 @@ function renderBoard(state){
     const flagRisk = p.risk > 0.6 && i < 15 && key === "fit";
     return `<tr data-id="${p.id}" class="${p.id===selectedId?"sel ":""}${i===0&&key==="fit"?"top":""}">
       <td class="l">
-        <div class="pname">${p.name}${flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}</div>
-        <div class="ppos">${p.pos.join("/")} · ${p.team}${p.adp?` · adp ${p.adp.toFixed(0)}`:""}${p.gp?` · ${p.gp} gp`:""}</div>
+        <div class="pname">${p.name}${flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}${
+          p.id===selectedId?'<span class="again">click again to draft</span>':''}</div>
+        <div class="ppos">${p.pos.join("/")} · ${p.team}${p.gp?` · ${p.gp} GP`:""}</div>
       </td>
-      <td class="fit mono" style="color:${p.fitAdj>=0?"var(--chalk)":"var(--dimmer)"}">${p.fitAdj.toFixed(1)}</td>
+      <td class="fit mono" style="color:${(isFinite(fitFor(p))&&fitFor(p)>=0)?"var(--chalk)":"var(--dimmer)"}">${
+        isFinite(fitFor(p)) ? fitFor(p).toFixed(1) : "—"}</td>
       <td class="mono" style="color:${rk?"var(--chalk)":"var(--dimmer)"}">${rk ?? "—"}</td>
+      <td class="mono" style="color:var(--dim)">${p.adp ? p.adp.toFixed(0) : "—"}</td>
       <td class="mono" style="color:var(--dim)">${p.total.toFixed(1)}</td>
       ${CATS.map(c=>statCell(p,c,mode)).join("")}
     </tr>`;
-  }).join("") || `<tr><td class="l" colspan="13" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
+  }).join("") || `<tr><td class="l" colspan="14" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
 
   [...$("#board").querySelectorAll("tr[data-id]")].forEach(tr=>{
     const id = +tr.dataset.id;
@@ -2233,7 +2449,8 @@ function setLock(k, val){
 
   const label = CATS.find(c=>c.k===k).label;
   lastChange = {
-    text: val === undefined ? `Cleared ${label}` : val === "punt" ? `Punted ${label}` : `Chasing ${label}`,
+    text: val === undefined ? `Cleared ${label}` : val === "punt" ? `Punted ${label}`
+        : val === "chase2" ? `Hard chasing ${label}` : `Chasing ${label}`,
     prev,
     up: movers.filter(m=>m.d > 0).slice(0,3),
     down: movers.filter(m=>m.d < 0).slice(0,3)
@@ -2282,7 +2499,7 @@ function shapeBlurb(state){
 function renderSuggest(state){
   const el = $("#suggest");
   const punted = CATS.filter(c=>locks[c.k]==="punt");
-  const chased = CATS.filter(c=>locks[c.k]==="chase");
+  const chased = CATS.filter(c=>locks[c.k]==="chase"||locks[c.k]==="chase2");
   const active = [...punted, ...chased];
 
   // Every category, always visible — click to cycle auto -> punt -> chase.
@@ -2293,8 +2510,9 @@ function renderSuggest(state){
         const st = locks[c.k] || "auto";
         return `<span class="lockchip ${st}" data-c="${c.k}" title="${
           st==="punt" ? "Punted — counts for nothing. Click to chase instead."
+          : st==="chase2" ? "Hard chase — weighted well past natural maximum. Click to clear."
           : st==="chase" ? "Chasing — weighted at maximum. Click to return to auto."
-          : "Auto. Click to punt."}">${c.label}${st==="punt"?" ✕":st==="chase"?" ▲":""}</span>`;
+          : "Auto. Click to punt."}">${c.label}${st==="punt"?" ✕":st==="chase"?" ▲":st==="chase2"?" ▲▲":""}</span>`;
       }).join("")}
       ${active.length ? `<span class="lockchip clear" data-all="1">Clear all</span>` : ``}
     </div>`;
@@ -2348,7 +2566,8 @@ function renderSuggest(state){
   [...el.querySelectorAll(".lockchip[data-c]")].forEach(b=>{
     b.onclick = ()=>{
       const k = b.dataset.c;
-      setLock(k, locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase" : undefined);
+      setLock(k, locks[k] === undefined ? "punt" : locks[k] === "punt" ? "chase"
+               : locks[k] === "chase" ? "chase2" : undefined);
     };
   });
   const clr = el.querySelector('.lockchip[data-all]');
@@ -2548,7 +2767,7 @@ $("#posfilter").innerHTML = ["ALL","PG","SG","SF","PF","C"]
 document.querySelector('thead th[data-s="fit"]').classList.add("on");
 
 // Games-played weight
-const GPW_LABEL = v => v < 0.15 ? "per game" : v < 0.4 ? "light" : v < 0.65 ? "balanced" : v < 0.9 ? "heavy" : "full season";
+const GPW_LABEL = v => v < 0.15 ? "Per game" : v < 0.4 ? "Light" : v < 0.65 ? "Balanced" : v < 0.9 ? "Heavy" : "Full season";
 $("#gpw").addEventListener("input", e=>{
   cfg.gpw = +e.target.value / 100;
   $("#gpwv").textContent = GPW_LABEL(cfg.gpw);
@@ -2559,7 +2778,7 @@ $("#gpw").addEventListener("input", e=>{
 });
 document.querySelector('thead th[data-s="fit"]').classList.add("on");
 
-$("#mode").addEventListener("change", ()=> renderBoard(evaluate()));
+$("#mode").addEventListener("change", ()=> render());
 [...$("#ledgermode").querySelectorAll("button")].forEach(b=>{
   b.onclick = ()=>{
     ledgerMode = b.dataset.m;
@@ -2578,8 +2797,8 @@ function syncGPW(){
   const has = pool.some(p=>p.gp > 0);
   $("#gpw").disabled = !has;
   $("#gpw").style.opacity = has ? 1 : .35;
-  $("#gpwlab").textContent = has ? "Games played weight" : "Games played weight — no GP column in this data";
-  $("#gpwv").textContent = has ? GPW_LABEL(cfg.gpw) : "inactive";
+  $("#gpwlab").textContent = has ? "Games Played Weight" : "Games Played Weight — no GP column in this data";
+  $("#gpwv").textContent = has ? GPW_LABEL(cfg.gpw) : "Inactive";
 }
 
 $("#shape").addEventListener("input", e=>{ shape = +e.target.value / 100; render(); });
@@ -2603,7 +2822,6 @@ document.addEventListener("keydown", e=>{
   if(e.key === "Escape" && selectedId !== null){ selectedId = null; render(); }
 });
 function undo(){ picks.pop(); render(); }
-$("#undo").onclick = undo;
 
 // Settings
 function paintNameGrid(){
@@ -2742,9 +2960,43 @@ if(!pool.length){
 }
 $("#banner").classList.remove("hide");
 $("#b_banner2").onclick = ()=> $("#impmask").classList.add("on");
+$("#i_photoauto").onclick = ()=> autoPhotos(false);
+$("#i_photogo").onclick = ()=>{
+  const n = importPhotoIds($("#i_photos").value);
+  $("#i_photomsg").textContent = n ? `${n} ids saved` : "Nothing recognised \u2014 each line needs a name and a numeric id";
+  $("#i_photomsg").style.color = n ? "var(--ok)" : "var(--hot)";
+  syncPhotoStat();
+  if(n) render();
+};
+
+/*  Tells you how many players on the CURRENT board actually resolved to a photo.
+    "12 ids saved" is useless on its own — what matters is whether they matched
+    the names in your projection pool.                                        */
+function syncPhotoStat(){
+  const el = $("#photostat"); if(!el) return;
+  if(!pool.length){ el.textContent = "load projections first"; return; }
+  const hit = pool.filter(p => photoIdFor(p)).length;
+  el.textContent = hit ? `${hit} of ${pool.length} players matched` : "not set up";
+  el.style.color = hit ? "var(--ok)" : "var(--dimmer)";
+  const d = $("#photodetails");
+  if(d && hit) d.open = false;
+}
 const bd = $("#b_dismiss"); if(bd) bd.onclick = ()=> $("#banner").classList.add("hide");
 if(!pool.length) $("#impmask").classList.add("on");
+syncPhotoStat();
 render();
+
+/*  First run with no photos cached: try once, quietly, after the board is up.
+    A failure is remembered so it doesn't retry on every load — but it will try
+    again after a day in case the network was simply down.                    */
+(function primePhotos(){
+  if(Object.keys(photoIds).length) return;
+  let last = null;
+  try{ last = localStorage.getItem(PHOTO_TRY); }catch(e){}
+  if(last === "ok") return;
+  if(last && Date.now() - Number(last) < 86400000) return;
+  setTimeout(()=> autoPhotos(true), 400);
+})();
 
 /* ============================================================
    YAHOO SYNC — stub, deliberately not wired up.
