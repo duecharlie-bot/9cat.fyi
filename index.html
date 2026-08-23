@@ -612,6 +612,54 @@ thead th.on .arw{opacity:1}
 .h2hc.l{border-color:var(--neg-bd);background:var(--neg-bg);color:var(--neg-fg)}
 .h2h-note{margin-top:9px;font-size:11px;color:var(--dimmer);line-height:1.5}
 
+/* ---------- starred / saved players drawer ---------- */
+.star{
+  display:inline-block;width:16px;margin-right:6px;cursor:pointer;
+  color:var(--dimmer);font-size:13px;line-height:1;vertical-align:baseline
+}
+.star:hover{color:var(--wood)}
+.star.on{color:var(--wood)}
+
+/*  The saved list used to be extra <tbody>s at the END of the main table.
+    That meant it existed, but only after all ~80 board rows — so it was not a
+    bottom drawer at all. Give the left pane its own scroll area and keep this
+    drawer as a sibling underneath it. It now stays visible regardless of where
+    the board itself is scrolled.                                               */
+.boardcol{display:flex;flex-direction:column;overflow:hidden}
+.boardscroll{flex:1 1 auto;min-height:0;min-width:0;overflow:auto}
+.startray{
+  flex:0 0 auto;min-width:0;max-height:min(42vh,360px);overflow:hidden;
+  background:var(--ink);border-top:1px solid var(--wood);
+  box-shadow:0 -10px 28px rgba(0,0,0,.28);z-index:25
+}
+#starbtn{
+  display:flex;align-items:center;gap:6px;width:100%;background:var(--panel);border:0;
+  color:var(--wood);text-align:left;padding:8px 10px;cursor:pointer;
+  font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase
+}
+#starbtn:hover{background:var(--panel-2);color:var(--chalk)}
+#starcount{color:var(--dimmer)}
+#starcaret{margin-left:auto;color:var(--dimmer)}
+.startray-body{max-height:min(34vh,290px);overflow:auto;background:var(--ink)}
+.startable{width:100%;min-width:860px;border-collapse:collapse}
+.startable tbody tr{background:var(--ink)}
+.startable tbody tr:hover{background:var(--panel)}
+.startable tbody td.l{position:sticky;left:0;z-index:2;background:inherit}
+
+/*  A starred player someone else took: still listed, visibly out of reach.   */
+tbody tr.gone{opacity:.42}
+tbody tr.gone:hover{background:transparent}
+tbody tr.gone .pname{text-decoration:line-through;text-decoration-thickness:1px}
+.takenby{color:var(--hot);letter-spacing:.04em}
+
+@media (max-width:900px){
+  .boardcol{display:block;overflow:visible}
+  .boardscroll{overflow:visible;height:auto}
+  .startray{position:sticky;bottom:0;max-height:none}
+  .startray-body{max-height:280px}
+}
+
 /* ---------- selected row ---------- */
 .again{
   position:absolute;
@@ -700,7 +748,8 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 <div class="shell">
 
   <!-- ============ LEFT: BOARD ============ -->
-  <div class="col">
+  <div class="col boardcol">
+    <div class="boardscroll">
     <div class="topwrap">
     <div class="clock" id="clock"></div>
     <div class="menu" id="menu">
@@ -769,7 +818,19 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
       <b>Fit</b> is that same number weighted for your roster and for who won't last until your next pick.
       When they disagree, Fit is the one to draft from.
     </div>
-  </div>
+    </div><!-- /.boardscroll -->
+
+    <div class="startray" id="starwrap" style="display:none">
+      <button id="starbtn" type="button" aria-expanded="true">
+        <span>Saved players</span><span id="starcount"></span><span id="starcaret">▾</span>
+      </button>
+      <div class="startray-body" id="starbody">
+        <table class="startable" aria-label="Saved players">
+          <tbody id="starboard"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /.boardcol -->
 
   <div class="grip" id="grip" title="Drag to resize · double-click to reset"></div>
 
@@ -1645,6 +1706,21 @@ let posFilter = "ALL";
 let hoverId = null;   // previewed player; persists until another row is hovered
 let selectedId = null;   // click once to inspect, again to draft
 let boardIds = [];       // ids in the order currently rendered, for arrow keys
+
+/*  Starred players are keyed by name, not pool index, so a watchlist survives
+    re-importing projections — the ids shift, the names don't.                */
+const STAR_KEY = "draftboard.stars.v1";
+let starred = new Set();
+try{ starred = new Set(JSON.parse(localStorage.getItem(STAR_KEY) || "[]")); }catch(e){}
+function saveStars(){
+  try{ localStorage.setItem(STAR_KEY, JSON.stringify([...starred])); }catch(e){}
+}
+const isStarred = p => starred.has(nameKey(p.name));
+function toggleStar(p){
+  const k = nameKey(p.name);
+  if(starred.has(k)) starred.delete(k); else starred.add(k);
+  saveStars(); render();
+}
 let flashPick = null;    // overall index of the pick to highlight briefly
 let ledgerTeam = null;   // null = my team
 let ledgerMode = "z";    // "z" or "tot"
@@ -2781,6 +2857,85 @@ function sortVal(p, key, mode){
   return key === "to" ? -raw : raw;      // fewer turnovers is better
 }
 
+/*  Shared by the main board and the starred list so the two stay identical in
+    layout and behaviour — same columns, same widths, same interactions.      */
+function playerRow(p, opts){
+  const o = opts || {};
+  const rk = p.valRank ?? null;
+  const gone = o.takenBy !== undefined && o.takenBy !== null;
+  const mode = $("#mode").value;
+  const star = `<span class="star${isStarred(p)?" on":""}" data-star="${p.id}"
+     title="${isStarred(p)?"Remove from starred":"Star this player"}">${isStarred(p)?"\u2605":"\u2606"}</span>`;
+
+  return `<tr data-id="${p.id}" class="${gone?"gone ":""}${!gone&&p.id===selectedId?"sel ":""}${o.top?"top":""}">
+      <td class="l">
+        <div class="pname">${star}${p.name}${
+          o.flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}${
+          !gone && p.id===selectedId?'<span class="again">click again to draft</span>':''}</div>
+        <div class="ppos">${gone
+          ? `<span class="takenby">Drafted by ${o.takenBy}</span>`
+          : `${p.pos.join("/")} \u00b7 ${p.team}${p.gp?` \u00b7 ${p.gp} GP`:""}`}</div>
+      </td>
+      <td class="fit mono" style="color:${(isFinite(fitFor(p))&&fitFor(p)>=0)?"var(--chalk)":"var(--dimmer)"}">${
+        isFinite(fitFor(p)) ? fitFor(p).toFixed(1) : "\u2014"}</td>
+      <td class="mono" style="color:${rk?"var(--chalk)":"var(--dimmer)"}">${rk ?? "\u2014"}</td>
+      <td class="mono" style="color:var(--dim)">${Number.isFinite(Number(p.adp)) && Number(p.adp) > 0 ? Number(p.adp).toFixed(0) : "\u2014"}</td>
+      <td class="mono" style="color:var(--dim)">${p.total.toFixed(1)}</td>
+      ${CATS.map(c=>statCell(p,c,mode)).join("")}
+    </tr>`;
+}
+
+/*  Clicking the star must not also select or draft the row underneath it.    */
+function wireRows(container, opts){
+  const o = opts || {};
+  [...container.querySelectorAll("tr[data-id]")].forEach(tr=>{
+    const id = +tr.dataset.id;
+    const p = pool.find(x=>x.id === id);
+    const st = tr.querySelector(".star");
+    if(st) st.onclick = e=>{ e.stopPropagation(); toggleStar(p); };
+    if(tr.classList.contains("gone")) return;   // already drafted: display only
+    tr.onclick = ()=>{
+      if(selectedId === id) draft(id);
+      else { selectedId = id; hoverId = id; render(); }
+    };
+    tr.ondblclick = ()=> draft(id);
+    tr.onmouseenter = ()=>{
+      if(hoverId === id) return;
+      hoverId = id;
+      const s2 = evaluate();
+      renderRec(s2); renderLedger(s2); markFocus();
+    };
+  });
+}
+
+function renderStars(state){
+  const byId = new Map(pool.map(p=>[p.id, p]));
+  const takenBy = new Map();
+  picks.forEach(pk=> takenBy.set(pk.playerId, pk.teamIdx));
+
+  const list = pool.filter(isStarred);
+  $("#starcount").textContent = list.length ? `${list.length}` : "";
+  $("#starwrap").style.display = list.length ? "" : "none";
+  if($("#starbody")) $("#starbody").style.display = starsOpen ? "" : "none";
+  if(!list.length){ $("#starboard").innerHTML = ""; return; }
+
+  const key = sortKey;
+  const sorted = [...list].sort((a,b)=>{
+    const ag = takenBy.has(a.id), bg = takenBy.has(b.id);
+    if(ag !== bg) return ag ? 1 : -1;          // drafted ones sink to the bottom
+    const av = sortVal(a,key,$("#mode").value), bv = sortVal(b,key,$("#mode").value);
+    const an = !isFinite(av), bn = !isFinite(bv);
+    if(an || bn) return an && bn ? 0 : (an ? 1 : -1);
+    return (bv - av) * (sortDir === -1 ? 1 : -1);
+  });
+
+  $("#starboard").innerHTML = sorted.map(p=>{
+    const t = takenBy.has(p.id) ? teamName(takenBy.get(p.id)) : null;
+    return playerRow(p, {takenBy: t});
+  }).join("");
+  wireRows($("#starboard"));
+}
+
 function renderBoard(state){
   const q = fold($("#q").value.trim());
   const mode = $("#mode").value;
@@ -2807,53 +2962,24 @@ function renderBoard(state){
   }).slice(0, 80);
 
   boardIds = list.map(p=>p.id);
-  $("#board").innerHTML = list.map((p,i)=>{
-    const rk = p.valRank ?? null;
+  $("#board").innerHTML = list.map((p,i)=> playerRow(p, {
     /*  Only warn about availability for players you're plausibly taking. A
         "gone soon" dot on someone ranked 40th is noise — it's true (the market
         rates him higher than the projections do) but it isn't a decision you
         actually face.                                                        */
-    const flagRisk = p.risk > 0.6 && i < 15 && key === "fit";
-    return `<tr data-id="${p.id}" class="${p.id===selectedId?"sel ":""}${i===0&&key==="fit"?"top":""}">
-      <td class="l">
-        <div class="pname">${p.name}${flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}${
-          p.id===selectedId?'<span class="again">click again to draft</span>':''}</div>
-        <div class="ppos">${p.pos.join("/")} · ${p.team}${p.gp?` · ${p.gp} GP`:""}</div>
-      </td>
-      <td class="fit mono" style="color:${(isFinite(fitFor(p))&&fitFor(p)>=0)?"var(--chalk)":"var(--dimmer)"}">${
-        isFinite(fitFor(p)) ? fitFor(p).toFixed(1) : "—"}</td>
-      <td class="mono" style="color:${rk?"var(--chalk)":"var(--dimmer)"}">${rk ?? "—"}</td>
-      <td class="mono" style="color:var(--dim)">${Number.isFinite(Number(p.adp)) && Number(p.adp) > 0 ? Number(p.adp).toFixed(0) : "—"}</td>
-      <td class="mono" style="color:var(--dim)">${p.total.toFixed(1)}</td>
-      ${CATS.map(c=>statCell(p,c,mode)).join("")}
-    </tr>`;
-  }).join("") || `<tr><td class="l" colspan="14" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
+    flagRisk: p.risk > 0.6 && i < 15 && key === "fit",
+    top: i === 0 && key === "fit"
+  })).join("") || `<tr><td class="l" colspan="14" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
 
-  [...$("#board").querySelectorAll("tr[data-id]")].forEach(tr=>{
-    const id = +tr.dataset.id;
-    // First click inspects; clicking the already-selected player commits.
-    tr.onclick = ()=>{
-      if(selectedId === id) draft(id);
-      else { selectedId = id; hoverId = id; render(); }
-    };
-    tr.ondblclick = ()=> draft(id);
-    /*  Hovering previews a player in the profile panel and the ledger, and the
-        preview STAYS when the cursor leaves the row. Reverting on mouseleave
-        would snap the panel back to the recommendation exactly as you moved
-        across to click Draft — you'd hit the button for a different player.  */
-    tr.onmouseenter = ()=>{
-      if(hoverId === id) return;
-      hoverId = id;
-      const st = evaluate();
-      renderRec(st); renderLedger(st); markFocus();
-    };
-  });
+  // First click inspects; clicking the already-selected player commits.
+  // Hover previews and STAYS put — see wireRows.
+  wireRows($("#board"));
 }
 
 /*  Move the "previewing" outline without re-rendering the whole board — hover
     fires constantly and rebuilding 200 rows per row-crossing is wasteful.   */
 function markFocus(){
-  const rows = $("#board").querySelectorAll("tr[data-id]");
+  const rows = document.querySelectorAll("#board tr[data-id], #starboard tr[data-id]");
   rows.forEach(tr=>{
     const on = +tr.dataset.id === hoverId && hoverId !== selectedId;
     tr.classList.toggle("focus", on);
@@ -3168,6 +3294,7 @@ function loadProjectionText(){
 function uiPrefs(){
   return {
     tuning: !$("#tuning").classList.contains("hide"),
+    starsOpen,
     mode: $("#mode") ? $("#mode").value : "z",
     ledgerMode, posFilter, sortKey, sortDir,
     split: typeof splitFrac === "number" ? splitFrac : undefined
@@ -3207,6 +3334,7 @@ function applyUIPrefs(){
   if(typeof u.mode === "string" && $("#mode")) $("#mode").value = u.mode;
   if(typeof u.split === "number"){ splitFrac = applySplit(u.split); }
   setTuning(!!u.tuning);
+  if(typeof u.starsOpen === "boolean") setStarsOpen(u.starsOpen);
 
   [...$("#ledgermode").querySelectorAll("button")].forEach(b=>
     b.classList.toggle("on", b.dataset.m === ledgerMode));
@@ -3255,6 +3383,7 @@ function render(){
   renderLedger(state);
   renderSuggest(state);
   renderBoard(state);
+  renderStars(state);
   renderRoster(state);
   renderLog();
   saveState();
@@ -3286,7 +3415,9 @@ $("#posfilter").innerHTML = ["ALL","PG","SG","SF","PF","C"]
       const a = x.querySelector(".arw");
       if(a) a.textContent = sortDir === -1 ? "▾" : "▴";
     });
-    renderBoard(evaluate());
+    const state = evaluate();
+    renderBoard(state);
+    renderStars(state);
   };
 });
 document.querySelector('thead th[data-s="fit"]').classList.add("on");
@@ -3337,6 +3468,17 @@ function setTuning(open){
   $("#tuning").classList.toggle("hide", !open);
   $("#tuningcaret").textContent = open ? "\u25be" : "\u25b8";
 }
+/*  Collapse state for the starred list, kept with the other view preferences. */
+let starsOpen = true;
+function setStarsOpen(open){
+  starsOpen = open;
+  const body = $("#starbody");
+  if(body) body.style.display = open ? "" : "none";
+  $("#starcaret").textContent = open ? "\u25be" : "\u25b8";
+  $("#starbtn").setAttribute("aria-expanded", open ? "true" : "false");
+}
+$("#starbtn").onclick = ()=>{ setStarsOpen(!starsOpen); saveSettings(); };
+
 $("#tuningbtn").onclick = ()=>{
   setTuning($("#tuning").classList.contains("hide"));
   saveSettings();
