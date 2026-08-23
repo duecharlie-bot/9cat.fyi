@@ -216,7 +216,11 @@ body{
 
 /* ---------- ledger (signature) ---------- */
 .ledger{padding:12px 16px 18px}
-.lrow{display:grid;grid-template-columns:42px 1fr auto 34px;align-items:center;gap:9px;height:27px}
+/*  The value column was auto-width. Hovering adds "→ 0.57", and that string is
+    a different length for every player — so the column resized, the 1fr bar
+    track resized with it, and every bar in the ledger twitched sideways. Fixed
+    width, so the track never moves.                                          */
+.lrow{display:grid;grid-template-columns:42px 1fr 102px 34px;align-items:center;gap:9px;height:27px}
 .lcat{font-size:11px;letter-spacing:.08em;color:var(--dimmer);text-transform:uppercase}
 .lrow.lev .lcat{color:var(--wood)}
 .ltrack{position:relative;height:12px;background:var(--panel);border-radius:2px;overflow:visible}
@@ -225,7 +229,7 @@ body{
 .lbar.pos{background:var(--cool)}
 .lbar.neg{background:var(--hot)}
 .lghost{position:absolute;top:-2px;bottom:-2px;border:1px dashed var(--wood);border-radius:2px;pointer-events:none}
-.lval{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;min-width:52px}
+.lval{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;overflow:hidden}
 .ledger-key{font-size:11px;color:var(--dimmer);padding:8px 16px 0;line-height:1.5}
 
 /* ---------- search + board ---------- */
@@ -1619,7 +1623,12 @@ let cfg = {
   /*  Per-category weight, to match your league's scoring. 1 = counts normally,
       0 = not scored at all (8-cat leagues drop turnovers entirely). This is a
       LEAGUE SETTING, not a strategy — punting is separate and per-roster.    */
-  catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:1},
+  /*  Turnovers ship at 0.75 rather than 1.0. Every rostered team finishes
+      underwater in TO, so a category-league turnover loss is partly priced in
+      already, and full weight pushed high-usage guards further down the board
+      than the market will ever let you exploit. Set it back to 1 in Setup if
+      your league scores all nine equally — that's the stricter reading.      */
+  catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:0.75},
   names: []            // optional league team names, indexed by draft slot
 };
 const teamName = i => (cfg.names[i] && cfg.names[i].trim()) || ("Team " + (i+1));
@@ -3287,6 +3296,7 @@ const GPW_LABEL = v => v < 0.15 ? "Per game" : v < 0.4 ? "Light" : v < 0.65 ? "B
 $("#gpw").addEventListener("input", e=>{
   cfg.gpw = +e.target.value / 100;
   $("#gpwv").textContent = GPW_LABEL(cfg.gpw);
+  saveSettings();
   scorePool(pool);
   const used = pool.map(p=>p.last).filter(Boolean);
   if(used.length) scoreBoth(used);
@@ -3314,6 +3324,7 @@ function syncGPW(){
   $("#gpw").disabled = !has;
   $("#gpw").style.opacity = has ? 1 : .35;
   $("#gpwlab").textContent = has ? "Games Played Weight" : "Games Played Weight — no GP column in this data";
+  $("#gpw").value = Math.round(cfg.gpw * 100);   // put the handle where the value actually is
   $("#gpwv").textContent = has ? GPW_LABEL(cfg.gpw) : "Inactive";
 }
 
@@ -3569,10 +3580,14 @@ $("#imp_go").onclick = ()=>{
 
 // Boot
 const savedProjectionText = loadProjectionText();
+/*  Settings must load BEFORE scoring. cfg.gpw feeds straight into scoreBoth, so
+    scoring first meant every refresh silently used the default games-played
+    weight and threw away the saved one — the slider snapping back was the
+    visible half of it; the z-scores being wrong was the half you couldn't see. */
+loadSettings();
 pool = dedupe(parsePool(savedProjectionText || RAW));
 scoreBoth(pool);
 const matched = pool.length ? attachLast(dedupe(parsePool(RAW_LAST))) : 0;
-loadSettings();                 // league setup, before anything pool-dependent
 const resumed = loadState();
 syncGPW();
 
