@@ -166,13 +166,17 @@ body{
 /* ---------- recommendation ---------- */
 .rec{padding:16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--panel) 0%,var(--ink) 100%)}
 .rec-eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--wood);margin-bottom:4px}
-.rec-name{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;line-height:1;letter-spacing:0}
+.rec-name{
+  font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:32px;line-height:1.02;letter-spacing:0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden
+}
 .rec-sub{color:var(--dim);font-size:13px;margin-top:3px}
 .rec-why{margin-top:12px;display:flex;flex-wrap:wrap;gap:5px;min-height:26px}
 .chip{font-size:11px;padding:4px 8px;border-radius:var(--r);border:1px solid var(--line);color:var(--dim);letter-spacing:.04em}
 .chip.up{border-color:var(--pos-bd);color:var(--pos-fg);background:var(--pos-bg)}
 .chip.risk{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
-.rec-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.rec-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:nowrap;height:38px}
+.rec-actions .btn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .btn{
   font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   font-size:12px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--line);
@@ -393,13 +397,29 @@ thead th.on .arw{opacity:1}
 /*  Always rendered, never conditionally hidden. Popping this block in and out
     as you hover different players shoved the ledger, punt radar and roster up
     and down on every mouse move. Fixed height keeps everything below it still. */
+/*  Fixed, not min-height: this block changes wording on every hover, and any
+    reflow here moves the whole right-hand column. The text area is clamped to
+    two lines so a long name can't push the button out of the box.           */
 .tradeoff{
   margin-top:12px;padding:10px 12px;border-left:2px solid var(--wood);
-  background:var(--raise);font-size:13px;color:var(--dim);line-height:1.5;
+  background:var(--raise);font-size:13px;color:var(--dim);line-height:1.45;
   border-radius:0 var(--r) var(--r) 0;
-  min-height:92px;box-sizing:border-box
+  height:104px;box-sizing:border-box;overflow:hidden
 }
-.tradeoff .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:3px}
+.tradeoff .tt{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;height:38px
+}
+.tradeoff .mini{margin-top:6px}
+.tradeoff .mini[disabled]{opacity:.4;cursor:default}
+/*  One line, always. "Board rates Gilgeous-Alexander higher by 3.1" wraps where
+    "Costs you 2.1 of raw value" doesn't, and that extra line shifted the text
+    and button below it — the last of the jitter.                            */
+.tradeoff .k{
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);
+  margin-bottom:4px;height:12px;line-height:12px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
 .tradeoff b{color:var(--chalk)}
 .mini{
   display:block;margin-top:8px;background:none;border:1px solid var(--line);color:var(--dim);
@@ -587,7 +607,9 @@ tbody tr.sel .pname{color:var(--chalk)}
 tbody tr.sel:hover{background:var(--pos-bg)}
 
 /* ---------- recommendation photo ---------- */
-.rec-top{display:flex;gap:14px;align-items:flex-start}
+/*  The photo is 96px and a long name can wrap to two lines, so this region has
+    to be pinned too or the block below it moves.                            */
+.rec-top{display:flex;gap:14px;align-items:flex-start;height:112px;overflow:hidden}
 .rec-info{flex:1;min-width:0}
 .rec-photo{
   position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;
@@ -2412,29 +2434,36 @@ function renderRec(state){
   const fg1 = fitFor(best), fg2 = fitFor(shown);
   const runnerUp = [...avail].sort((a,b)=>fitFor(b)-fitFor(a))[1] || null;
   const fitGap = (isFinite(fg1)?fg1:0) - (isFinite(fg2)?fg2:0);
-  const compare = !isRec
-    ? `<div class="tradeoff">
-         <div class="k">${fitGap > 0.05 ? `Board rates ${best.name.split(" ").slice(-1)[0]} higher by ${fitGap.toFixed(1)}` : `Equal to the board's pick`}</div>
-         Recommendation is <b>${best.name}</b> (fit ${isFinite(fg1)?fg1.toFixed(1):"—"}${best.valRank?`, #${best.valRank}`:``})
-         versus <b>${shown.name}</b> at ${isFinite(fg2)?fg2.toFixed(1):"—"}.
-         <button class="mini" id="r_back">Back to ${best.name.split(" ").slice(-1)[0]}</button>
-       </div>`
-    : (differs ? `
-      <div class="tradeoff">
-        <div class="k">Costs you ${cost.toFixed(1)} of raw value</div>
-        Highest value on the board is <b>${bestVal.name}</b> (${bestVal.total.toFixed(1)}${bestVal.valRank?`, #${bestVal.valRank}`:``}).
-        ${conviction < 0.45
-          ? `Category shaping is only ${Math.round(conviction*100)}% engaged this early, so if the gap looks big, trust the value.`
-          : `The board prefers ${best.name.split(" ").slice(-1)[0]} on category fit${best.scarce - bestVal.scarce > 0.3 ? ` and availability` : ``}.`}
-        <button class="mini" id="r_val">Inspect ${bestVal.name}</button>
-      </div>`
-    : `
-      <div class="tradeoff">
-        <div class="k">Top of the board</div>
-        Nothing available scores higher for your roster.${runnerUp
-          ? ` Clear of <b>${runnerUp.name}</b> by ${(fg1 - fitFor(runnerUp)).toFixed(1)}.`
-          : ``}
-      </div>`);
+  /*  One shape for all three states: a label, exactly two lines of text, and a
+      button. Anything conditional here changes the panel height, and the ledger,
+      punt radar and roster all shuffle underneath it every time you hover a
+      different player.                                                        */
+  const surname = p => p.name.split(" ").slice(-1)[0];
+  let cmpK, cmpBody, cmpBtn, cmpId;
+  if(!isRec){
+    cmpK = fitGap > 0.05 ? `Board rates ${surname(best)} higher by ${fitGap.toFixed(1)}` : `Equal to the board's pick`;
+    cmpBody = `Recommendation is <b>${best.name}</b> (fit ${isFinite(fg1)?fg1.toFixed(1):"—"}${best.valRank?`, #${best.valRank}`:``})
+               versus <b>${shown.name}</b> at ${isFinite(fg2)?fg2.toFixed(1):"—"}.`;
+    cmpBtn = `Back to ${surname(best)}`; cmpId = "r_back";
+  } else if(differs){
+    cmpK = `Costs you ${cost.toFixed(1)} of raw value`;
+    cmpBody = `Highest value on the board is <b>${bestVal.name}</b> (${bestVal.total.toFixed(1)}${bestVal.valRank?`, #${bestVal.valRank}`:``}).
+               ${conviction < 0.45
+                 ? `Category fit is only ${Math.round(conviction*100)}% engaged, so trust the value.`
+                 : `The board prefers ${surname(best)} on category fit${best.scarce - bestVal.scarce > 0.3 ? ` and availability` : ``}.`}`;
+    cmpBtn = `Inspect ${surname(bestVal)}`; cmpId = "r_val";
+  } else {
+    cmpK = `Top of the board`;
+    cmpBody = `Nothing available scores higher for your roster.${runnerUp
+      ? ` Clear of <b>${runnerUp.name}</b> by ${(fg1 - fitFor(runnerUp)).toFixed(1)}.` : ``}`;
+    cmpBtn = runnerUp ? `Compare ${surname(runnerUp)}` : `—`; cmpId = "r_next";
+  }
+  const compare = `
+    <div class="tradeoff">
+      <div class="k">${cmpK}</div>
+      <div class="tt">${cmpBody}</div>
+      <button class="mini" id="${cmpId}"${cmpId==="r_next" && !runnerUp ? " disabled" : ""}>${cmpBtn}</button>
+    </div>`;
 
   $("#rec").innerHTML = `
     <div class="rec-eyebrow">${previewing ? "Previewing" : !isRec ? "Selected" : mine ? "Take him" : "Best available · not your pick"}${
@@ -2460,7 +2489,8 @@ function renderRec(state){
   $("#r_draft").onclick = ()=> draft(shown.id);
   const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; hoverId = null; render(); };
   const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; hoverId = null; render(); };
-  const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; render(); };
+  const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; hoverId = bestVal.id; render(); };
+  const rn = $("#r_next");  if(rn && runnerUp) rn.onclick = ()=>{ selectedId = runnerUp.id; hoverId = runnerUp.id; render(); };
 }
 
 /*  Every team's roster in a single pass. Cheap enough to recompute each render:
@@ -3094,10 +3124,23 @@ function loadProjectionText(){
     Importing projections is exactly such a path — and league setup is the first
     thing a user is asked for, so losing it there is the worst possible moment.
     Settings are about the league; picks are about one draft. Different keys.  */
+/*  View preferences ride with the league settings rather than living in a
+    scatter of one-off keys. Anything the user deliberately set should still be
+    set after a refresh — which display mode, which sort, whether Tuning is
+    open, how wide the panels are.                                            */
+function uiPrefs(){
+  return {
+    tuning: !$("#tuning").classList.contains("hide"),
+    mode: $("#mode") ? $("#mode").value : "z",
+    ledgerMode, posFilter, sortKey, sortDir,
+    split: typeof splitFrac === "number" ? splitFrac : undefined
+  };
+}
+
 function saveSettings(){
   try{
     localStorage.setItem(CFG_KEY, JSON.stringify({
-      cfg, shape, theme: document.body.dataset.theme
+      cfg, shape, theme: document.body.dataset.theme, ui: uiPrefs()
     }));
   }catch(e){}
 }
@@ -3109,8 +3152,30 @@ function loadSettings(){
     if(d.cfg) Object.assign(cfg, d.cfg);
     if(typeof d.shape === "number") shape = d.shape;
     if(d.theme) document.body.dataset.theme = d.theme;
+    if(d.ui) pendingUI = d.ui;      // applied once the elements exist
     return true;
   }catch(e){ return false; }
+}
+
+/*  Restored after boot, because several of these live on DOM elements that the
+    render pass reads from.                                                   */
+let pendingUI = null;
+function applyUIPrefs(){
+  const u = pendingUI;
+  if(!u) return;
+  if(typeof u.ledgerMode === "string") ledgerMode = u.ledgerMode;
+  if(typeof u.posFilter === "string")  posFilter  = u.posFilter;
+  if(typeof u.sortKey === "string")    sortKey    = u.sortKey;
+  if(u.sortDir === 1 || u.sortDir === -1) sortDir = u.sortDir;
+  if(typeof u.mode === "string" && $("#mode")) $("#mode").value = u.mode;
+  if(typeof u.split === "number"){ splitFrac = applySplit(u.split); }
+  setTuning(!!u.tuning);
+
+  [...$("#ledgermode").querySelectorAll("button")].forEach(b=>
+    b.classList.toggle("on", b.dataset.m === ledgerMode));
+  [...$("#posfilter").querySelectorAll("button")].forEach(b=>
+    b.classList.toggle("on", b.dataset.p === posFilter));
+  pendingUI = null;
 }
 
 function saveState(){
@@ -3167,7 +3232,7 @@ $("#posfilter").innerHTML = ["ALL","PG","SG","SF","PF","C"]
   b.onclick = ()=>{
     posFilter = b.dataset.p;
     [...$("#posfilter").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
-    render();
+    saveSettings(); render();
   };
 });
 
@@ -3178,6 +3243,7 @@ $("#posfilter").innerHTML = ["ALL","PG","SG","SF","PF","C"]
     if(!k) return;
     if(sortKey === k) sortDir = -sortDir;
     else { sortKey = k; sortDir = -1; }
+    saveSettings();
     [...document.querySelectorAll("thead th")].forEach(x=>{
       x.classList.toggle("on", x.dataset.s === sortKey);
       const a = x.querySelector(".arw");
@@ -3200,12 +3266,12 @@ $("#gpw").addEventListener("input", e=>{
 });
 document.querySelector('thead th[data-s="fit"]').classList.add("on");
 
-$("#mode").addEventListener("change", ()=> render());
+$("#mode").addEventListener("change", ()=>{ saveSettings(); render(); });
 [...$("#ledgermode").querySelectorAll("button")].forEach(b=>{
   b.onclick = ()=>{
     ledgerMode = b.dataset.m;
     [...$("#ledgermode").querySelectorAll("button")].forEach(x=>x.classList.toggle("on", x===b));
-    render();
+    saveSettings(); render();
   };
 });
 $("#ledgerteam").addEventListener("change", e=>{
@@ -3228,14 +3294,14 @@ $("#shapeauto").onclick = ()=>{ shape = DEFAULT_SHAPE; render(); };
 
 // Tuning stays folded away until asked for — two sliders is the single biggest
 // source of "too much going on" before anyone has made a pick.
-const TUNE_KEY = "draftboard.tuning.v1";
 function setTuning(open){
   $("#tuning").classList.toggle("hide", !open);
   $("#tuningcaret").textContent = open ? "\u25be" : "\u25b8";
-  try{ localStorage.setItem(TUNE_KEY, open ? "1" : "0"); }catch(e){}
 }
-$("#tuningbtn").onclick = ()=> setTuning($("#tuning").classList.contains("hide"));
-try{ setTuning(localStorage.getItem(TUNE_KEY) === "1"); }catch(e){ setTuning(false); }
+$("#tuningbtn").onclick = ()=>{
+  setTuning($("#tuning").classList.contains("hide"));
+  saveSettings();
+};
 
 
 $("#q").addEventListener("input", ()=> renderBoard(evaluate()));
@@ -3534,6 +3600,7 @@ if(!seenBefore){
   $("#impmask").classList.add("on");
 }
 syncPhotoStat();
+applyUIPrefs();     // restore view preferences before the first paint
 render();
 
 /*  First run with no photos cached: try once, quietly, after the board is up.
