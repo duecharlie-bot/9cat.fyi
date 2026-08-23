@@ -1703,9 +1703,10 @@ let pool = [];
 let picks = [];          // {playerId, teamIdx, overall}
 let sortKey = "fit", sortDir = -1;
 let posFilter = "ALL";
-let hoverId = null;   // previewed player; persists until another row is hovered
-let selectedId = null;   // click once to inspect, again to draft
-let boardIds = [];       // ids in the order currently rendered, for arrow keys
+let hoverId = null;      // previewed player; persists until another row is hovered
+let selectedId = null;     // player currently being inspected
+let armedDraftId = null;   // ONLY a first row/Enter confirmation arms a player for drafting
+let boardIds = [];         // ids in the order currently rendered, for arrow keys
 
 /*  Starred players are keyed by name, not pool index, so a watchlist survives
     re-importing projections — the ids shift, the names don't.                */
@@ -1719,6 +1720,8 @@ const isStarred = p => starred.has(nameKey(p.name));
 function toggleStar(p){
   const k = nameKey(p.name);
   if(starred.has(k)) starred.delete(k); else starred.add(k);
+  // Starring is a separate action, not the second half of a draft confirmation.
+  armedDraftId = null;
   saveStars(); render();
 }
 let flashPick = null;    // overall index of the pick to highlight briefly
@@ -2393,7 +2396,7 @@ $("#theme").onclick  = ()=>{
 $("#reset").onclick = ()=>{
   closeMenu();
   if(!picks.length || confirm(`Clear all ${picks.length} logged picks? Your loaded projections stay.`)){
-    picks = []; locks = {}; hoverId = null; selectedId = null; ledgerTeam = null; clearState(); $("#q").value = ""; render();
+    picks = []; locks = {}; hoverId = null; selectedId = null; armedDraftId = null; ledgerTeam = null; clearState(); $("#q").value = ""; render();
   }
 };
 
@@ -2534,7 +2537,10 @@ function renderRec(state){
       Clicking a row used to draft instantly, which meant you could never look
       at anyone but the top name — and one stray click cost you a pick.       */
   const sel = selectedId !== null ? avail.find(p => p.id === selectedId) : null;
-  if(selectedId !== null && !sel) selectedId = null;         // he just got drafted
+  if(selectedId !== null && !sel){
+    selectedId = null;                                      // he just got drafted
+    armedDraftId = null;
+  }
   const prev = hoverId !== null && hoverId !== selectedId ? avail.find(p => p.id === hoverId) : null;
   if(hoverId !== null && !avail.find(p => p.id === hoverId)) hoverId = null;
   const shown = prev || sel || best;
@@ -2600,10 +2606,10 @@ function renderRec(state){
     </div>
     `;
   $("#r_draft").onclick = ()=> draft(shown.id);
-  const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; hoverId = null; render(); };
-  const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; hoverId = null; render(); };
-  const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; hoverId = bestVal.id; render(); };
-  const rn = $("#r_next");  if(rn && runnerUp) rn.onclick = ()=>{ selectedId = runnerUp.id; hoverId = runnerUp.id; render(); };
+  const rb = $("#r_back");  if(rb) rb.onclick = ()=>{ selectedId = null; hoverId = null; armedDraftId = null; render(); };
+  const rc = $("#r_clear"); if(rc) rc.onclick = ()=>{ selectedId = null; hoverId = null; armedDraftId = null; render(); };
+  const rv = $("#r_val");   if(rv) rv.onclick = ()=>{ selectedId = bestVal.id; hoverId = bestVal.id; armedDraftId = null; render(); };
+  const rn = $("#r_next");  if(rn && runnerUp) rn.onclick = ()=>{ selectedId = runnerUp.id; hoverId = runnerUp.id; armedDraftId = null; render(); };
 }
 
 /*  Every team's roster in a single pass. Cheap enough to recompute each render:
@@ -2871,7 +2877,7 @@ function playerRow(p, opts){
       <td class="l">
         <div class="pname">${star}${p.name}${
           o.flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}${
-          !gone && p.id===selectedId?'<span class="again">click again to draft</span>':''}</div>
+          !gone && p.id===armedDraftId?'<span class="again">click again to draft</span>':''}</div>
         <div class="ppos">${gone
           ? `<span class="takenby">Drafted by ${o.takenBy}</span>`
           : `${p.pos.join("/")} \u00b7 ${p.team}${p.gp?` \u00b7 ${p.gp} GP`:""}`}</div>
@@ -2895,10 +2901,19 @@ function wireRows(container, opts){
     if(st) st.onclick = e=>{ e.stopPropagation(); toggleStar(p); };
     if(tr.classList.contains("gone")) return;   // already drafted: display only
     tr.onclick = ()=>{
-      if(selectedId === id) draft(id);
-      else { selectedId = id; hoverId = id; render(); }
+      // Draft only when THIS player was explicitly armed by a previous row click.
+      // Being selected by the recommendation panel, keyboard navigation, etc. is
+      // not enough to make a single row click commit a pick.
+      if(armedDraftId === id){
+        armedDraftId = null;
+        draft(id);
+      } else {
+        selectedId = id;
+        hoverId = id;
+        armedDraftId = id;
+        render();
+      }
     };
-    tr.ondblclick = ()=> draft(id);
     tr.onmouseenter = ()=>{
       if(hoverId === id) return;
       hoverId = id;
@@ -3254,6 +3269,7 @@ function draft(id){
   $("#q").value = "";
   hoverId = null;
   selectedId = null;
+  armedDraftId = null;
   /*  Brief highlight on the pick that just landed. Mid-draft it's easy to lose
       track of whether a click actually registered.                          */
   flashPick = picks.length - 1;
@@ -3491,17 +3507,19 @@ $("#q").addEventListener("keydown", e=>{
     const first = $("#board").querySelector("tr[data-id]");
     const fid = first ? +first.dataset.id : null;
     if(fid !== null){
-      if(selectedId === fid) draft(fid);      // Enter twice to commit
-      else { selectedId = fid; render(); }
+      if(armedDraftId === fid) draft(fid);    // Enter twice to commit
+      else { selectedId = fid; hoverId = fid; armedDraftId = fid; render(); }
     }
   }
 });
 document.addEventListener("keydown", e=>{
   if(e.key === "/" && document.activeElement !== $("#q")){ e.preventDefault(); $("#q").focus(); }
   if((e.metaKey||e.ctrlKey) && e.key === "z"){ e.preventDefault(); undo(); }
-  if(e.key === "Escape" && (selectedId !== null || hoverId !== null)){ selectedId = null; hoverId = null; render(); }
+  if(e.key === "Escape" && (selectedId !== null || hoverId !== null || armedDraftId !== null)){
+    selectedId = null; hoverId = null; armedDraftId = null; render();
+  }
 });
-function undo(){ picks.pop(); render(); }
+function undo(){ picks.pop(); armedDraftId = null; render(); }
 
 // Settings
 function paintNameGrid(){
@@ -3559,7 +3577,11 @@ document.addEventListener("keydown", e=>{
   if(e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
 
   if(e.key === "Enter"){
-    if(selectedId !== null){ e.preventDefault(); draft(selectedId); }
+    if(selectedId !== null){
+      e.preventDefault();
+      if(armedDraftId === selectedId) draft(selectedId);
+      else { armedDraftId = selectedId; render(); }
+    }
     return;
   }
   e.preventDefault();
@@ -3569,6 +3591,7 @@ document.addEventListener("keydown", e=>{
     : (at < 0 ? 0 : Math.max(at - 1, 0));
   selectedId = boardIds[next];
   hoverId = selectedId;          // keep the preview in step with the keyboard
+  armedDraftId = null;           // navigation inspects; it never pre-confirms a draft
   render();
   const row = $("#board").querySelector(`tr[data-id="${selectedId}"]`);
   if(row && row.scrollIntoView) row.scrollIntoView({block:"nearest"});
