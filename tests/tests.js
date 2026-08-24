@@ -849,6 +849,44 @@ function registerTests(w){
   });
 
 
+  test("Restore default projections clears only the custom projection override", ()=>{
+    const projKey = w.eval("PROJ_KEY");
+    const cfgKey = w.eval("CFG_KEY");
+    const saveKey = w.eval("SAVE_KEY");
+    const starKey = w.eval("STAR_KEY");
+
+    const oldProj = w.localStorage.getItem(projKey);
+    const oldCfg = w.localStorage.getItem(cfgKey);
+    const oldSave = w.localStorage.getItem(saveKey);
+    const oldStars = w.localStorage.getItem(starKey);
+
+    try{
+      w.localStorage.setItem(projKey, "CUSTOM CSV");
+      w.localStorage.setItem(cfgKey, "KEEP SETTINGS");
+      w.localStorage.setItem(saveKey, "DRAFT STATE");
+      w.localStorage.setItem(starKey, "KEEP STARS");
+
+      equal(w.clearProjectionText(), true);
+      equal(w.localStorage.getItem(projKey), null, "Projection override should be removed");
+      equal(w.localStorage.getItem(cfgKey), "KEEP SETTINGS", "League settings should be preserved");
+      equal(w.localStorage.getItem(saveKey), "DRAFT STATE", "Projection helper itself should not silently clear draft state");
+      equal(w.localStorage.getItem(starKey), "KEEP STARS", "Starred players should be preserved");
+
+      // The actual restore action separately calls clearState(), because picks
+      // are pool-specific. Verify that helper still leaves settings/stars alone.
+      w.clearState();
+      equal(w.localStorage.getItem(saveKey), null, "Restore should be able to reset draft state");
+      equal(w.localStorage.getItem(cfgKey), "KEEP SETTINGS");
+      equal(w.localStorage.getItem(starKey), "KEEP STARS");
+    } finally {
+      const restore = (k,v)=> v === null ? w.localStorage.removeItem(k) : w.localStorage.setItem(k,v);
+      restore(projKey, oldProj);
+      restore(cfgKey, oldCfg);
+      restore(saveKey, oldSave);
+      restore(starKey, oldStars);
+    }
+  });
+
   test("Projection import validation rejects an empty import without creating rows", ()=>{
     const v = w.validateProjectionImport("");
     equal(v.ok, false);
