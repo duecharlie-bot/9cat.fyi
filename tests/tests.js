@@ -749,6 +749,35 @@ function registerTests(w){
     }
   });
 
+  test("Bundled projection dataset exposes season and update metadata", ()=>{
+    const meta = w.eval("PROJECTION_DATASET_META");
+    equal(meta.kind, "bundled");
+    equal(meta.season, "2026-27");
+    equal(meta.updated, "2026-08-24");
+    equal(meta.label, "2026–27 Projections");
+  });
+
+  test("Historical dataset exposes source and data-through metadata", ()=>{
+    const meta = w.eval("ACTUALS_DATASET_META");
+    equal(meta.kind, "historical");
+    equal(meta.source, "BoxScore Lab");
+    equal(meta.license, "CC BY 4.0");
+    equal(meta.dataThrough, "2026-08-09");
+  });
+
+  test("Bundled projection summary includes label, player count and updated date", ()=>{
+    const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 30))");
+    equal(summary, "2026–27 Projections · 30 players · Updated Aug 24, 2026");
+  });
+
+  test("Custom projection imports are clearly distinguished from bundled data", ()=>{
+    const meta = w.eval("projectionDatasetMeta('custom table', 184)");
+    equal(meta.kind, "custom");
+    equal(meta.label, "Custom projections");
+    equal(meta.playerCount, 184);
+    equal(w.eval("projectionDatasetSummary(projectionDatasetMeta('custom table', 184))"), "Custom projections · 184 players");
+  });
+
 }
 
 async function run(){
