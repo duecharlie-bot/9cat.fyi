@@ -876,6 +876,54 @@ function registerTests(w){
     equal(v.withKnownPos, 5);
   });
 
+
+  test("First-run league setup clearly leads with the two required draft-order settings", ()=>{
+    const oldFirstRun = w.eval("firstRun");
+    try{
+      w.eval("firstRun = true");
+      w.openSet();
+      const intro = w.document.getElementById("s_intro");
+      assert(intro && intro.style.display !== "none", "First-run setup intro should be visible");
+      const text = intro.textContent.replace(/\s+/g," ").trim();
+      assert(text.includes("Step 1 of 2"), "Expected first-run step indicator");
+      assert(text.includes("league size") && text.includes("draft slot"), "Expected league size and draft slot guidance");
+      assert(text.toLowerCase().includes("projections are already loaded"), "Expected bundled-projection reassurance");
+      equal(w.document.getElementById("s_save").textContent, "Save and continue");
+    } finally {
+      w.eval(`firstRun = ${oldFirstRun ? "true" : "false"}`);
+      w.document.getElementById("setmask").classList.remove("on");
+    }
+  });
+
+  test("Quick start tells new users that importing projections is optional", ()=>{
+    const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(text.includes("Step 2 of 2"), "Expected second onboarding step");
+    assert(text.toLowerCase().includes("starter projection set"), "Expected starter projection guidance");
+    assert(text.toLowerCase().includes("importing your own projections is optional"), "Expected import to be framed as optional");
+  });
+
+  test("Quick start explains Total versus Fit and recommends drafting from Fit", ()=>{
+    const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(text.includes("Total") && text.includes("Fit"), "Expected Total and Fit explanation");
+    assert(text.includes("When they disagree, use Fit"), "Expected a clear recommendation to use Fit");
+  });
+
+  test("Quick start presents Yahoo sync as optional automation", ()=>{
+    const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(text.includes("Yahoo sync is optional"), "Expected optional Yahoo sync guidance");
+    assert(text.includes("Chrome extension"), "Expected Chrome extension explanation");
+    assert(text.includes("Manual drafting works normally without the extension"), "Expected manual-draft fallback guidance");
+  });
+
+  test("Quick start Start drafting control closes the onboarding modal", ()=>{
+    const mask = w.document.getElementById("helpmask");
+    const btn = w.document.getElementById("help_close");
+    equal(btn.textContent.trim(), "Start drafting");
+    mask.classList.add("on");
+    btn.click();
+    assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
+  });
+
 }
 
 async function run(){
