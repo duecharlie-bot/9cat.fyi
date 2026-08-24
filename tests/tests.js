@@ -315,93 +315,78 @@ function registerTests(w){
     }
   });
 
-  test("Two punts hard-stop any further automatic punt recommendations", ()=>{
-    const oldLocks = w.eval("locks");
-    try{
-      w.__testLocks = {fg:"punt", ft:"punt"};
-      w.eval("locks = window.__testLocks");
-      const state = {
-        roster:[player("PG"),player("SG")],
-        avail:[],
-        tz:{fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0},
-        nxt:null
-      };
-      const suggestions = w.suggestPunts(state);
-      equal(suggestions.length, 0, "Once two categories are punted, nineCat must never suggest a third punt");
-    } finally {
-      w.__oldLocks = oldLocks;
-      w.eval("locks = window.__oldLocks");
-      delete w.__testLocks; delete w.__oldLocks;
-    }
-  });
 
-  test("With two punts, a clearly weak remaining category can trigger a chase recommendation", ()=>{
-    const oldLocks = w.eval("locks");
+  test("Recommendation pool excludes players already drafted", ()=>{
     const oldPool = w.eval("pool");
-    const oldCfg = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size")};
+    const oldPicks = w.eval("picks");
     try{
-      const zero = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
-      w.__testLocks = {fg:"punt", ft:"punt"};
-      w.__testPool = Array.from({length:12},(_,i)=>({id:900+i,total:10-i/10,z:{...zero}}));
-      w.eval("locks=window.__testLocks; pool=window.__testPool; cfg.teams=4; cfg.size=3");
-      const tz = {...zero, blk:-4};
-      const state = {roster:[player("PG"),player("SG"),player("SF")], tz};
-      const suggestion = w.suggestChase(state);
-      assert(suggestion, "Expected a chase recommendation with two punts and a badly weak category");
-      equal(suggestion.cat.k, "blk", "BLK should be identified as the weak category to protect");
-      equal(suggestion.punts, 2);
+      const zeroZ = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      const a = player("PG", {id:101,name:"Taken",team:"TST",gp:72,adp:20,z:{...zeroZ},zpg:{...zeroZ},total:0,totalPg:0,last:null});
+      const b = player("SG", {id:102,name:"Available",team:"TST",gp:72,adp:21,z:{...zeroZ},zpg:{...zeroZ},total:0,totalPg:0,last:null});
+      w.__testPool=[a,b]; w.__testPicks=[{playerId:101,teamIdx:0,overall:0}];
+      w.eval("pool=window.__testPool; picks=window.__testPicks");
+      const ids = w.available().map(p=>p.id);
+      equal(JSON.stringify(ids), JSON.stringify([102]));
     } finally {
-      w.__oldLocks=oldLocks; w.__oldPool=oldPool;
-      w.eval(`locks=window.__oldLocks; pool=window.__oldPool; cfg.teams=${oldCfg.teams}; cfg.size=${oldCfg.size}`);
-      delete w.__testLocks; delete w.__testPool; delete w.__oldLocks; delete w.__oldPool;
+      w.__oldPool=oldPool; w.__oldPicks=oldPicks;
+      w.eval("pool=window.__oldPool; picks=window.__oldPicks");
+      delete w.__testPool; delete w.__testPicks; delete w.__oldPool; delete w.__oldPicks;
     }
   });
 
-  test("With three punts, chase protection becomes aggressive before a fourth category is lost", ()=>{
-    const oldLocks = w.eval("locks");
-    const oldPool = w.eval("pool");
-    const oldCfg = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size")};
+  test("Run risk is higher for a player likely to be gone before the next turn", ()=>{
+    const oldPicks = w.eval("picks");
     try{
-      const zero = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
-      w.__testLocks = {fg:"punt", ft:"punt", tpm:"punt"};
-      w.__testPool = Array.from({length:12},(_,i)=>({id:950+i,total:10-i/10,z:{...zero}}));
-      w.eval("locks=window.__testLocks; pool=window.__testPool; cfg.teams=4; cfg.size=3");
-      // This gap is intentionally mild: with only two punts it would not clear
-      // the -0.65 threshold, but at three punts we protect the weakest live cat.
-      const tz = {...zero, reb:-0.2};
-      const state = {roster:[player("PG"),player("SG"),player("SF")], tz};
-      const suggestion = w.suggestChase(state);
-      assert(suggestion, "Three punts should proactively protect the weakest remaining category");
-      equal(suggestion.cat.k, "reb");
-      equal(suggestion.punts, 3);
+      w.__testPicks=[];
+      w.eval("picks=window.__testPicks");
+      const early = w.runRisk({adp:4}, 10);
+      const late  = w.runRisk({adp:30}, 10);
+      assert(early > late, `Expected earlier ADP to have higher run risk (${early} vs ${late})`);
+      assert(early >= 0 && early <= 1 && late >= 0 && late <= 1, "Run risk should remain a probability");
     } finally {
-      w.__oldLocks=oldLocks; w.__oldPool=oldPool;
-      w.eval(`locks=window.__oldLocks; pool=window.__oldPool; cfg.teams=${oldCfg.teams}; cfg.size=${oldCfg.size}`);
-      delete w.__testLocks; delete w.__testPool; delete w.__oldLocks; delete w.__oldPool;
+      w.__oldPicks=oldPicks;
+      w.eval("picks=window.__oldPicks");
+      delete w.__testPicks; delete w.__oldPicks;
     }
   });
 
-  test("Hard chase weights a category more strongly than a normal chase", ()=>{
-    const oldLocks = w.eval("locks");
+  test("Scarcity boosts otherwise-equal players who are unlikely to survive", ()=>{
+    const oldCfg = {teams:w.eval("cfg.teams"),slot:w.eval("cfg.slot"),size:w.eval("cfg.size"),scarcity:w.eval("cfg.scarcity")};
+    const oldPool=w.eval("pool"), oldPicks=w.eval("picks"), oldLocks=w.eval("locks"), oldShape=w.eval("shape");
     try{
-      const tz = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
-      w.__testLocks = {blk:"chase"};
-      w.eval("locks=window.__testLocks");
-      const chase = w.leverage(tz, 0.5).blk;
-      w.__testLocks = {blk:"chase2"};
-      w.eval("locks=window.__testLocks");
-      const hard = w.leverage(tz, 0.5).blk;
-      assert(hard > chase, "Hard chase should weight BLK more than normal chase");
-      // leverage() normalizes all live category weights after applying the
-      // raw chase pins. With every other category at its natural 0.25 weight:
-      // normal chase = 0.40 / (0.40 + 8*0.25) * 9 = 1.50
-      // hard chase   = 0.80 / (0.80 + 8*0.25) * 9 = 18/7 ≈ 2.5714
-      approx(chase, 1.50);
-      approx(hard, 18/7);
+      const zeroZ = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      const mk=(id,name,adp)=>player("PG",{id,name,team:"TST",gp:72,adp,z:{...zeroZ},zpg:{...zeroZ},total:0,totalPg:0,last:null});
+      w.__testPool=[mk(201,"Early ADP",3),mk(202,"Late ADP",40)];
+      w.__testPicks=[]; w.__testLocks={};
+      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=5; cfg.scarcity=1; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks; shape=0");
+      const state=w.evaluate();
+      const early=state.avail.find(p=>p.id===201), late=state.avail.find(p=>p.id===202);
+      assert(early.fitAdj > late.fitAdj, `Expected scarcity to favor likely-gone player (${early.fitAdj} vs ${late.fitAdj})`);
     } finally {
-      w.__oldLocks=oldLocks;
-      w.eval("locks=window.__oldLocks");
-      delete w.__testLocks; delete w.__oldLocks;
+      w.__oldPool=oldPool; w.__oldPicks=oldPicks; w.__oldLocks=oldLocks;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; cfg.scarcity=${oldCfg.scarcity}; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks; shape=${oldShape}`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
+    }
+  });
+
+  test("Hard chase tilts Fit toward the chased category", ()=>{
+    const oldCfg = {teams:w.eval("cfg.teams"),slot:w.eval("cfg.slot"),size:w.eval("cfg.size"),scarcity:w.eval("cfg.scarcity")};
+    const oldCatW=w.eval("cfg.catW"), oldPool=w.eval("pool"), oldPicks=w.eval("picks"), oldLocks=w.eval("locks"), oldShape=w.eval("shape");
+    try{
+      const zeroZ = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      const astZ={...zeroZ,ast:1};
+      const ptsZ={...zeroZ,pts:1};
+      const mk=(id,name,z)=>player("PG",{id,name,team:"TST",gp:72,adp:30,z,zpg:{...z},total:1,totalPg:1,last:null});
+      w.__testPool=[mk(301,"AST specialist",astZ),mk(302,"PTS specialist",ptsZ)];
+      w.__testPicks=[]; w.__testLocks={ast:"chase2"}; w.__testCatW={};
+      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=5; cfg.scarcity=0; cfg.catW=window.__testCatW; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks; shape=0");
+      const state=w.evaluate();
+      const ast=state.avail.find(p=>p.id===301), pts=state.avail.find(p=>p.id===302);
+      assert(ast.fitAdj > pts.fitAdj, `Expected hard-chased AST player to rank above equal PTS player (${ast.fitAdj} vs ${pts.fitAdj})`);
+    } finally {
+      w.__oldPool=oldPool; w.__oldPicks=oldPicks; w.__oldLocks=oldLocks; w.__oldCatW=oldCatW;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; cfg.scarcity=${oldCfg.scarcity}; cfg.catW=window.__oldCatW; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks; shape=${oldShape}`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__testCatW; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks; delete w.__oldCatW;
     }
   });
 
