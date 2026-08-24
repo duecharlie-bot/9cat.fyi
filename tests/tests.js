@@ -392,8 +392,12 @@ function registerTests(w){
       w.eval("locks=window.__testLocks");
       const hard = w.leverage(tz, 0.5).blk;
       assert(hard > chase, "Hard chase should weight BLK more than normal chase");
-      approx(chase, 0.40);
-      approx(hard, 0.80);
+      // leverage() normalizes all live category weights after applying the
+      // raw chase pins. With every other category at its natural 0.25 weight:
+      // normal chase = 0.40 / (0.40 + 8*0.25) * 9 = 1.50
+      // hard chase   = 0.80 / (0.80 + 8*0.25) * 9 = 18/7 ≈ 2.5714
+      approx(chase, 1.50);
+      approx(hard, 18/7);
     } finally {
       w.__oldLocks=oldLocks;
       w.eval("locks=window.__oldLocks");
