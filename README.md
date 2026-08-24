@@ -24,7 +24,9 @@ It looks at projected value, category fit, ADP, punt strategies, and who's likel
 
 ### Projections
 
-Import projections with the nineCat CSV schema:
+nineCat ships with a 500-player 2026–27 Yahoo projection pool as its default draft pool.
+
+You can replace it with your own projections using the nineCat CSV schema:
 
 `PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO`
 
@@ -34,4 +36,4 @@ Last season's stats are included for comparison.
 
 ### Note
 
-Projection data belongs to the original publishers and isn't included in the public repo unless it's openly licensed.
+Yahoo is the source of the bundled 2026–27 projection data. nineCat is not affiliated with or endorsed by Yahoo.
