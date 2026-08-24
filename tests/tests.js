@@ -746,11 +746,11 @@ function registerTests(w){
     }
   });
 
-  test("Bundled current-season projection dataset parses to the expected 30-player sample", ()=>{
+  test("Bundled current-season projection dataset parses to the expected 500-player Yahoo pool", ()=>{
     const rows = w.eval("dedupe(parsePool(RAW))");
-    equal(rows.length, 30, "Bundled projection sample size changed unexpectedly");
-    equal(rows[0].name, "Nikola Jokic");
-    equal(rows[rows.length-1].name, "Dejounte Murray");
+    equal(rows.length, 500, "Bundled Yahoo projection pool size changed unexpectedly");
+    equal(rows[0].name, "Victor Wembanyama");
+    equal(rows[rows.length-1].name, "Nate Williams");
   });
 
   test("Bundled historical actuals dataset is present and substantial", ()=>{
@@ -775,7 +775,7 @@ function registerTests(w){
     equal(meta.kind, "bundled");
     equal(meta.season, "2026-27");
     equal(meta.updated, "2026-08-24");
-    equal(meta.label, "2026–27 Projections");
+    equal(meta.label, "2026–27 Yahoo Projections");
   });
 
   test("Historical dataset exposes source and data-through metadata", ()=>{
@@ -787,8 +787,8 @@ function registerTests(w){
   });
 
   test("Bundled projection summary includes label, player count and updated date", ()=>{
-    const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 30))");
-    equal(summary, "2026–27 Projections · 30 players · Updated Aug 24, 2026");
+    const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 500))");
+    equal(summary, "2026–27 Yahoo Projections · 500 players · Updated Aug 24, 2026");
   });
 
   test("Custom projection imports are clearly distinguished from bundled data", ()=>{
@@ -905,8 +905,8 @@ function registerTests(w){
       const text = intro.textContent.replace(/\s+/g," ").trim();
       assert(text.includes("First-time setup"), "Expected standalone first-time setup label");
       assert(text.includes("league size") && text.includes("draft slot"), "Expected league size and draft slot guidance");
-      assert(text.includes("30-player sample"), "Expected accurate sample-pool guidance");
-      assert(text.toLowerCase().includes("load a full projection set"), "Expected full-pool guidance before a real draft");
+      assert(text.includes("500-player 2026–27 Yahoo projection pool"), "Expected bundled Yahoo-pool guidance");
+      assert(text.includes("replace it anytime"), "Expected custom-projection guidance");
       equal(w.document.getElementById("s_save").textContent, "Save and continue");
     } finally {
       w.eval(`firstRun = ${oldFirstRun ? "true" : "false"}`);
@@ -914,11 +914,11 @@ function registerTests(w){
     }
   });
 
-  test("Quick start is standalone and accurately explains the sample projection pool", ()=>{
+  test("Quick start is standalone and accurately explains the bundled Yahoo projection pool", ()=>{
     const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
     assert(!text.includes("Step 2 of 2"), "Quick start should not pretend to be a second step when reopened from the menu");
-    assert(text.includes("30-player sample projection set"), "Expected accurate sample-pool guidance");
-    assert(text.toLowerCase().includes("before a real draft, load a full projection set"), "Expected full projection requirement");
+    assert(text.includes("500-player 2026–27 Yahoo projection pool"), "Expected bundled Yahoo-pool guidance");
+    assert(text.includes("replace it anytime"), "Expected custom-projection guidance");
   });
 
   test("Quick start explains Total, Fit, and next-pick scarcity in simple language", ()=>{
