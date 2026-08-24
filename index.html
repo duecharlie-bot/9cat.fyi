@@ -2491,8 +2491,14 @@ function evaluate(){
   }
 
   const avail = available();
+  /*  Roster-slot legality is a constraint only when WE are on the clock.
+      On an opponent's pick we still need to be able to log any player they can
+      legally draft for their own roster, even if that player would not fit ours.
+      Using our open slots on every turn was greying out players like Wembanyama
+      while entering Team 2's pick.                                             */
+  const enforceRosterFit = teamOnClock(picks.length) === myTeamIdx();
   avail.forEach(p=>{
-    p.rosterFit = canFitRoster(roster, p);
+    p.rosterFit = !enforceRosterFit || canFitRoster(roster, p);
     p.fit = CATS.reduce((s,c)=>s + w[c.k] * cw(c.k) * p.z[c.k], 0);
     p.risk = runRisk(p, riskGap);
     /*  Scarcity. A player certain to survive to your next turn is worth less
@@ -2510,7 +2516,8 @@ function evaluate(){
       : null;
   });
 
-  return {roster, tz, w, avail, gap, riskGap, nxt, conviction, ramp, gaps: rosterGaps(roster)};
+  return {roster, tz, w, avail, gap, riskGap, nxt, conviction, ramp,
+          enforceRosterFit, gaps: rosterGaps(roster)};
 }
 
 /* ============================================================
@@ -3462,7 +3469,9 @@ function renderRoster(state){
   const sig = `${g.missing.join(",")}|${g.eligibilityMissing.join(",")}|${g.openSlots.join(",")}|${g.eligibilityAlert}`;
   const onlyRestricted = g.openSlots.length && !g.openSlots.some(s=>s==="UTIL"||s==="BN");
   const needsAlert = g.eligibilityAlert || onlyRestricted || (g.missing.length && g.left > 0);
-  const show = isMine && needsAlert && ui.gapHidden !== sig;
+  // Positional warnings are actionable only on our pick. On another team's
+  // clock, do not imply that our open slots restrict which player can be logged.
+  const show = isMine && state.enforceRosterFit && needsAlert && ui.gapHidden !== sig;
   const gn = $("#rgap");
   gn.style.display = show ? "" : "none";
   if(show){
