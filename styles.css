@@ -828,3 +828,37 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 }
 .site-footer a:hover{color:var(--wood)}
 
+
+/* ---------- strict CSV projection import ---------- */
+.import-format{
+  margin:12px 0;padding:12px;border:1px solid var(--line-soft);border-radius:var(--r);background:var(--raise)
+}
+.import-format-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.import-format-head b{display:block;color:var(--chalk);font-size:13px;margin-bottom:3px}
+.import-format-head p{margin:0!important;font-size:11px!important;color:var(--dimmer)!important;line-height:1.45}
+.template-btn{display:inline-block;flex:0 0 auto;text-decoration:none;white-space:nowrap;padding:6px 10px;font-size:10px}
+.schema-label{margin-top:11px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer)}
+.schema-code{
+  display:block;margin-top:5px;padding:8px 9px;background:var(--ink);border:1px solid var(--line-soft);border-radius:var(--r);
+  color:var(--wood-hi);font-family:"IBM Plex Mono",monospace;font-size:9px;line-height:1.45;overflow-x:auto;white-space:nowrap
+}
+.import-format .import-note{margin:8px 0 0!important;font-size:10px!important;line-height:1.5;color:var(--dimmer)!important}
+.import-format .import-note b{display:inline;font-size:inherit;color:var(--dim)}
+.csv-drop{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:104px;padding:18px;
+  border:1px dashed var(--wood);border-radius:var(--r);background:var(--ink);cursor:pointer;text-align:center;
+  transition:background .12s ease,border-color .12s ease
+}
+.csv-drop:hover,.csv-drop.drag{background:var(--raise);border-color:var(--wood-hi)}
+.csv-drop:focus-visible{outline:2px solid var(--wood);outline-offset:2px}
+.csv-drop-title{font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--chalk)}
+.csv-drop-sub{margin-top:3px;font-size:11px;color:var(--dimmer)}
+.csv-filemeta{margin:6px 0 10px;font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--dimmer)}
+.paste-csv{margin:0 0 10px}
+.paste-csv summary{cursor:pointer;font-size:11px;color:var(--wood)}
+.paste-csv textarea{height:150px;margin-top:8px}
+#imp_go:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:640px){
+  .import-format-head{display:block}
+  .template-btn{margin-top:9px}
+}

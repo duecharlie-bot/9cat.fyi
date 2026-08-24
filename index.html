@@ -239,30 +239,31 @@
       (CC BY 4.0). You only need this season's projections.
     </p>
 
-    <ol class="steps">
-      <li>
-        Open a projections page and set it to show <b>all</b> players.
-        <span class="src">
-          <a href="https://hashtagbasketball.com/fantasy-basketball-projections" target="_blank" rel="noopener">Hashtag</a>
-          <a href="https://fantasy.espn.com/basketball/players/projections" target="_blank" rel="noopener">ESPN</a>
-          <a href="https://www.basketball-reference.com/leagues/NBA_2026_per_game.html" target="_blank" rel="noopener">Basketball Reference</a>
-        </span>
-        <em>On Hashtag also set <b>Based On</b> to <b>Averages</b>. On ESPN, scroll to the very bottom so every row loads.</em>
-      </li>
-      <li>
-        Select the whole table and copy it.
-        <em>Click just above the first player's name, scroll to the bottom, then shift-click after the last one. Ctrl/Cmd&nbsp;+&nbsp;C.</em>
-      </li>
-      <li>
-        Paste into the box below and press <b>Replace pool</b>.
-        <em>Don't tidy anything up first — headers, repeated rows and odd cells are all handled.</em>
-      </li>
-    </ol>
+    <div class="import-format">
+      <div class="import-format-head">
+        <div>
+          <b>Use the nineCat CSV format</b>
+          <p>One player per row. nineCat calculates FG%, FT%, Total and player rank itself.</p>
+        </div>
+        <a class="btn template-btn" href="data/projection-template.csv" download="ninecat-projection-template.csv">Download CSV template</a>
+      </div>
+      <div class="schema-label">Required header</div>
+      <code class="schema-code">PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO</code>
+      <p class="import-note"><b>PLAYER</b> should use the Yahoo display name for reliable draft sync. <b>POS</b> uses values such as PG, SG/SF or PF/C. ADP, GP and MPG may be blank; every stat column is required.</p>
+    </div>
 
-    <p style="font-size:11px;color:var(--dimmer)">
-      It reads the column headers itself, so any source works. If something doesn't
-      parse it tells you which row and nothing is changed.
-    </p>
+    <input id="impfile" type="file" accept=".csv,text/csv" hidden>
+    <label class="csv-drop" id="impdrop" for="impfile" tabindex="0">
+      <span class="csv-drop-title">Drop projections.csv here</span>
+      <span class="csv-drop-sub">or click to choose a CSV file</span>
+    </label>
+    <div class="csv-filemeta" id="impfilemeta">No CSV selected</div>
+
+    <details class="paste-csv" id="imppastedetails">
+      <summary>Advanced: paste CSV instead</summary>
+      <textarea id="impbox" spellcheck="false" placeholder="PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO"></textarea>
+    </details>
+    <div class="msg" id="impmsg"></div>
 
     <details style="margin-bottom:12px" id="photodetails" open>
       <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Player photos — <span id="photostat">not set up</span></summary>
@@ -287,24 +288,6 @@
       </details>
     </details>
 
-    <details style="margin-bottom:12px">
-      <summary style="cursor:pointer;font-size:12px;color:var(--wood)">Advanced: grab the table with one command</summary>
-      <p style="margin-top:8px">
-        Only needed if the table is too long to select by hand. Open the browser console (F12),
-        paste this, press Enter — it copies the whole table to your clipboard. Chrome asks you to
-        type <span class="mono">allow pasting</span> the first time.
-      </p>
-      <textarea readonly style="height:88px" onclick="this.select()">copy([...[...document.querySelectorAll('table')]
-  .sort((a,b)=>b.rows.length-a.rows.length)[0].rows]
-  .map(r=>[...r.cells].map(c=>c.innerText.replace(/\s+/g,' ').trim()).join('\t'))
-  .join('\n'))</textarea>
-      <p style="margin-top:6px;color:var(--dimmer)">
-        It takes the biggest table on the page, so scroll to the bottom on lazy-loading sites first.
-      </p>
-    </details>
-
-    <textarea id="impbox" placeholder="R#	PLAYER	ADP	POS	TEAM	GP	MPG	FG%	FT%	3PM	PTS	TREB	AST	STL	BLK	TO"></textarea>
-    <div class="msg" id="impmsg"></div>
     <div style="margin-top:12px">
       <button class="btn primary" id="imp_go">Replace pool</button>
       <button class="btn" id="imp_close">Cancel</button>
