@@ -480,6 +480,31 @@ function registerTests(w){
     }
   });
 
+  test("FIT display is centered on the next two rounds of available value", ()=>{
+    const oldTeams = w.eval("cfg.teams");
+    try{
+      w.eval("cfg.teams=2");                    // two rounds = four players
+      const rows = [
+        {valRank:1,total:10,fitAdj:4,fitLast:8,rosterFit:true},
+        {valRank:2,total:9, fitAdj:3,fitLast:7,rosterFit:true},
+        {valRank:3,total:8, fitAdj:2,fitLast:6,rosterFit:true},
+        {valRank:4,total:7, fitAdj:1,fitLast:5,rosterFit:true},
+        {valRank:5,total:6, fitAdj:-100,fitLast:-100,rosterFit:true}
+      ];
+      w.__fitRows=rows;
+      const market = w.eval("applyFitMarketBaseline(window.__fitRows)");
+      approx(market.fitBaseline, 2.5);
+      equal(market.fitWindowSize, 4);
+      approx(rows[0].fitDisplay, 1.5);
+      approx(rows[3].fitDisplay, -1.5);
+      approx(rows[4].fitDisplay, -102.5, 1e-9, "A deep fringe player must not drag down the current-market zero");
+      approx(rows[0].fitDisplay - rows[1].fitDisplay, rows[0].fitAdj - rows[1].fitAdj, 1e-9, "Re-centering must preserve FIT gaps/order");
+    } finally {
+      w.eval(`cfg.teams=${oldTeams}`);
+      delete w.__fitRows;
+    }
+  });
+
   test("Hard chase tilts Fit toward the chased category", ()=>{
     const oldCfg = {teams:w.eval("cfg.teams"),slot:w.eval("cfg.slot"),size:w.eval("cfg.size"),scarcity:w.eval("cfg.scarcity")};
     const oldCatW=w.eval("cfg.catW"), oldPool=w.eval("pool"), oldPicks=w.eval("picks"), oldLocks=w.eval("locks"), oldShape=w.eval("shape");
