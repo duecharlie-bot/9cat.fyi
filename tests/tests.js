@@ -778,6 +778,30 @@ function registerTests(w){
     equal(w.eval("projectionDatasetSummary(projectionDatasetMeta('custom table', 184))"), "Custom projections · 184 players");
   });
 
+  test("Player-name normalization rules are loaded from dedicated data", ()=>{
+    const rules = w.eval("PLAYER_NAME_RULES");
+    equal(rules.foldChars["đ"], "d");
+    assert(rules.suffixes.includes("jr"), "Expected Jr suffix rule");
+    assert(rules.suffixes.includes("iii"), "Expected III suffix rule");
+  });
+
+  test("Source team abbreviations are centralized in player-name rules", ()=>{
+    const teams = w.eval("PLAYER_NAME_RULES.teamAbbreviations");
+    for(const t of ["NY","NYK","NO","NOP","PHO","PHX","GS","GSW"]){
+      assert(teams.includes(t), `Expected ${t} team abbreviation`);
+    }
+  });
+
+  test("Generational suffixes still normalize to the same player key", ()=>{
+    equal(w.eval(`nameKey("Jaren Jackson Jr.")`), w.eval(`nameKey("Jaren Jackson")`));
+    equal(w.eval(`nameKey("Trey Murphy III")`), w.eval(`nameKey("Trey Murphy")`));
+  });
+
+  test("Player cleanup preserves suffixes while stripping source team and position", ()=>{
+    equal(w.eval(`cleanName("Trey Murphy III NO SG/SF")`), "Trey Murphy III");
+    equal(w.eval(`cleanName("Stephen Curry GSW PG")`), "Stephen Curry");
+  });
+
 }
 
 async function run(){
