@@ -669,7 +669,7 @@ function renderBoard(state){
     const ab = !isFinite(av), bb = !isFinite(bv);
     if(ab || bb) return ab && bb ? 0 : (ab ? 1 : -1);
     return (bv - av) * (sortDir === -1 ? 1 : -1);
-  }).slice(0, 80);
+  });
 
   boardIds = list.map(p=>p.id);
   $("#board").innerHTML = list.map((p,i)=> playerRow(p, {
