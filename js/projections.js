@@ -3,9 +3,9 @@
 /* ============================================================
    PROJECTION + PLAYER DATA LOGIC
 
-   The bundled current-season projection sample and 2025–26 historical
-   actuals now live under /data. A user-pasted projection pool still
-   overrides the bundled sample exactly as before.
+   The bundled current-season projection dataset and 2025–26 historical
+   actuals now live under /data. A user-imported projection pool still
+   overrides the bundled dataset exactly as before.
 
    Historical actuals source: BoxScore Lab (CC BY 4.0).
    Data through August 9, 2026.
