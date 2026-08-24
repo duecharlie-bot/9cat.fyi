@@ -1,14 +1,15 @@
 "use strict";
 
-/* Bundled nineCat 2026–27 projection sample in the same canonical CSV
-   format exposed to users. Data only: parser/scoring logic lives under js/. */
+/* Bundled 2026–27 Yahoo projection pool in the same canonical CSV
+   format exposed to users. Data only: parser/scoring logic lives under js/.
+   Yahoo is the projection source; nineCat is not affiliated with Yahoo. */
 const PROJECTION_DATASET_META = Object.freeze({
-  id: "ninecat-2026-27-sample",
+  id: "yahoo-2026-27-full500",
   kind: "bundled",
-  label: "2026–27 Projections",
+  label: "2026–27 Yahoo Projections",
   season: "2026-27",
   updated: "2026-08-24",
-  source: "nineCat bundled sample"
+  source: "Yahoo Fantasy Basketball"
 });
 const RAW = `
 PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO
