@@ -109,7 +109,8 @@ const norm = s => String(s).toLowerCase().trim().replace(/\*+$/,"").replace(/\s+
     which we then drop — but a handful of letters have no decomposition and must
     be mapped by hand, or they vanish and the name never matches.
     Jokić -> jokic, Dončić -> doncic, Šengün -> sengun, Đoković -> dokovic.     */
-const FOLD = {"đ":"d","ø":"o","ł":"l","ß":"ss","æ":"ae","œ":"oe","ı":"i","ð":"d","þ":"th","ħ":"h","ŋ":"n"};
+const FOLD = PLAYER_NAME_RULES.foldChars;
+const NAME_SUFFIX_RE = new RegExp(`\\b(?:${PLAYER_NAME_RULES.suffixes.join("|")})\\b`, "g");
 function fold(s){
   return String(s).normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -121,7 +122,7 @@ function fold(s){
 function nameParts(s){
   return fold(s)
     .replace(/[^a-z ]/g, " ")
-    .replace(/\b(jr|sr|ii|iii|iv)\b/g, " ")
+    .replace(NAME_SUFFIX_RE, " ")
     .replace(/\s+/g, " ").trim()
     .split(" ").filter(Boolean);
 }
@@ -137,10 +138,7 @@ function lastKey(s){
 /*  Team abbreviations differ by source (NO/NOP, PHO/PHX, GS/GSW...). Matching a
     real list rather than "any 2-3 capitals" matters: the naive version turns
     "Trey Murphy IIINO SG/SF" into "Trey Murphy II" by eating an I.            */
-const TEAMS = ["ATL","BKN","BRK","BOS","CHA","CHO","CHI","CLE","DAL","DEN","DET","GS","GSW",
-  "HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NO","NOP","NOH","NY","NYK","OKC","ORL",
-  "PHI","PHO","PHX","POR","SA","SAS","SAC","TOR","UTA","UTAH","WAS","WSH"]
-  .sort((a,b)=>b.length-a.length);
+const TEAMS = [...PLAYER_NAME_RULES.teamAbbreviations].sort((a,b)=>b.length-a.length);
 const POSALT = "(?:PG|SG|SF|PF|C)";
 const TEAMPOS = new RegExp(
   `\\s*(?:${TEAMS.join("|")})\\s+${POSALT}(?:\\s*[,\\/]\\s*${POSALT})*\\s*$`);
