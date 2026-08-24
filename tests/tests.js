@@ -1006,6 +1006,18 @@ function registerTests(w){
     assert(text.includes("Manual drafting works normally without the extension"), "Expected manual-draft fallback guidance");
   });
 
+  test("Yahoo Draft Sync store links use the public Chrome Web Store listing", ()=>{
+    const expected = "https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc";
+    const menuLink = w.document.getElementById("ext_store_link");
+    const quickLink = w.document.getElementById("quickstart_ext_link");
+    assert(menuLink, "Expected Yahoo Draft Sync link in the Settings menu");
+    assert(quickLink, "Expected install link in Quick start");
+    equal(menuLink.href, expected, "Settings menu extension link should use the canonical store URL");
+    equal(quickLink.href, expected, "Quick start extension link should use the canonical store URL");
+    equal(menuLink.target, "_blank", "Settings link should open in a new tab");
+    equal(quickLink.target, "_blank", "Quick start link should open in a new tab");
+  });
+
   test("Quick start Start drafting control closes the onboarding modal", ()=>{
     const mask = w.document.getElementById("helpmask");
     const btn = w.document.getElementById("help_close");
@@ -1013,6 +1025,31 @@ function registerTests(w){
     mask.classList.add("on");
     btn.click();
     assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
+  });
+
+  test("Yahoo full reset clears picks and capture buffer without clearing strategy locks", ()=>{
+    const oldPicks = w.eval("JSON.stringify(picks)");
+    const oldLocks = w.eval("JSON.stringify(locks)");
+    const saveKey = w.eval("SAVE_KEY");
+    const oldSave = w.localStorage.getItem(saveKey);
+    try{
+      w.eval(`
+        picks = [{playerId:pool[0].id, teamIdx:0, overall:0}];
+        locks = {fg:"punt"};
+        yahooPickBuffer.set(1,{pickNo:1,name:pool[0].name});
+        resetYahooSyncedDraft();
+      `);
+      equal(w.eval("picks.length"), 0, "Expected synced picks to reset");
+      equal(w.eval("yahooPickBuffer.size"), 0, "Expected Yahoo capture buffer to reset");
+      equal(w.eval("locks.fg"), "punt", "Strategy locks should survive a Yahoo tab-close reset");
+      const saved = JSON.parse(w.localStorage.getItem(saveKey));
+      equal(saved.picks.length, 0, "Empty draft should be persisted");
+    } finally {
+      w.eval(`picks = ${oldPicks}; locks = ${oldLocks}; yahooPickBuffer.clear();`);
+      if(oldSave === null) w.localStorage.removeItem(saveKey);
+      else w.localStorage.setItem(saveKey, oldSave);
+      w.render();
+    }
   });
 
   test("Player board is not capped at 80 available players", ()=>{
