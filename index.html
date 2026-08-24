@@ -2112,6 +2112,63 @@ function scoreBoth(list){
   scorePool(list, {gpw:0, field:"zpg", totalField:"totalPg"});
 }
 
+/* Score one external/fallback player against the CURRENT projection pool.
+   We cannot call scorePool([player]) because a one-player population would
+   make every category a meaningless zero. This mirrors scorePool's math, but
+   derives the league averages and standard deviations from `refList` and then
+   applies them to the one player. */
+function scorePlayerAgainstPool(player, refList, opts){
+  const list = Array.isArray(refList) && refList.length ? refList : pool;
+  if(!player || !list.length) return player;
+  const o = opts || {};
+  const field = o.field || "z";
+  const totalField = o.totalField || "total";
+  const useGpw = o.gpw === undefined ? cfg.gpw : o.gpw;
+
+  const gps = list.map(p=>p.gp).filter(g=>g>0).sort((a,b)=>a-b);
+  const medGP = gps.length ? gps[Math.floor(gps.length/2)] : 72;
+  const eff = new Map();
+  list.forEach(p=>{
+    const g = p.gp > 0 ? p.gp : medGP;
+    eff.set(p, Math.pow(medGP, 1-useGpw) * Math.pow(g, useGpw));
+  });
+
+  const sum = f => list.reduce((s,p)=>s + f(p), 0);
+  const lgFG = sum(p=>p.fgm*eff.get(p)) / (sum(p=>p.fga*eff.get(p)) || 1);
+  const lgFT = sum(p=>p.ftm*eff.get(p)) / (sum(p=>p.fta*eff.get(p)) || 1);
+
+  const rawFor = (p, effectiveGP)=>{
+    const s = effectiveGP / medGP;
+    return {
+      fg:  p.fga * s * ((p.fgm/(p.fga||1)) - lgFG),
+      ft:  p.fta * s * ((p.ftm/(p.fta||1)) - lgFT),
+      tpm:p.tpm*s, pts:p.pts*s, reb:p.reb*s, ast:p.ast*s,
+      stl:p.stl*s, blk:p.blk*s, to:p.to*s
+    };
+  };
+
+  const referenceRaws = list.map(p=>rawFor(p, eff.get(p)));
+  const stats = {};
+  CATS.forEach(c=>{
+    const vals = referenceRaws.map(r=>r[c.k]);
+    stats[c.k] = {m:mean(vals), s:sd(vals)};
+  });
+
+  // Out-of-pool fallback players deliberately use median durability: the fixed
+  // line is meant to be a replacement-level estimate, not a GP prediction.
+  const pg = player.gp > 0 ? player.gp : medGP;
+  const peff = Math.pow(medGP, 1-useGpw) * Math.pow(pg, useGpw);
+  const r = rawFor(player, peff);
+  player[field] = {};
+  CATS.forEach(c=>{
+    let z = (r[c.k] - stats[c.k].m) / stats[c.k].s;
+    if(c.neg) z = -z;
+    player[field][c.k] = z;
+  });
+  player[totalField] = CATS.reduce((sum,c)=>sum + cw(c.k) * player[field][c.k], 0);
+  return player;
+}
+
 /* ============================================================
    THE ENGINE
    ============================================================ */
@@ -2129,10 +2186,40 @@ function myNextPick(from){
   return null;
 }
 
-function myRoster(){
-  return picks.filter(p=>p.teamIdx === myTeamIdx()).map(p=>pool.find(x=>x.id===p.playerId)).filter(Boolean);
+/* Fixed replacement-level line for Yahoo players missing from the imported
+   projection pool. This keeps one obscure/rookie pick from either breaking the
+   sync or counting as literally zero production. */
+const YAHOO_FALLBACK_LINE = Object.freeze({
+  fgPct:0.45, fga:9.0,
+  ftPct:0.75, fta:2.0,
+  tpm:1.0, pts:12.0, reb:4.0, ast:4.0, stl:0.5, blk:0.5, to:1.5
+});
+
+function yahooPlaceholderPlayer(pk){
+  if(!pk || !pk.outOfPool) return null;
+  const pos = Array.isArray(pk.unknownPos) && pk.unknownPos.length ? pk.unknownPos : ["UTIL"];
+  const l = YAHOO_FALLBACK_LINE;
+  const p = {
+    id:`__yahoo_unknown_${pk.overall}_${nameKey(pk.unknownName || "unknown")}`,
+    name:pk.unknownName || "Yahoo player (out of projection pool)",
+    team:pk.unknownTeam || "—", pos, gp:0, adp:null, valRank:null,
+    fgm:l.fgPct*l.fga, fga:l.fga, ftm:l.ftPct*l.fta, fta:l.fta,
+    tpm:l.tpm, pts:l.pts, reb:l.reb, ast:l.ast, stl:l.stl, blk:l.blk, to:l.to,
+    z:{}, zpg:{}, total:0, totalPg:0, last:null,
+    yahooPlaceholder:true, yahooFallbackLine:true
+  };
+  scorePlayerAgainstPool(p, pool);
+  scorePlayerAgainstPool(p, pool, {gpw:0, field:"zpg", totalField:"totalPg"});
+  return p;
 }
-function takenIds(){ return new Set(picks.map(p=>p.playerId)); }
+function playerForPick(pk){
+  if(!pk) return null;
+  return (pk.playerId !== null && pk.playerId !== undefined ? pool.find(x=>x.id===pk.playerId) : null) || yahooPlaceholderPlayer(pk);
+}
+function myRoster(){
+  return picks.filter(p=>p.teamIdx === myTeamIdx()).map(playerForPick).filter(Boolean);
+}
+function takenIds(){ return new Set(picks.map(p=>p.playerId).filter(id=>id !== null && id !== undefined)); }
 function available(){ const t = takenIds(); return pool.filter(p=>!t.has(p.id)); }
 
 // Team's summed z per category.
@@ -2378,7 +2465,7 @@ function renderClock(state){
   ub.onclick = undo;
   ub.disabled = !picks.length;
   ub.style.opacity = picks.length ? 1 : .55;
-  ub.title = picks.length ? `Undo pick ${picks.length} (${(picks[picks.length-1]&&(pool.find(x=>x.id===picks[picks.length-1].playerId)||{}).name) || ""})` : "Nothing to undo";
+  ub.title = picks.length ? `Undo pick ${picks.length} (${playerForPick(picks[picks.length-1])?.name || ""})` : "Nothing to undo";
   $("#menubtn").onclick = e=>{ e.stopPropagation(); $("#menu").classList.toggle("on"); };
 }
 
@@ -2615,10 +2702,9 @@ function renderRec(state){
 /*  Every team's roster in a single pass. Cheap enough to recompute each render:
     one walk over the pick log plus a map lookup, not a scan per team.        */
 function allRosters(){
-  const byId = new Map(pool.map(p=>[p.id, p]));
   const out = Array.from({length: cfg.teams}, ()=>[]);
   picks.forEach(pk=>{
-    const p = byId.get(pk.playerId);
+    const p = playerForPick(pk);
     if(p && pk.teamIdx >= 0 && pk.teamIdx < cfg.teams) out[pk.teamIdx].push(p);
   });
   return out;
@@ -3244,12 +3330,12 @@ function renderLog(){
   $("#logcount").textContent = picks.length ? `${picks.length} pick${picks.length===1?"":"s"}` : "";
   const recent = [...picks].reverse();
   $("#log").innerHTML = recent.length ? recent.map(pk=>{
-    const p = pool.find(x=>x.id===pk.playerId);
+    const p = playerForPick(pk);
     const mine = pk.teamIdx === myTeamIdx();
     const rd = Math.floor(pk.overall / cfg.teams) + 1;
     return `<div class="slot${pk.overall === flashPick ? " flash" : ""}">
       <span class="idx mono">${rd}.${String((pk.overall % cfg.teams)+1).padStart(2,"0")}</span>
-      <span class="nm" style="${mine?"color:var(--ok);font-weight:600":""}">${p?p.name:"?"}</span>
+      <span class="nm" style="${mine?"color:var(--ok);font-weight:600":""}">${p?p.name:"?"}${pk.outOfPool?` <span style="color:var(--dimmer);font-size:10px">· OUT OF POOL · 12/4/4 FALLBACK</span>`:""}</span>
       <span class="mono" style="color:var(--dimmer);font-size:10px">${mine?"YOU":shortName(pk.teamIdx)}</span>
       <button class="px" data-o="${pk.overall}" title="Remove this pick">×</button>
     </div>`;
@@ -3742,6 +3828,302 @@ $("#imp_go").onclick = ()=>{
   $("#impmask").classList.remove("on");
   setTimeout(()=> window.location.reload(), 150);
 };
+
+
+/* ============================================================
+   YAHOO LIVE DRAFT BRIDGE — pick-number aware + fallback-line placeholders (v0.5)
+   ------------------------------------------------------------
+   Yahoo can render several draft-board cells out of chronological order. The
+   extension therefore sends Yahoo's printed pick numbers (1.03, 1.06, etc.)
+   and, when supported, an ordered snapshot. 9cat buffers/reconciles by that
+   explicit order instead of treating "first DOM mutation seen" as "next pick".
+   ============================================================ */
+const YAHOO_PAGE_SOURCE = "9cat-page";
+const YAHOO_EXT_SOURCE  = "9cat-extension";
+const YAHOO_CAPABILITIES = ["yahoo-pick-number-v1", "yahoo-snapshot-v1", "yahoo-out-of-pool-v1", "yahoo-fallback-line-v1"];
+const yahooPickBuffer = new Map();   // overall pick number -> Yahoo pick record
+
+function yahooSyncPill(){
+  let el = document.getElementById("yahooSyncPill");
+  if(el) return el;
+  const host = document.querySelector(".searchwrap");
+  if(!host) return null;
+  el = document.createElement("span");
+  el.id = "yahooSyncPill";
+  el.style.cssText = [
+    "flex:0 0 auto","align-self:stretch","display:flex","align-items:center",
+    "padding:0 9px","border:1px solid var(--line)","border-radius:var(--r)",
+    "font-family:'Saira Condensed',sans-serif","font-weight:700","font-size:10px",
+    "letter-spacing:.08em","text-transform:uppercase","color:var(--dimmer)",
+    "background:var(--panel)"
+  ].join(";");
+  host.appendChild(el);
+  return el;
+}
+
+function setYahooSyncStatus(text, tone="dim"){
+  const el = yahooSyncPill();
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = tone === "ok" ? "var(--ok)" : tone === "bad" ? "var(--hot)" : tone === "warn" ? "var(--wood)" : "var(--dimmer)";
+  el.style.borderColor = tone === "ok" ? "var(--okk-bd)" : tone === "bad" ? "var(--neg-bd)" : tone === "warn" ? "var(--wood)" : "var(--line)";
+}
+
+function yahooMatchPlayer(rawName){
+  const name = String(rawName || "").trim();
+  if(!name) return null;
+  const exactKey = nameKey(name);
+  let matches = pool.filter(p => nameKey(p.name) === exactKey);
+  if(matches.length === 1) return matches[0];
+
+  const parts = nameParts(name);
+  const fallback = parts.length ? (parts[parts.length-1] + (parts[0]?.[0] || "")) : "";
+  if(!fallback) return null;
+  matches = pool.filter(p => {
+    const pp = nameParts(p.name);
+    return pp.length && (pp[pp.length-1] + (pp[0]?.[0] || "")) === fallback;
+  });
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function pickName(pk){ return playerForPick(pk)?.name || pk?.unknownName || ""; }
+
+function announceNinecatState(){
+  const ordered = [...picks].sort((a,b)=>a.overall-b.overall);
+  window.postMessage({
+    source: YAHOO_PAGE_SOURCE,
+    type: "NINECAT_READY",
+    playerNames: pool.map(p=>p.name),
+    /*  Teams disambiguate abbreviated names. Yahoo renders "A. THOMPSON" for
+        both Amen (HOU) and Ausar (DET); without the team there is no way to
+        tell them apart, and guessing wrong corrupts the draft.              */
+    playerTeams: pool.map(p=>p.team || ""),
+    /* Stable identity fallback for Yahoo abbreviations that remain ambiguous
+       even after NBA-team matching (e.g. Jalen/Jaylin Williams are both OKC).
+       This is the board's fixed Value Rank (#), not the dynamic Fit rank. */
+    playerRanks: pool.map(p=>Number.isFinite(p.valRank) ? p.valRank : null),
+    pickNames: ordered.map(pickName).filter(Boolean),
+    teamCount: cfg.teams,
+    rosterSize: cfg.size,
+    capabilities: YAHOO_CAPABILITIES
+  }, "*");
+}
+
+function yahooAck(status, name, detail=""){
+  window.postMessage({ source:YAHOO_PAGE_SOURCE, type:"YAHOO_ACK", status, name, detail }, "*");
+}
+
+/*  A pick used to be thrown away unless Yahoo's payload carried an integer
+    overall-pick number. The DOM path doesn't need one — position in the draft
+    results list IS the pick number — so a missing pickNo now means "append",
+    not "discard". This was the reason nothing ever synced.                  */
+function normalizeYahooPick(raw, fallbackNo){
+  const name = String(raw?.name || "").trim();
+  if(!name) return null;
+  let pickNo = +raw?.pickNo;
+  if(!Number.isInteger(pickNo) || pickNo < 1){
+    pickNo = Number.isInteger(fallbackNo) && fallbackNo > 0 ? fallbackNo : null;
+  }
+  if(pickNo === null) return null;
+  return { ...raw, name, pickNo };
+}
+
+function bufferYahooPicks(rawPicks){
+  let n = 0;
+  for(const raw of rawPicks || []){
+    n++;
+    const p = normalizeYahooPick(raw, n);
+    if(!p) continue;
+    yahooPickBuffer.set(p.pickNo, p);
+  }
+}
+
+function contiguousYahooBuffer(){
+  const out = [];
+  for(let n=1;;n++){
+    const p = yahooPickBuffer.get(n);
+    if(!p) break;
+    out.push(p);
+  }
+  return out;
+}
+
+/* Reconcile only from a contiguous 1..N Yahoo prefix. This guarantees a later
+   tile such as 1.06 can never be mistaken for pick 1.03. If the current 9cat
+   log is already longer than the available Yahoo prefix, wait for the rescan to
+   catch up before correcting it so a partial render never truncates the draft. */
+function reconcileYahooBuffer(){
+  const ordered = contiguousYahooBuffer();
+  const bufferedCount = yahooPickBuffer.size;
+  const gapPickNo = bufferedCount > ordered.length ? ordered.length + 1 : null;
+  if(!ordered.length){
+    setYahooSyncStatus("Yahoo · buffering", "warn");
+    yahooAck("buffering", "", "Waiting for Yahoo pick #1 / earlier picks");
+    return false;
+  }
+
+  const resolved = [];
+  const used = new Set();
+  for(const yp of ordered){
+    if(yp.outOfPool){
+      const ukey = `u:${nameKey(yp.name)}:${String(yp.team||"").toUpperCase()}`;
+      if(used.has(ukey)){
+        setYahooSyncStatus(`Yahoo · duplicate #${yp.pickNo}`, "bad");
+        yahooAck("unmatched", yp.name, `Same out-of-pool Yahoo player appeared twice by pick #${yp.pickNo}`);
+        break;
+      }
+      used.add(ukey);
+      resolved.push({ yahoo:yp, player:null, outOfPool:true });
+      continue;
+    }
+    const p = yahooMatchPlayer(yp.name);
+    if(!p){
+      setYahooSyncStatus(`Yahoo · unmatched #${yp.pickNo}`, "bad");
+      yahooAck("unmatched", yp.name, `Could not uniquely match Yahoo pick #${yp.pickNo}`);
+      break;
+    }
+    const pkey=`p:${p.id}`;
+    if(used.has(pkey)){
+      setYahooSyncStatus(`Yahoo · duplicate #${yp.pickNo}`, "bad");
+      yahooAck("unmatched", yp.name, `Same player appeared twice in Yahoo snapshot by pick #${yp.pickNo}`);
+      break;
+    }
+    used.add(pkey);
+    resolved.push({ yahoo:yp, player:p, outOfPool:false });
+  }
+
+  if(!resolved.length) return false;
+
+  const current = [...picks].sort((a,b)=>a.overall-b.overall);
+  const currentKey = pk => pk?.outOfPool
+    ? `u:${nameKey(pk.unknownName||"")}:${String(pk.unknownTeam||"").toUpperCase()}`
+    : `p:${pk?.playerId}`;
+  const resolvedKey = x => x?.outOfPool
+    ? `u:${nameKey(x.yahoo?.name||"")}:${String(x.yahoo?.team||"").toUpperCase()}`
+    : `p:${x?.player?.id}`;
+  const compareN = Math.min(current.length, resolved.length);
+  let mismatch = false;
+  for(let i=0;i<compareN;i++){
+    if(currentKey(current[i]) !== resolvedKey(resolved[i])){ mismatch = true; break; }
+  }
+
+  /*  Yahoo is the source of truth.
+
+      This used to refuse any snapshot shorter than the existing log, so a stale
+      9cat draft left over from a previous session deadlocked syncing forever —
+      "waiting for Yahoo snapshot to cover 43 picks" while Yahoo only had 8, and
+      it never would. Now: if the overlapping picks DISAGREE, the old log is
+      wrong and gets rebuilt from Yahoo. Only a clean prefix waits, since that's
+      the genuine partial-render case worth protecting.                        */
+  if(resolved.length < current.length && !mismatch){
+    setYahooSyncStatus(`Yahoo · ${resolved.length}/${current.length}`, "warn");
+    yahooAck("buffering", "", `Yahoo snapshot covers ${resolved.length} of ${current.length} logged picks`);
+    return false;
+  }
+
+  const changed = mismatch || resolved.length !== current.length;
+  if(!changed){
+    if(gapPickNo){
+      setYahooSyncStatus(`Yahoo · waiting for #${gapPickNo} · ${bufferedCount} seen`, "warn");
+      yahooAck("buffering", "", `Captured ${bufferedCount} Yahoo picks but pick #${gapPickNo} is missing`);
+      return false;
+    }
+    setYahooSyncStatus(`Yahoo · synced ${resolved.length}`, "ok");
+    return true;
+  }
+
+  const wasCorrection = current.length > 0 && mismatch;
+  picks = resolved.map((x,i)=> x.outOfPool ? ({
+    playerId:null,
+    unknownName:x.yahoo.name,
+    unknownTeam:String(x.yahoo.team||"").toUpperCase(),
+    unknownPos:Array.isArray(x.yahoo.pos) ? x.yahoo.pos : [],
+    outOfPool:true,
+    teamIdx:teamOnClock(i),
+    overall:i
+  }) : ({
+    playerId:x.player.id,
+    teamIdx:teamOnClock(i),
+    overall:i
+  }));
+
+  selectedId = null;
+  hoverId = null;
+  armedDraftId = null;
+  flashPick = picks.length ? picks.length - 1 : null;
+  clearTimeout(reconcileYahooBuffer._flash);
+  reconcileYahooBuffer._flash = setTimeout(()=>{ flashPick = null; renderLog(); }, 1500);
+  render();
+
+  const last = resolved.at(-1);
+  if(gapPickNo) setYahooSyncStatus(`Yahoo · waiting for #${gapPickNo} · ${bufferedCount} seen`, "warn");
+  else setYahooSyncStatus(`Yahoo · synced ${picks.length}`, "ok");
+  yahooAck(wasCorrection ? "corrected" : "applied", last?.player?.name || last?.yahoo?.name || "",
+    `${wasCorrection ? "Rebuilt" : "Synced"} picks 1-${picks.length} in Yahoo order`);
+  if(gapPickNo) yahooAck("buffering", "", `Captured ${bufferedCount} Yahoo picks but pick #${gapPickNo} is missing`);
+  announceNinecatState();
+  return !gapPickNo;
+}
+
+function applyYahooDraftSnapshot(rawPicks){
+  bufferYahooPicks(Array.isArray(rawPicks) ? rawPicks : []);
+  return reconcileYahooBuffer();
+}
+
+function applyYahooDraftPick(raw){
+  const obj = (raw && typeof raw === "object") ? raw : {name:raw};
+  const explicit = normalizeYahooPick(obj);
+  if(explicit){
+    yahooPickBuffer.set(explicit.pickNo, explicit);
+    return reconcileYahooBuffer();
+  }
+
+  // Compatibility with the original v0.1 extension only. v0.3 always sends an
+  // explicit pick number and never uses this sequential fallback.
+  const name = String(obj?.name || "").trim();
+  const p = yahooMatchPlayer(name);
+  if(!p){
+    setYahooSyncStatus("Yahoo · unmatched", "bad");
+    yahooAck("unmatched", name, "No unique player match in the current 9cat pool");
+    return false;
+  }
+  if(takenIds().has(p.id)){
+    yahooAck("duplicate", p.name, "Player is already in the 9cat pick log");
+    return true;
+  }
+  draft(p.id);
+  setYahooSyncStatus(`Yahoo · synced ${picks.length}`, "ok");
+  yahooAck("applied", p.name, `Logged as pick ${picks.length}`);
+  announceNinecatState();
+  return true;
+}
+
+window.addEventListener("message", e=>{
+  if(e.source !== window || !e.data || e.data.source !== YAHOO_EXT_SOURCE) return;
+  const d = e.data;
+  if(d.type === "REQUEST_STATE") announceNinecatState();
+  if(d.type === "YAHOO_PICK") applyYahooDraftPick(d.pick || {name:d.name});
+  if(d.type === "YAHOO_SNAPSHOT") applyYahooDraftSnapshot(d.picks || []);
+  if(d.type === "YAHOO_RESET_CAPTURE") yahooPickBuffer.clear();
+  if(d.type === "YAHOO_STATUS"){
+    if(d.enabled === false) setYahooSyncStatus("Yahoo · paused", "warn");
+    else if(d.yahooConnected){
+      const contiguous = +d.contiguousCount || 0;
+      const captured = +d.capturedCount || 0;
+      if(captured > contiguous){
+        setYahooSyncStatus(`Yahoo · waiting for #${contiguous + 1} · ${captured} seen`, "warn");
+      } else {
+        const n = contiguous || captured || 0;
+        setYahooSyncStatus(`Yahoo · live${n ? ` ${n}` : ""}`, "ok");
+      }
+    } else setYahooSyncStatus("Yahoo · waiting", "dim");
+  }
+});
+
+document.addEventListener("visibilitychange", ()=>{
+  if(!document.hidden) setTimeout(announceNinecatState, 80);
+});
+setTimeout(announceNinecatState, 0);
 
 // Boot
 const savedProjectionText = loadProjectionText();
