@@ -85,6 +85,7 @@ const HDR = {
   pos: ["pos","position","positions"],
   team:["team","tm"],
   gp:  ["gp","g","games","games played"],
+  mpg: ["mpg","min","minutes","minutes per game"],
   fg:  ["fg%","fg","fgm/fga","fg made/att","fgm/a","fgm-fga"],
   fgm: ["fgm","fg made"], fga:["fga","fg att"],
   ft:  ["ft%","ft","ftm/fta","ft made/att","ftm/a","ftm-fta"],
@@ -263,6 +264,7 @@ function parsePool(text){
         pos:  posCell && POSRE.test(posCell) ? posCell.toUpperCase().split(/[\/,\-]/) : ["UTIL"],
         team: at("team") || "—",
         gp:   map.gp !== undefined ? Math.round(num(at("gp"))) : null,
+        mpg:  map.mpg !== undefined ? num(at("mpg")) : null,
         adp:  map.adp !== undefined ? num(at("adp")) : null,
         srcRank: map.rank !== undefined ? num(at("rank")) : null,
         fgm:fgv.made, fga:fgv.att,
@@ -290,6 +292,7 @@ function parsePool(text){
           pos:  posI>=0 ? c[posI].toUpperCase().split(/[\/,\-]/) : ["UTIL"],
           team: posI>=0 ? (c[posI+1]||"—") : "—",
           gp:   mid.length ? Math.round(mid[0]) : null,
+          mpg:  null,
           srcRank: nums.length ? nums[0] : null,
           adp:  nums.length > 1 ? nums[1] : null,
           fgm:num(fg[2]), fga:num(fg[3]), ftm:num(ft[2]), fta:num(ft[3]),
@@ -306,6 +309,7 @@ function parsePool(text){
           stl:num(c[11]), blk:num(c[12]), to:num(c[13]),
           adp: c[14]!==undefined?num(c[14]):null,
           gp:  c[15]!==undefined?Math.round(num(c[15])):null,
+          mpg: null,
           srcRank:null
         };
       }
@@ -324,9 +328,124 @@ function parsePool(text){
 }
 
 
-/*  Validate a pasted projection table without mutating the active draft. This
-    deliberately wraps parsePool rather than teaching the UI about parser
-    internals, so every importer gets the same acceptance rules and diagnostics. */
+/*  User projection imports intentionally use one strict, documented CSV schema.
+    The broader parsePool() above remains for bundled historical data and backward-
+    compatible loading of already-saved legacy imports; the UI no longer accepts
+    arbitrary ESPN/Hashtag/table-shaped text.                                      */
+const PROJECTION_CSV_COLUMNS = Object.freeze([
+  "PLAYER","ADP","POS","TEAM","GP","MPG","FGM","FGA","FTM","FTA",
+  "3PM","PTS","REB","AST","STL","BLK","TO"
+]);
+const PROJECTION_CSV_HEADER = PROJECTION_CSV_COLUMNS.join(",");
+
+function splitCsvRow(line){
+  const out = []; let cur = "", quoted = false;
+  const s = String(line || "");
+  for(let i=0;i<s.length;i++){
+    const ch = s[i];
+    if(ch === '"'){
+      if(quoted && s[i+1] === '"'){ cur += '"'; i++; }
+      else quoted = !quoted;
+    } else if(ch === "," && !quoted){
+      out.push(cur.trim()); cur = "";
+    } else cur += ch;
+  }
+  if(quoted) return null;
+  out.push(cur.trim());
+  return out;
+}
+
+function strictNumber(cell, {blank=false, integer=false}={}){
+  const s = String(cell ?? "").trim();
+  if(!s) return blank ? null : NaN;
+  if(!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(s)) return NaN;
+  const n = Number(s);
+  if(!Number.isFinite(n) || (integer && !Number.isInteger(n))) return NaN;
+  return n;
+}
+
+function parseCanonicalProjectionCsv(text){
+  const raw = String(text || "").replace(/^\uFEFF/, "");
+  const lines = raw.split(/\r?\n/).filter(line=>line.trim() !== "");
+  const result = {rows:[], errors:[], header:[], headerValid:false, sourceLines:lines.length};
+  if(!lines.length) return result;
+
+  const header = splitCsvRow(lines[0]);
+  result.header = header || [];
+  if(!header) {
+    result.errors.push("Header contains an unclosed quote.");
+    return result;
+  }
+  if(header.length !== PROJECTION_CSV_COLUMNS.length ||
+     header.some((h,i)=>String(h).trim().toUpperCase() !== PROJECTION_CSV_COLUMNS[i])){
+    result.errors.push(`Header must be exactly: ${PROJECTION_CSV_HEADER}`);
+    return result;
+  }
+  result.headerValid = true;
+
+  for(let li=1; li<lines.length; li++){
+    const rowNo = li + 1;
+    const c = splitCsvRow(lines[li]);
+    if(!c){ result.errors.push(`Row ${rowNo}: unclosed quote.`); continue; }
+    if(c.length !== PROJECTION_CSV_COLUMNS.length){
+      result.errors.push(`Row ${rowNo}: expected ${PROJECTION_CSV_COLUMNS.length} columns, found ${c.length}.`);
+      continue;
+    }
+
+    const at = key => c[PROJECTION_CSV_COLUMNS.indexOf(key)];
+    const name = cleanName(at("PLAYER"));
+    const posCell = String(at("POS") || "").trim().toUpperCase();
+    const team = String(at("TEAM") || "").trim().toUpperCase();
+    const rowErrors = [];
+
+    if(!name || name.length < 2) rowErrors.push("PLAYER is required");
+    if(!POSRE.test(posCell)) rowErrors.push("POS must use PG/SG/SF/PF/C combinations such as PG/SG");
+    if(!team) rowErrors.push("TEAM is required");
+
+    const adp = strictNumber(at("ADP"), {blank:true});
+    const gp  = strictNumber(at("GP"),  {blank:true, integer:true});
+    const mpg = strictNumber(at("MPG"), {blank:true});
+    if(Number.isNaN(adp)) rowErrors.push("ADP must be numeric or blank");
+    if(Number.isNaN(gp))  rowErrors.push("GP must be a whole number or blank");
+    if(Number.isNaN(mpg)) rowErrors.push("MPG must be numeric or blank");
+
+    const numeric = {};
+    for(const key of ["FGM","FGA","FTM","FTA","3PM","PTS","REB","AST","STL","BLK","TO"]){
+      numeric[key] = strictNumber(at(key));
+      if(Number.isNaN(numeric[key])) rowErrors.push(`${key} must be numeric`);
+      else if(numeric[key] < 0) rowErrors.push(`${key} cannot be negative`);
+    }
+    if(Number.isFinite(numeric.FGA) && numeric.FGA <= 0) rowErrors.push("FGA must be greater than 0");
+    if(Number.isFinite(numeric.FGM) && Number.isFinite(numeric.FGA) && numeric.FGM > numeric.FGA) rowErrors.push("FGM cannot exceed FGA");
+    if(Number.isFinite(numeric.FTM) && Number.isFinite(numeric.FTA) && numeric.FTM > numeric.FTA) rowErrors.push("FTM cannot exceed FTA");
+    if(adp !== null && Number.isFinite(adp) && adp <= 0) rowErrors.push("ADP must be greater than 0 or blank");
+    if(gp !== null && Number.isFinite(gp) && gp < 0) rowErrors.push("GP cannot be negative");
+    if(mpg !== null && Number.isFinite(mpg) && mpg < 0) rowErrors.push("MPG cannot be negative");
+
+    if(rowErrors.length){
+      result.errors.push(`Row ${rowNo}${name ? ` (${name})` : ""}: ${rowErrors.join("; ")}.`);
+      continue;
+    }
+
+    result.rows.push({
+      id:result.rows.length,
+      name,
+      adp,
+      pos:posCell.split(/[\/,\-]/).map(x=>x.trim()).filter(Boolean),
+      team,
+      gp,
+      mpg,
+      fgm:numeric.FGM, fga:numeric.FGA,
+      ftm:numeric.FTM, fta:numeric.FTA,
+      tpm:numeric["3PM"], pts:numeric.PTS, reb:numeric.REB, ast:numeric.AST,
+      stl:numeric.STL, blk:numeric.BLK, to:numeric.TO,
+      srcRank:null
+    });
+  }
+  return result;
+}
+
+/* Validate strict nineCat CSV without mutating the active draft. */
 function validateProjectionImport(text){
   const raw = String(text || "");
   const trimmed = raw.trim();
@@ -337,6 +456,7 @@ function validateProjectionImport(text){
     parsedRows:0,
     sourceLines:0,
     skipped:[],
+    errors:[],
     duplicates:0,
     withGP:0,
     withRank:0,
@@ -347,28 +467,50 @@ function validateProjectionImport(text){
 
   if(!trimmed){
     result.code = "empty";
-    result.message = "Paste a projection table first.";
+    result.message = "Choose a projections CSV or paste CSV below.";
     return result;
   }
 
-  result.sourceLines = trimmed.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).length;
-  const parsed = parsePool(trimmed);
-  result.skipped = [...(parsePool.skipped || [])];
-  result.parsedRows = parsed.length;
-  result.rows = dedupe(parsed);
-  result.duplicates = Math.max(0, parsed.length - result.rows.length);
-  result.withGP = result.rows.filter(p=>p.gp>0).length;
-  result.withRank = result.rows.filter(p=>p.srcRank!==null).length;
-  result.withADP = result.rows.filter(p=>p.adp!==null).length;
+  const parsed = parseCanonicalProjectionCsv(raw);
+  result.sourceLines = parsed.sourceLines;
+  result.parsedRows = parsed.rows.length;
+  result.errors = [...parsed.errors];
+  result.skipped = [...parsed.errors];
+
+  if(parsed.errors.length && parsed.rows.length === 0){
+    result.code = parsed.headerValid ? "invalid-rows" : "bad-header";
+    result.message = parsed.errors[0];
+    return result;
+  }
+
+  const seen = new Map();
+  const dupNames = [];
+  for(const p of parsed.rows){
+    const key = nameKey(p.name);
+    if(seen.has(key)) dupNames.push(p.name);
+    else seen.set(key, p);
+  }
+  result.duplicates = dupNames.length;
+  result.rows = parsed.rows;
+  result.withGP = result.rows.filter(p=>p.gp!==null && p.gp>0).length;
+  result.withADP = result.rows.filter(p=>p.adp!==null && p.adp>0).length;
   result.withKnownPos = result.rows.filter(p=>!(p.pos||[]).includes("UTIL")).length;
+
+  if(parsed.errors.length){
+    result.code = "invalid-rows";
+    result.message = `${parsed.errors.length} row${parsed.errors.length===1?" has":"s have"} invalid data. Fix every row before replacing the pool.`;
+    return result;
+  }
+
+  if(dupNames.length){
+    result.code = "duplicate-players";
+    result.message = `Duplicate PLAYER name${dupNames.length===1?"":"s"}: ${[...new Set(dupNames)].slice(0,4).join(", ")}${dupNames.length>4?"…":""}. Keep one row per player.`;
+    return result;
+  }
 
   if(result.rows.length < 5){
     result.code = "too-few-players";
-    if(result.rows.length === 0){
-      result.message = "No usable players were found. Include player names plus field-goal makes and attempts (FG% with made/attempts, FGM + FGA, or FGM/FGA).";
-    } else {
-      result.message = `Only ${result.rows.length} usable player${result.rows.length===1?" was":"s were"} found. Paste the full projection table (at least 5 players).`;
-    }
+    result.message = `Only ${result.rows.length} player${result.rows.length===1?" was":"s were"} found. Import the full projection pool (at least 5 players).`;
     return result;
   }
 
