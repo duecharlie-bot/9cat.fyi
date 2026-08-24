@@ -238,6 +238,83 @@ function registerTests(w){
       delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
     }
   });
+
+  test("myNextPick follows snake order for my draft slot", ()=>{
+    const oldTeams = w.eval("cfg.teams");
+    const oldSlot = w.eval("cfg.slot");
+    const oldSize = w.eval("cfg.size");
+    try{
+      w.eval("cfg.teams = 4; cfg.slot = 2; cfg.size = 5");
+      equal(w.myNextPick(0), 1, "Slot 2's first pick should be overall index 1");
+      equal(w.myNextPick(2), 6, "After slot 2's first pick, next snake pick should be overall index 6");
+      equal(w.myNextPick(7), 9, "Third slot-2 pick should be overall index 9");
+    } finally {
+      w.eval(`cfg.teams=${oldTeams}; cfg.slot=${oldSlot}; cfg.size=${oldSize}`);
+    }
+  });
+
+  test("reindex restores contiguous overall pick numbers", ()=>{
+    const oldPicks = w.eval("picks");
+    try{
+      w.__testPicks = [
+        {playerId:11,teamIdx:0,overall:0},
+        {playerId:22,teamIdx:2,overall:4},
+        {playerId:33,teamIdx:1,overall:9}
+      ];
+      w.eval("picks = window.__testPicks; reindex()");
+      const overalls = w.eval("picks.map(p=>p.overall)");
+      equal(JSON.stringify(overalls), JSON.stringify([0,1,2]));
+    } finally {
+      w.__oldPicks = oldPicks;
+      w.eval("picks = window.__oldPicks");
+      delete w.__testPicks; delete w.__oldPicks;
+    }
+  });
+
+  test("draft assigns the player to the team currently on the clock", ()=>{
+    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size")};
+    const oldPicks = w.eval("picks");
+    const oldRender = w.eval("render");
+    const oldRenderLog = w.eval("renderLog");
+    try{
+      const id = w.eval("pool[0].id");
+      w.__testPicks = [];
+      w.__noop = ()=>{};
+      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=5; picks=window.__testPicks; render=window.__noop; renderLog=window.__noop");
+      w.draft(id);
+      const pk = w.eval("picks[0]");
+      equal(pk.playerId, id);
+      equal(pk.teamIdx, 0, "First overall pick should belong to Team 1");
+      equal(pk.overall, 0);
+      w.eval("clearTimeout(draft._t)");
+    } finally {
+      w.__oldPicks = oldPicks; w.__oldRender = oldRender; w.__oldRenderLog = oldRenderLog;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; picks=window.__oldPicks; render=window.__oldRender; renderLog=window.__oldRenderLog`);
+      delete w.__testPicks; delete w.__noop; delete w.__oldPicks; delete w.__oldRender; delete w.__oldRenderLog;
+    }
+  });
+
+  test("undo removes exactly the most recent pick", ()=>{
+    const oldPicks = w.eval("picks");
+    const oldRender = w.eval("render");
+    try{
+      w.__testPicks = [
+        {playerId:11,teamIdx:0,overall:0},
+        {playerId:22,teamIdx:1,overall:1},
+        {playerId:33,teamIdx:2,overall:2}
+      ];
+      w.__noop = ()=>{};
+      w.eval("picks=window.__testPicks; render=window.__noop");
+      w.undo();
+      equal(w.eval("picks.length"), 2);
+      equal(w.eval("picks[picks.length-1].playerId"), 22);
+    } finally {
+      w.__oldPicks=oldPicks; w.__oldRender=oldRender;
+      w.eval("picks=window.__oldPicks; render=window.__oldRender");
+      delete w.__testPicks; delete w.__noop; delete w.__oldPicks; delete w.__oldRender;
+    }
+  });
+
 }
 
 async function run(){
