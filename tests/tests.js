@@ -315,6 +315,92 @@ function registerTests(w){
     }
   });
 
+  test("Two punts hard-stop any further automatic punt recommendations", ()=>{
+    const oldLocks = w.eval("locks");
+    try{
+      w.__testLocks = {fg:"punt", ft:"punt"};
+      w.eval("locks = window.__testLocks");
+      const state = {
+        roster:[player("PG"),player("SG")],
+        avail:[],
+        tz:{fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0},
+        nxt:null
+      };
+      const suggestions = w.suggestPunts(state);
+      equal(suggestions.length, 0, "Once two categories are punted, nineCat must never suggest a third punt");
+    } finally {
+      w.__oldLocks = oldLocks;
+      w.eval("locks = window.__oldLocks");
+      delete w.__testLocks; delete w.__oldLocks;
+    }
+  });
+
+  test("With two punts, a clearly weak remaining category can trigger a chase recommendation", ()=>{
+    const oldLocks = w.eval("locks");
+    const oldPool = w.eval("pool");
+    const oldCfg = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size")};
+    try{
+      const zero = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      w.__testLocks = {fg:"punt", ft:"punt"};
+      w.__testPool = Array.from({length:12},(_,i)=>({id:900+i,total:10-i/10,z:{...zero}}));
+      w.eval("locks=window.__testLocks; pool=window.__testPool; cfg.teams=4; cfg.size=3");
+      const tz = {...zero, blk:-4};
+      const state = {roster:[player("PG"),player("SG"),player("SF")], tz};
+      const suggestion = w.suggestChase(state);
+      assert(suggestion, "Expected a chase recommendation with two punts and a badly weak category");
+      equal(suggestion.cat.k, "blk", "BLK should be identified as the weak category to protect");
+      equal(suggestion.punts, 2);
+    } finally {
+      w.__oldLocks=oldLocks; w.__oldPool=oldPool;
+      w.eval(`locks=window.__oldLocks; pool=window.__oldPool; cfg.teams=${oldCfg.teams}; cfg.size=${oldCfg.size}`);
+      delete w.__testLocks; delete w.__testPool; delete w.__oldLocks; delete w.__oldPool;
+    }
+  });
+
+  test("With three punts, chase protection becomes aggressive before a fourth category is lost", ()=>{
+    const oldLocks = w.eval("locks");
+    const oldPool = w.eval("pool");
+    const oldCfg = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size")};
+    try{
+      const zero = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      w.__testLocks = {fg:"punt", ft:"punt", tpm:"punt"};
+      w.__testPool = Array.from({length:12},(_,i)=>({id:950+i,total:10-i/10,z:{...zero}}));
+      w.eval("locks=window.__testLocks; pool=window.__testPool; cfg.teams=4; cfg.size=3");
+      // This gap is intentionally mild: with only two punts it would not clear
+      // the -0.65 threshold, but at three punts we protect the weakest live cat.
+      const tz = {...zero, reb:-0.2};
+      const state = {roster:[player("PG"),player("SG"),player("SF")], tz};
+      const suggestion = w.suggestChase(state);
+      assert(suggestion, "Three punts should proactively protect the weakest remaining category");
+      equal(suggestion.cat.k, "reb");
+      equal(suggestion.punts, 3);
+    } finally {
+      w.__oldLocks=oldLocks; w.__oldPool=oldPool;
+      w.eval(`locks=window.__oldLocks; pool=window.__oldPool; cfg.teams=${oldCfg.teams}; cfg.size=${oldCfg.size}`);
+      delete w.__testLocks; delete w.__testPool; delete w.__oldLocks; delete w.__oldPool;
+    }
+  });
+
+  test("Hard chase weights a category more strongly than a normal chase", ()=>{
+    const oldLocks = w.eval("locks");
+    try{
+      const tz = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      w.__testLocks = {blk:"chase"};
+      w.eval("locks=window.__testLocks");
+      const chase = w.leverage(tz, 0.5).blk;
+      w.__testLocks = {blk:"chase2"};
+      w.eval("locks=window.__testLocks");
+      const hard = w.leverage(tz, 0.5).blk;
+      assert(hard > chase, "Hard chase should weight BLK more than normal chase");
+      approx(chase, 0.40);
+      approx(hard, 0.80);
+    } finally {
+      w.__oldLocks=oldLocks;
+      w.eval("locks=window.__oldLocks");
+      delete w.__testLocks; delete w.__oldLocks;
+    }
+  });
+
 }
 
 async function run(){
