@@ -910,7 +910,7 @@ function registerTests(w){
   });
 
   test("Team Profile is the user-facing name for the former Category Ledger", ()=>{
-    const heading = w.document.querySelector("#ledger h2");
+    const heading = w.document.getElementById("ledgerbody")?.previousElementSibling?.querySelector("h2");
     assert(heading, "Expected Team Profile heading");
     equal(heading.textContent.trim(), "Team Profile");
     const quick = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
