@@ -433,15 +433,18 @@ $("#impmask").addEventListener("click", e=>{
 });
 
 $("#imp_go").onclick = ()=>{
-  const rows = dedupe(parsePool($("#impbox").value));
+  const validation = validateProjectionImport($("#impbox").value);
+  const rows = validation.rows;
   const msg = $("#impmsg");
-  const skipped = parsePool.skipped || [];
+  const skipped = validation.skipped;
 
-  if(rows.length < 5){
+  if(!validation.ok){
+    const unreadable = skipped[0]
+      ? `<br>First unreadable row:<br><span class="mono" style="color:var(--dimmer)">${skipped[0].slice(0,110).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</span>`
+      : "";
     msg.className = "msg bad";
-    msg.innerHTML = `Parsed only ${rows.length} rows. Each needs a name and a field-goal column carrying
-      makes and attempts. First unreadable row:<br>
-      <span class="mono" style="color:var(--dimmer)">${(skipped[0]||"—").slice(0,110).replace(/</g,"&lt;")}</span>`;
+    msg.innerHTML = `${validation.message}${unreadable}<br>
+      <span class="mono" style="color:var(--dimmer)">${validation.sourceLines} non-empty lines read · ${validation.parsedRows} player rows recognized</span>`;
     return;
   }
 
@@ -449,16 +452,18 @@ $("#imp_go").onclick = ()=>{
   saveProjectionText($("#impbox").value);
   pool = rows; picks = []; locks = {};
   scoreBoth(pool);
-  const withGP = pool.filter(p=>p.gp>0).length;
-  const withRank = pool.filter(p=>p.srcRank!==null).length;
-  const withADP = pool.filter(p=>p.adp!==null).length;
+  const withGP = validation.withGP;
+  const withRank = validation.withRank;
+  const withADP = validation.withADP;
 
   msg.className = "msg good";
   msg.innerHTML = `Loaded <b>${pool.length}</b> players
     ${withGP ? `· ${withGP} with GP (durability slider live)` : `· no GP column, durability slider stays off`}
     ${withRank ? `· ${withRank} with source rank` : ``}
     ${withADP ? `· ${withADP} with ADP` : `· no ADP, run risk falls back to value rank`}
-    ${skipped.length ? `· skipped ${skipped.length} rows` : ``}
+    ${validation.duplicates ? `· merged ${validation.duplicates} duplicate row${validation.duplicates===1?"":"s"}` : ``}
+    ${skipped.length ? `· skipped ${skipped.length} unreadable row${skipped.length===1?"":"s"}` : ``}
+    <div class="mono" style="font-size:10px;color:var(--dimmer);margin-top:5px">${validation.sourceLines} non-empty source lines · ${validation.parsedRows} player rows recognized · ${pool.length} unique players accepted</div>
     <table class="prev"><tr><th class="l">Sanity check</th><th>POS</th><th>FG</th><th>FT</th><th>PTS</th><th>REB</th><th>GP</th></tr>
     ${pool.slice(0,4).map(p=>`<tr><td class="l">${p.name}</td><td>${p.pos.join("/")}</td>
       <td class="mono">${p.fgm}/${p.fga}</td><td class="mono">${p.ftm}/${p.fta}</td>

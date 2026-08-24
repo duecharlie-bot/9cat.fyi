@@ -323,6 +323,61 @@ function parsePool(text){
   return out;
 }
 
+
+/*  Validate a pasted projection table without mutating the active draft. This
+    deliberately wraps parsePool rather than teaching the UI about parser
+    internals, so every importer gets the same acceptance rules and diagnostics. */
+function validateProjectionImport(text){
+  const raw = String(text || "");
+  const trimmed = raw.trim();
+  const result = {
+    ok:false,
+    code:"",
+    rows:[],
+    parsedRows:0,
+    sourceLines:0,
+    skipped:[],
+    duplicates:0,
+    withGP:0,
+    withRank:0,
+    withADP:0,
+    withKnownPos:0,
+    message:""
+  };
+
+  if(!trimmed){
+    result.code = "empty";
+    result.message = "Paste a projection table first.";
+    return result;
+  }
+
+  result.sourceLines = trimmed.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).length;
+  const parsed = parsePool(trimmed);
+  result.skipped = [...(parsePool.skipped || [])];
+  result.parsedRows = parsed.length;
+  result.rows = dedupe(parsed);
+  result.duplicates = Math.max(0, parsed.length - result.rows.length);
+  result.withGP = result.rows.filter(p=>p.gp>0).length;
+  result.withRank = result.rows.filter(p=>p.srcRank!==null).length;
+  result.withADP = result.rows.filter(p=>p.adp!==null).length;
+  result.withKnownPos = result.rows.filter(p=>!(p.pos||[]).includes("UTIL")).length;
+
+  if(result.rows.length < 5){
+    result.code = "too-few-players";
+    if(result.rows.length === 0){
+      result.message = "No usable players were found. Include player names plus field-goal makes and attempts (FG% with made/attempts, FGM + FGA, or FGM/FGA).";
+    } else {
+      result.message = `Only ${result.rows.length} usable player${result.rows.length===1?" was":"s were"} found. Paste the full projection table (at least 5 players).`;
+    }
+    return result;
+  }
+
+  result.ok = true;
+  result.code = "ok";
+  result.message = `Validated ${result.rows.length} players.`;
+  return result;
+}
+
 /*  Match an imported set onto the pool. Two tiers: exact folded name, then
     surname + first initial — but only when that key is unique on BOTH sides,
     so "Keon Johnson" never silently absorbs "Kevin Johnson".               */
