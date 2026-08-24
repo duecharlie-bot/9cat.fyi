@@ -35,6 +35,43 @@ const CATS = [
 ];
 
 /* ============================================================
+   DATASET METADATA
+   ============================================================ */
+function projectionDatasetMeta(savedText, playerCount){
+  const custom = !!String(savedText || "").trim();
+  if(custom){
+    return {
+      id: "custom-import",
+      kind: "custom",
+      label: "Custom projections",
+      season: null,
+      updated: null,
+      source: "User import",
+      playerCount: +playerCount || 0
+    };
+  }
+  return Object.assign({}, PROJECTION_DATASET_META, {playerCount:+playerCount || 0});
+}
+
+function formatDatasetDate(iso){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso || ""))) return "";
+  const [y,m,d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("en", {month:"short", day:"numeric", year:"numeric", timeZone:"UTC"})
+    .format(new Date(Date.UTC(y,m-1,d)));
+}
+
+function projectionDatasetSummary(meta){
+  if(!meta) return "Projections";
+  const parts = [meta.label || "Projections"];
+  if(Number.isFinite(+meta.playerCount)) parts.push(`${+meta.playerCount} players`);
+  if(meta.updated){
+    const date = formatDatasetDate(meta.updated);
+    if(date) parts.push(`Updated ${date}`);
+  }
+  return parts.join(" · ");
+}
+
+/* ============================================================
    PROJECTION PARSING + PLAYER MATCHING
    ============================================================ */
 /*  Header-driven column mapping. Reads whatever header row the source gives

@@ -794,9 +794,12 @@ if(!pool.length){
     `<span>No projections loaded yet — open Projections and paste a table to begin.</span>`
     + `<button id="b_banner2">Load projections</button>`;
 } else {
+  const datasetMeta = projectionDatasetMeta(savedProjectionText, pool.length);
+  const historyLabel = (typeof ACTUALS_DATASET_META !== "undefined" && ACTUALS_DATASET_META.label)
+    ? ACTUALS_DATASET_META.label
+    : "last season's actuals";
   $("#banner").innerHTML =
-    `<span>${pool.length} players loaded with projections, ADP and games played. `
-    + `${matched} matched to last season's actuals.`
+    `<span>${projectionDatasetSummary(datasetMeta)} · ${matched} matched to ${historyLabel}.`
     + `${resumed ? ` Resumed your draft at pick ${picks.length + 1}.` : ``}</span>`
     + `<button id="b_banner2">Load different data</button>`
     + `<button id="b_dismiss" class="x" title="Dismiss">&times;</button>`;
