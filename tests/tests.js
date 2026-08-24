@@ -635,6 +635,96 @@ function registerTests(w){
     equal(JSON.stringify(out.map(x=>x.id)), JSON.stringify([0,1]));
   });
 
+
+  test("Roster alert sits above the recommendation panel", ()=>{
+    const alertEl = w.document.getElementById("rgap");
+    const recEl = w.document.getElementById("rec");
+    assert(alertEl && recEl, "Expected both roster alert and recommendation elements");
+    const pos = alertEl.compareDocumentPosition(recEl);
+    assert((pos & w.Node.DOCUMENT_POSITION_FOLLOWING) !== 0, "Roster alert should appear before the recommendation panel in the DOM");
+  });
+
+  test("Category Ledger collapse control hides and restores the ledger body", ()=>{
+    const btn = w.document.getElementById("ledgercollapse");
+    const body = w.document.getElementById("ledgerbody");
+    assert(btn && body, "Expected ledger collapse controls");
+    const startedHidden = body.classList.contains("hide");
+    // Normalize to expanded first.
+    if(startedHidden) btn.click();
+    assert(!body.classList.contains("hide"), "Ledger should be expanded before collapse test");
+    btn.click();
+    assert(body.classList.contains("hide"), "Collapse should hide the ledger body");
+    equal(btn.textContent.trim(), "Expand");
+    btn.click();
+    assert(!body.classList.contains("hide"), "Expand should restore the ledger body");
+    equal(btn.textContent.trim(), "Collapse");
+    // Restore the user's starting state.
+    if(startedHidden) btn.click();
+  });
+
+  test("Z and Totals modes keep identical Category Ledger bar geometry", ()=>{
+    const oldPicks = w.eval("picks");
+    const oldMode = w.eval("ledgerMode"); w.__oldLedgerMode=oldMode;
+    const oldTeam = w.eval("ledgerTeam"); w.__oldLedgerTeam=oldTeam;
+    const oldHover = w.eval("hoverId"); w.__oldHover=oldHover;
+    const oldSelected = w.eval("selectedId"); w.__oldSelected=oldSelected;
+    try{
+      const firstId = w.eval("pool[0] && pool[0].id");
+      assert(firstId !== undefined && firstId !== null, "Expected at least one projection player");
+      w.__testPicks=[{playerId:firstId,teamIdx:w.myTeamIdx(),overall:0}];
+      w.eval("picks=window.__testPicks; ledgerTeam=null; hoverId=null; selectedId=null; ledgerMode='z'");
+      const state=w.evaluate();
+      w.renderLedger(state);
+      const zBars=[...w.document.querySelectorAll("#ledger .lbar")].map(el=>el.getAttribute("style"));
+      assert(zBars.length===9, `Expected 9 category bars, got ${zBars.length}`);
+      w.eval("ledgerMode='tot'");
+      w.renderLedger(state);
+      const totalBars=[...w.document.querySelectorAll("#ledger .lbar")].map(el=>el.getAttribute("style"));
+      equal(JSON.stringify(totalBars), JSON.stringify(zBars), "Toggling Z/Totals must not change bar widths or positions");
+    } finally {
+      w.__oldPicks=oldPicks;
+      w.eval("picks=window.__oldPicks; ledgerMode=window.__oldLedgerMode; ledgerTeam=window.__oldLedgerTeam; hoverId=window.__oldHover; selectedId=window.__oldSelected");
+      delete w.__testPicks; delete w.__oldPicks;
+      delete w.__oldLedgerMode; delete w.__oldLedgerTeam; delete w.__oldHover; delete w.__oldSelected;
+    }
+  });
+
+  test("Recommendation panel is compact and keeps the Clear control", ()=>{
+    const oldSelected=w.eval("selectedId"), oldHover=w.eval("hoverId"); w.__oldSelected=oldSelected; w.__oldHover=oldHover;
+    try{
+      w.eval("selectedId=null; hoverId=null");
+      const state=w.evaluate();
+      w.renderRec(state);
+      assert(w.document.querySelector("#r_clear"), "Recommendation panel should include Clear");
+      assert(!w.document.querySelector("#rec .tradeoff"), "Removed recommendation-fit/comparison sub-box should stay absent");
+    } finally {
+      w.__oldSelected=oldSelected; w.__oldHover=oldHover;
+      w.eval("selectedId=window.__oldSelected; hoverId=window.__oldHover");
+      delete w.__oldSelected; delete w.__oldHover;
+    }
+  });
+
+  test("Expanded My Roster projections use category performance colouring", ()=>{
+    const oldPicks=w.eval("picks"), oldInspect=w.eval("rosterInspectId"), oldLedgerTeam=w.eval("ledgerTeam"); w.__oldPicks=oldPicks; w.__oldInspect=oldInspect; w.__oldLedgerTeam=oldLedgerTeam;
+    try{
+      const firstId=w.eval("pool[0] && pool[0].id");
+      assert(firstId !== undefined && firstId !== null, "Expected at least one projection player");
+      w.__testPicks=[{playerId:firstId,teamIdx:w.myTeamIdx(),overall:0}];
+      w.eval("picks=window.__testPicks; ledgerTeam=null; rosterInspectId=String(window.__testPicks[0].playerId)");
+      const state=w.evaluate();
+      w.renderRoster(state);
+      const panel=w.document.querySelector("#roster .roster-proj");
+      assert(panel, "Expected expanded projected-per-game panel");
+      const values=[...panel.querySelectorAll(".rp-v")];
+      equal(values.length, 9, "Expected all 9 category projection values");
+      assert(values.some(el=>(el.getAttribute("style")||"").includes("color:")), "Expected projection values to carry category colours");
+    } finally {
+      w.__oldPicks=oldPicks; w.__oldInspect=oldInspect; w.__oldLedgerTeam=oldLedgerTeam;
+      w.eval("picks=window.__oldPicks; rosterInspectId=window.__oldInspect; ledgerTeam=window.__oldLedgerTeam");
+      delete w.__testPicks; delete w.__oldPicks; delete w.__oldInspect; delete w.__oldLedgerTeam;
+    }
+  });
+
 }
 
 async function run(){
