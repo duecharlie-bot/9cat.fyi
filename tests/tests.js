@@ -934,6 +934,29 @@ function registerTests(w){
     assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
   });
 
+  test("Player board is not capped at 80 available players", ()=>{
+    const oldQ = w.document.getElementById("q").value;
+    const oldPos = w.eval("posFilter");
+    try{
+      w.document.getElementById("q").value = "";
+      w.eval('posFilter = "ALL"');
+      const count = w.eval(`(()=>{
+        const base = pool[0];
+        const mock = Array.from({length:120}, (_,i)=>({
+          ...base, id:900000+i, name:"Board Test "+i, fitAdj:120-i,
+          total:120-i, valRank:i+1, rosterFit:true, risk:0
+        }));
+        renderBoard({avail:mock});
+        return document.querySelectorAll("#board tr[data-id]").length;
+      })()`);
+      equal(count, 120, "Expected all 120 available players to render; board is still capped");
+    } finally {
+      w.document.getElementById("q").value = oldQ;
+      w.eval(`posFilter = ${JSON.stringify(oldPos)}`);
+      w.render();
+    }
+  });
+
 }
 
 async function run(){
