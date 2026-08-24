@@ -21,7 +21,7 @@
     <div class="menu" id="menu">
       <button id="b_set">League setup</button>
       <button id="b_imp">Load projections</button>
-      <button id="b_help">Instructions</button>
+      <button id="b_help">Quick start</button>
       <button id="theme">Light / dark mode</button>
       <button id="reset" style="color:var(--hot)">Reset draft</button>
     </div>
@@ -142,8 +142,9 @@
   <div class="modal">
     <h3>League setup</h3>
     <div id="s_intro" class="intro" style="display:none">
-      <b>Set your league size and draft slot first</b> — they decide the pick order, which
-      everything else is measured against.
+      <span class="onboard-step">Step 1 of 2</span>
+      <b>Set your league size and draft slot.</b> Those two settings determine the snake order and when your next pick comes back around.
+      <span class="onboard-sub">Your starter projections are already loaded. The defaults are fine for everything else if you just want to start drafting.</span>
     </div>
     <p>Snake order is derived from these. Change them before the draft starts.</p>
     <div class="grid2">
@@ -180,43 +181,50 @@
 
 <!-- ============ HELP MODAL ============ -->
 <div class="mask" id="helpmask">
-  <div class="modal">
-    <h3>Instructions</h3>
-    <p style="font-size:11px;color:var(--dimmer);margin-top:-2px">
-      A draft board for 9-category fantasy basketball. It ranks who's left by how much they'd help
-      <b style="color:var(--chalk)">your</b> roster, not by a generic list.
+  <div class="modal quickstart-modal">
+    <span class="onboard-step">Step 2 of 2</span>
+    <h3>Quick start</h3>
+    <p class="quickstart-lede">
+      You're ready to draft. nineCat already includes a starter projection set, so importing your own projections is optional.
     </p>
 
-    <ol class="steps">
-      <li><b>Set your league up</b> — Settings → League setup.
-        <em>Teams and draft slot decide the pick order everything else is measured against.</em></li>
-      <li><b>Load projections</b> — Settings → Load projections.
-        <em>We have 30 players out-of-the-box, see Load Projections for instructions.</em></li>
-      <li><b>Log every pick, not just yours.</b>
-        <em>Click a player to inspect him, click again to draft. Make sure to log Opponents' picks.</em></li>
-    </ol>
+    <div class="quickstart-grid">
+      <div class="quickstart-card">
+        <span class="quickstart-num">1</span>
+        <div>
+          <b>Draft from Fit</b>
+          <p><b>Total</b> is projected value in a vacuum. <b>Fit</b> starts from that value, then adjusts for your roster and who may be gone before your next pick. When they disagree, use Fit.</p>
+        </div>
+      </div>
+      <div class="quickstart-card">
+        <span class="quickstart-num">2</span>
+        <div>
+          <b>Log every pick</b>
+          <p>Click a player once to inspect him and again to draft him. Log opponents' picks too so nineCat always knows who's left and when you're back on the clock.</p>
+        </div>
+      </div>
+      <div class="quickstart-card">
+        <span class="quickstart-num">3</span>
+        <div>
+          <b>Watch your team change</b>
+          <p>The Category Ledger shows where your roster is strong or weak. Punt Radar can suggest categories to concede or chase, but nothing is applied until you choose it.</p>
+        </div>
+      </div>
+      <div class="quickstart-card">
+        <span class="quickstart-num">4</span>
+        <div>
+          <b>Yahoo sync is optional</b>
+          <p>If you use the nineCat Chrome extension, completed Yahoo draft picks can be logged automatically. Manual drafting works normally without the extension.</p>
+        </div>
+      </div>
+    </div>
 
-    <h3 style="margin-top:18px">Reading the board</h3>
-    <table class="helptbl">
-      <tr><td>Fit</td><td>Value adjusted for your roster and for who'll be gone by your next turn. <b>We recommend you draft from this.</b></td></tr>
-      <tr><td>#</td><td>Rank by Total across the whole pool.</td></tr>
-      <tr><td>ADP</td><td>Where the market takes him. A player whose ADP is far below his # could be going later than he should.</td></tr>
-      <tr><td>Total</td><td>The nine category Z-Score added up — the player on his own.</td></tr>
-    </table>
+    <div class="quickstart-tip">
+      Want different projections later? Open <b>Settings → Load projections</b>. Your draft and settings save automatically as you go.
+    </div>
 
-    <h3 style="margin-top:18px">The panels on the right</h3>
-    <p><b style="color:var(--chalk)">Category Ledger</b> — Where your team stands in each category, and
-    the rank among drafted teams. Hover any player to see what he'd do to every line. Switch the
-    dropdown to another team to compare head to head.</p>
-    <p><b style="color:var(--chalk)">Punt Radar</b> — Categories you're losing badly enough that
-    chasing them costs more than conceding. Suggestions only; nothing applies until you click.</p>
-    <p style="color:var(--dimmer);font-size:11px">
-      Everything saves automatically — refresh mid-draft and it picks up where you left off.
-      Tuning sliders are under <span class="mono">Tuning</span> at the top.
-    </p>
-
-    <div style="margin-top:14px">
-      <button class="btn primary" id="help_close">Got it</button>
+    <div class="quickstart-actions">
+      <button class="btn primary" id="help_close">Start drafting</button>
     </div>
   </div>
 </div>

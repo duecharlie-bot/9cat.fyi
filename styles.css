@@ -626,6 +626,27 @@ thead th.on .arw{opacity:1}
   border-radius:0 var(--r) var(--r) 0;font-size:13px;color:var(--dim);line-height:1.55
 }
 .intro b{color:var(--chalk)}
+.onboard-step{
+  display:block;margin-bottom:5px;font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:600;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--wood)
+}
+.onboard-sub{display:block;margin-top:5px;font-size:11px;color:var(--dimmer)}
+.quickstart-modal{max-width:700px}
+.quickstart-lede{font-size:14px!important;color:var(--dim)!important;line-height:1.55;margin-bottom:16px!important}
+.quickstart-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+.quickstart-card{
+  display:flex;gap:10px;padding:12px;border:1px solid var(--line-soft);border-radius:var(--r);background:var(--raise)
+}
+.quickstart-num{
+  display:flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;
+  background:var(--wood);color:var(--wood-text);font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700
+}
+.quickstart-card b{color:var(--chalk);font-size:12px}
+.quickstart-card p{margin:3px 0 0!important;font-size:11px!important;line-height:1.5;color:var(--dimmer)!important}
+.quickstart-tip{padding:10px 12px;border-left:2px solid var(--wood);background:var(--raise);font-size:11px;color:var(--dimmer);line-height:1.5}
+.quickstart-tip b{color:var(--chalk)}
+.quickstart-actions{display:flex;justify-content:flex-end;margin-top:14px}
+@media (max-width:640px){.quickstart-grid{grid-template-columns:1fr}}
 
 /* ---------- import steps ---------- */
 .steps{margin:0 0 14px;padding:0 0 0 22px;font-size:13px;color:var(--dim);line-height:1.55}
