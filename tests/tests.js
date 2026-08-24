@@ -154,6 +154,27 @@ function registerTests(w){
     }
   });
 
+  test("Scoring baseline is capped at the top 200 projected players", ()=>{
+    const makeList = count => Array.from({length:count},(_,i)=>
+      player("PG", {gp:72, pts:201-i, ast:(i%10)+1, reb:(i%7)+1, fgm:5, fga:10, ftm:4, fta:5})
+    );
+
+    const top200 = makeList(200);
+    w.scorePool(top200, {gpw:0});
+    const topScore = top200[0].z.pts;
+    const topTotal = top200[0].total;
+
+    const withFringe = makeList(200);
+    withFringe.push(player("PG", {gp:72, pts:0, ast:0, reb:0, fgm:1, fga:10, ftm:1, fta:5}));
+    w.scorePool(withFringe, {gpw:0});
+
+    approx(withFringe[0].z.pts, topScore, 1e-9,
+      "A player below the top-200 baseline should not drag down the PTS mean/SD");
+    approx(withFringe[0].total, topTotal, 1e-9,
+      "A player below the top-200 baseline should not change top-player Total");
+    equal(withFringe[200].valRank, 201, "The fringe player should still be ranked/scored");
+  });
+
   test("G and F flex slots accept only the correct position families", ()=>{
     assert(w.slotEligible("G", player("PG")), "G should accept PG");
     assert(w.slotEligible("G", player("SG")), "G should accept SG");
