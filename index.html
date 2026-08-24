@@ -610,6 +610,10 @@ thead th.on .arw{opacity:1}
 .h2hc em{display:block;font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px}
 .h2hc.w{border-color:var(--okk-bd);background:var(--okk-bg);color:var(--okk-fg)}
 .h2hc.l{border-color:var(--neg-bd);background:var(--neg-bg);color:var(--neg-fg)}
+.h2hc.t{border-color:var(--line);background:var(--panel);color:var(--dim)}
+tbody tr.nofit{opacity:.32;cursor:not-allowed}
+tbody tr.nofit:hover{background:var(--ink)}
+tbody tr.nofit .again{display:none}
 .h2h-note{margin-top:9px;font-size:11px;color:var(--dimmer);line-height:1.5}
 
 /* ---------- starred / saved players drawer ---------- */
@@ -741,6 +745,24 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 
 /* ---------- team name grid ---------- */
 .namegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:220px;overflow-y:auto}
+
+/* ---------- site footer ---------- */
+.site-footer{
+  padding:10px 16px;
+  border-top:1px solid var(--line-soft);
+  color:var(--dimmer);
+  font-size:11px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:var(--ink);
+}
+.site-footer a{
+  color:var(--dimmer);
+  text-decoration:none;
+}
+.site-footer a:hover{color:var(--wood)}
+
 </style>
 </head>
 <body data-theme="arena">
@@ -775,7 +797,7 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
     </div>
 
     <div class="gpw" id="shaperow">
-      <span>Value → Category Fit</span>
+      <span>Overall Value → Team Needs</span>
       <input type="range" id="shape" min="0" max="100" value="50">
       <span class="mono" id="shapev" style="text-align:right">50%</span>
       <button class="tinybtn" id="shapeauto" title="Reset to a balanced 50%">50%</button>
@@ -861,6 +883,10 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 
     <div class="head"><h2>Pick Log</h2><span class="note" id="logcount"></span></div>
     <div class="roster scrolly" id="log"></div>
+    <footer class="site-footer">
+      <a href="/privacy">Privacy Policy</a>
+      <span>© 2026 nineCat</span>
+    </footer>
   </div>
 </div>
 
@@ -2280,9 +2306,16 @@ function rosterGaps(roster){
   roster.forEach(r => r.pos.forEach(x => counts[x] = (counts[x]||0)+1));
   const missing = ["PG","SG","SF","PF","C"].filter(s => !(counts[s] > 0));
   const left = cfg.size - roster.length;
-  // Urgent once you have barely enough picks left to cover the holes.
+  const a = assignSlots(roster);
+  const openSlots = a.slots.filter((_,i)=>a.owner[i] === -1);
+  const guardOnly = roster.length >= 4 && roster.length > 0 && roster.every(p=>p.pos.every(x=>x==="PG"||x==="SG"));
   const urgency = !missing.length ? 0 : Math.min(1, missing.length / Math.max(1, left - 1));
-  return {missing, left, counts, urgency};
+  return {missing, left, counts, urgency, openSlots, guardOnly};
+}
+
+function canFitRoster(roster, p){
+  if(roster.length >= cfg.size) return false;
+  return assignSlots(roster.concat([p])).unplaced.length === 0;
 }
 
 // P(gone before my next turn), from ADP vs picks remaining.
@@ -2383,6 +2416,7 @@ function evaluate(){
 
   const avail = available();
   avail.forEach(p=>{
+    p.rosterFit = canFitRoster(roster, p);
     p.fit = CATS.reduce((s,c)=>s + w[c.k] * cw(c.k) * p.z[c.k], 0);
     p.risk = runRisk(p, riskGap);
     /*  Scarcity. A player certain to survive to your next turn is worth less
@@ -2608,8 +2642,14 @@ function renderRec(state){
   const {avail, w, riskGap, conviction} = state;
   if(!avail.length){ $("#rec").innerHTML = `<div class="empty">No players left in the pool.</div>`; return; }
 
-  const best = [...avail].sort((a,b)=>fitFor(b)-fitFor(a))[0];
-  const bestVal = [...avail].sort((a,b)=>b.total-a.total)[0];
+  const eligible = avail.filter(p=>p.rosterFit !== false);
+  if(!eligible.length){
+    $("#rec").innerHTML = `<div class="empty"><b>No legal roster fit available.</b><br>Every remaining player is incompatible with your open roster slots.</div>`;
+    return;
+  }
+  const recPool = eligible;
+  const best = [...recPool].sort((a,b)=>fitFor(b)-fitFor(a))[0];
+  const bestVal = [...recPool].sort((a,b)=>b.total-a.total)[0];
   const onIdx = teamOnClock(picks.length);
   const mine = onIdx === myTeamIdx();
 
@@ -2638,7 +2678,7 @@ function renderRec(state){
                            .sort((a,b)=>b.v-a.v).filter(x=>x.v > 0.25).slice(0,4);
 
   const fg1 = fitFor(best), fg2 = fitFor(shown);
-  const runnerUp = [...avail].sort((a,b)=>fitFor(b)-fitFor(a))[1] || null;
+  const runnerUp = [...recPool].sort((a,b)=>fitFor(b)-fitFor(a))[1] || null;
   const fitGap = (isFinite(fg1)?fg1:0) - (isFinite(fg2)?fg2:0);
   /*  One shape for all three states: a label, exactly two lines of text, and a
       button. Anything conditional here changes the panel height, and the ledger,
@@ -2689,7 +2729,7 @@ function renderRec(state){
     ${compare}
     <div class="rec-actions">
       <button class="btn primary" id="r_draft">Draft ${shown.name.split(" ").slice(-1)[0]} to ${mine ? "my team" : teamName(onIdx)}</button>
-      ${!isRec ? `<button class="btn" id="r_clear">Clear</button>` : ``}
+      <button class="btn" id="r_clear">Clear</button>
     </div>
     `;
   $("#r_draft").onclick = ()=> draft(shown.id);
@@ -2859,32 +2899,40 @@ function renderLedger(state){
     });
   }
 
-  /*  Head-to-head, when you're looking at somebody else's board. Category
-      leagues are won category by category, so the only number that matters is
-      how many you'd take — not how far ahead you are in any one.            */
+  /* Head-to-head uses actual projected production, never summed z-scores. */
   if(!isMine && roster.length && state.roster.length){
-    const mineTz = state.tz;
+    const mineTotals = teamTotals(state.roster);
+    const theirTotals = teamTotals(roster);
     const rows = CATS.filter(c=>cw(c.k) > 0.05).map(c=>{
-      const d = mineTz[c.k] - tz[c.k];       // z is already sign-corrected
-      return {c, d, win: d > 0};
+      const mineV = catTotal(mineTotals, c.k);
+      const theirV = catTotal(theirTotals, c.k);
+      const raw = (mineV === null || theirV === null) ? 0 : mineV - theirV;
+      const advantage = raw * (c.neg ? -1 : 1);
+      const tie = Math.abs(advantage) <= 0.00005;
+      const win = !tie && advantage > 0;
+      const display = (c.k === "fg" || c.k === "ft")
+        ? `${raw>=0?"+":""}${(raw*100).toFixed(1)}%`
+        : `${raw>=0?"+":""}${raw.toFixed(1)}`;
+      return {c,display,win,tie};
     });
     const won = rows.filter(r=>r.win).length;
+    const tied = rows.filter(r=>r.tie).length;
+    const lost = rows.length - won - tied;
     const tot = rows.length;
-    const verdict = won > tot/2 ? "win" : won < tot/2 ? "lose" : "tie";
+    const verdict = won > lost ? "win" : won < lost ? "lose" : "tie";
     $("#h2h").innerHTML = `
       <div class="h2h-head">
         <span class="k">You vs ${teamName(viewing)}</span>
-        <span class="score ${verdict}">${won}\u2013${tot-won}</span>
+        <span class="score ${verdict}">${won}–${lost}${tied?`–${tied}`:""}</span>
       </div>
       <div class="h2h-grid">
-        ${rows.map(r=>`<span class="h2hc ${r.win?"w":"l"}" title="${r.d>0?"+":""}${r.d.toFixed(1)} z">
-          ${r.c.label}<em>${r.d>0?"+":""}${r.d.toFixed(1)}</em></span>`).join("")}
+        ${rows.map(r=>`<span class="h2hc ${r.tie?"t":r.win?"w":"l"}">
+          ${r.c.label}<em>${r.display}</em></span>`).join("")}
       </div>
-      <div class="h2h-note">${
-        verdict === "win" ? `You take ${won} of ${tot} on current rosters.`
-        : verdict === "lose" ? `They take ${tot-won} of ${tot}. Closest gaps are the ones worth attacking.`
-        : `Dead even at ${won}\u2013${tot-won}.`
-      } Margins are per-team z totals, so a category won by 0.1 counts the same as one won by 10.</div>`;
+      <div class="h2h-note">${verdict === "win" ? `You lead ${won} of ${tot} categories on current projected totals.`
+        : verdict === "lose" ? `They lead ${lost} of ${tot}. Closest gaps are the ones worth attacking.`
+        : `The matchup is even on current projected totals.`}
+        Counting stats are team total vs team total; FG% and FT% are volume-weighted percentage vs percentage.</div>`;
     $("#h2h").style.display = "";
   } else {
     $("#h2h").style.display = "none";
@@ -2959,7 +3007,8 @@ function playerRow(p, opts){
   const star = `<span class="star${isStarred(p)?" on":""}" data-star="${p.id}"
      title="${isStarred(p)?"Remove from starred":"Star this player"}">${isStarred(p)?"\u2605":"\u2606"}</span>`;
 
-  return `<tr data-id="${p.id}" class="${gone?"gone ":""}${!gone&&p.id===selectedId?"sel ":""}${o.top?"top":""}">
+  const nofit = !gone && p.rosterFit === false;
+  return `<tr data-id="${p.id}" class="${gone?"gone ":""}${nofit?"nofit ":""}${!gone&&p.id===selectedId?"sel ":""}${o.top?"top":""}"${nofit?' title="No legal roster slot available for this player"':''}>
       <td class="l">
         <div class="pname">${star}${p.name}${
           o.flagRisk?'<span class="risk-dot" title="Likely gone before your next turn"></span>':''}${
@@ -2985,7 +3034,7 @@ function wireRows(container, opts){
     const p = pool.find(x=>x.id === id);
     const st = tr.querySelector(".star");
     if(st) st.onclick = e=>{ e.stopPropagation(); toggleStar(p); };
-    if(tr.classList.contains("gone")) return;   // already drafted: display only
+    if(tr.classList.contains("gone") || tr.classList.contains("nofit")) return;   // unavailable: display only
     tr.onclick = ()=>{
       // Draft only when THIS player was explicitly armed by a previous row click.
       // Being selected by the recommendation panel, keyboard navigation, etc. is
@@ -3051,6 +3100,8 @@ function renderBoard(state){
 
   const key = sortKey;
   list = [...list].sort((a,b)=>{
+    if(key === "fit" && (a.rosterFit === false || b.rosterFit === false) && a.rosterFit !== b.rosterFit)
+      return a.rosterFit === false ? 1 : -1;
     if(key === "name") return a.name.localeCompare(b.name) * (sortDir === -1 ? 1 : -1);
     const av = sortVal(a,key,mode), bv = sortVal(b,key,mode);
     /*  A missing value is not a low value. Left as -Infinity it sorts as "worst",
@@ -3135,31 +3186,30 @@ function undoLock(){
     which categories the weighting currently favours and ignores.            */
 function shapeBlurb(state){
   const pct = Math.round(state.conviction * 100);
+  const punted = CATS.filter(c=>locks[c.k]==="punt").map(c=>c.label);
   if(state.conviction === 0)
-    return "Off. The board ranks purely on projected value — a straight best-player-available cheat sheet, ignoring your roster entirely.";
-
+    return "Overall Value = the best projected player available. Team Needs = the player who best fills holes in your current category profile.";
   const ranked = CATS.filter(c=>!locks[c.k]).sort((a,b)=>state.w[b.k]-state.w[a.k]);
   const hi = ranked.slice(0,2).map(c=>c.label).join(" and ");
-  const lo = ranked.slice(-2).map(c=>c.label).join(" and ");
-  const punted = CATS.filter(c=>locks[c.k]==="punt").map(c=>c.label);
+  const base = `Overall Value = best projected player available. Team Needs = fills the holes in your current category profile. At ${pct}%, the board ${pct < 35 ? "mostly favours overall value" : pct < 70 ? "balances both" : "leans heavily toward team needs"}.`;
+  const detail = hi ? ` Right now it is giving extra weight to ${hi}.` : "";
+  const puntNote = punted.length ? ` ${punted.join(", ")} ${punted.length===1?"is":"are"} punted and ignored by Fit.` : "";
+  return base + detail + puntNote;
+}
 
-  const base = pct < 15
-    ? `Nearly off (${pct}%). Fit stays close to raw value — effectively best player available.`
-    : pct < 60
-      ? `Balanced (${pct}%). Category fit tilts the order, but raw value still dominates.`
-      : `Heavy (${pct}%). Category fit is driving the board; a lower-rated player who fills a gap can outrank a better one.`;
-
-  const detail = pct < 15 ? ""
-    : ` It leans on ${hi} and discounts ${lo} — you're near even in the first, and the second is already decided.`;
-
-  const thin = state.roster.length < 4 && pct >= 40
-    ? ` Careful: with only ${state.roster.length} player${state.roster.length===1?"":"s"} drafted, those standings are mostly noise — consider dropping this until you have four or five.`
-    : "";
-
-  const puntNote = punted.length ? ` ${punted.join(", ")} ${punted.length===1?"is":"are"} punted and counts for nothing.` : "";
-  const note = " Positional need never affects this score — see Roster check for that.";
-
-  return base + detail + thin + puntNote + note;
+function suggestChase(state){
+  const punted = CATS.filter(c=>locks[c.k]==="punt");
+  if(punted.length < 2 || punted.length > 3 || !state.roster.length) return null;
+  const rostered = [...pool].sort((a,b)=>b.total-a.total).slice(0, cfg.teams * cfg.size);
+  const meanZ = {};
+  CATS.forEach(c=> meanZ[c.k] = rostered.reduce((sum,p)=>sum+p.z[c.k],0) / (rostered.length || 1));
+  const candidates = CATS.filter(c=>cw(c.k)>0.05 && locks[c.k]!=="punt" && locks[c.k]!=="chase2")
+    .map(c=>({cat:c, gap:state.tz[c.k] - meanZ[c.k]*state.roster.length}))
+    .sort((a,b)=>a.gap-b.gap);
+  const weakest = candidates[0] || null;
+  if(!weakest) return null;
+  if(punted.length === 2 && weakest.gap > -0.65) return null;
+  return {...weakest, punts:punted.length};
 }
 
 function renderSuggest(state){
@@ -3194,6 +3244,15 @@ function renderSuggest(state){
       <button class="dismiss" id="diffx" title="Dismiss">&times;</button>
     </div>`;
 
+  const chaseSug = suggestChase(state);
+  const chaseBox = chaseSug ? `<div class="sug ${chaseSug.punts===3?"warn":""}">
+      <div class="k">${chaseSug.punts===3?"Protect your five-category path":"Consider chasing " + chaseSug.cat.label}</div>
+      ${chaseSug.punts===3
+        ? `You already have <b>3 punts</b>. Do not let a fourth category slip away. <b>${chaseSug.cat.label}</b> is your weakest remaining category, so hard-chase it now.`
+        : `You already have <b>2 punts</b>, and <b>${chaseSug.cat.label}</b> is weak enough to put a fourth category at risk later. Consider chasing it now.`}
+      <button class="mini" data-chase="${chaseSug.cat.k}">Chase ${chaseSug.cat.label}</button>
+    </div>` : "";
+
   let body;
   if(punted.length >= 4){
     body = `<div class="sug warn">
@@ -3224,10 +3283,13 @@ function renderSuggest(state){
     }
   }
 
-  el.innerHTML = picker + diff + body;
+  el.innerHTML = picker + diff + chaseBox + body;
 
   [...el.querySelectorAll(".sug button[data-c]")].forEach(b=>{
     b.onclick = ()=> setLock(b.dataset.c, "punt");
+  });
+  [...el.querySelectorAll(".sug button[data-chase]")].forEach(b=>{
+    b.onclick = ()=> setLock(b.dataset.chase, "chase2");
   });
   [...el.querySelectorAll(".lockchip[data-c]")].forEach(b=>{
     b.onclick = ()=>{
@@ -3296,20 +3358,26 @@ function renderRoster(state){
   $("#rosterhead").textContent = isMine ? "My Roster" : possessive(teamName(viewing)) + " Roster";
   $("#rostercount").textContent = `${r.length} / ${cfg.size}`;
 
-  /*  Positional need reads better here, next to the empty slots it refers to,
-      than as a banner sitting on top of the player you're evaluating.       */
+  /* Positional warnings become hard constraints once roster flexibility is gone. */
   const g = state.gaps;
-  const sig = g.missing.join(",");
-  const show = isMine && g.missing.length && g.left > 0 && ui.gapHidden !== sig;
+  const sig = `${g.missing.join(",")}|${g.openSlots.join(",")}|${g.guardOnly}`;
+  const onlyRestricted = g.openSlots.length && !g.openSlots.some(s=>s==="UTIL"||s==="BN");
+  const needsAlert = g.guardOnly || onlyRestricted || (g.missing.length && g.left > 0);
+  const show = isMine && needsAlert && ui.gapHidden !== sig;
   const gn = $("#rgap");
   gn.style.display = show ? "" : "none";
   if(show){
-    gn.className = "rgap " + (g.urgency > 0.7 ? "hot" : g.urgency > 0.34 ? "warm" : "");
-    gn.innerHTML = `<span>No ${g.missing.join(", ")} yet \u00b7 ${g.left} pick${g.left===1?"":"s"} left. ${
-      g.urgency > 0.7 ? `Fill ${g.missing.length > 1 ? "these" : "it"} now, even at a value loss.`
-      : g.urgency > 0.34 ? `Worth covering in the next couple of rounds.`
-      : `No rush \u2014 this affects no score. Take the better player.`}</span>
-      <button class="dismiss" id="gapx" title="Dismiss">&times;</button>`;
+    const hard = g.guardOnly || (onlyRestricted && g.openSlots.length <= 3);
+    gn.className = "rgap " + (hard ? "hot" : g.urgency > 0.34 ? "warm" : "");
+    let msg;
+    if(g.guardOnly){
+      msg = `<b>ROSTER ALERT — YOU ONLY HAVE GUARDS.</b> Start adding forward/centre eligibility now so you do not get boxed out of legal roster slots later.`;
+    } else if(onlyRestricted){
+      msg = `<b>ROSTER SLOTS ARE TIGHT.</b> Your open slots are ${g.openSlots.join(", ")}. The board will only recommend players who can legally fit one of them.`;
+    } else {
+      msg = `No ${g.missing.join(", ")} yet · ${g.left} pick${g.left===1?"":"s"} left. ${g.urgency > 0.34 ? `Worth covering soon.` : `You still have flexibility, but keep an eye on positional balance.`}`;
+    }
+    gn.innerHTML = `<span>${msg}</span><button class="dismiss" id="gapx" title="Dismiss">&times;</button>`;
     $("#gapx").onclick = ()=>{ ui.gapHidden = sig; render(); };
   }
   const {slots, owner, unplaced} = assignSlots(r);
