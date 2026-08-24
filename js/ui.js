@@ -530,8 +530,9 @@ function statCell(p, c, mode){
     are actually building, not a hypothetical replay of last season.         */
 function fitMode(){ return $("#mode").value === "last"; }
 function fitFor(p){
-  if(!fitMode()) return p.fitAdj;
-  return (p.fitLast === null || p.fitLast === undefined) ? -Infinity : p.fitLast;
+  if(!fitMode()) return Number.isFinite(p.fitDisplay) ? p.fitDisplay : p.fitAdj;
+  const v = Number.isFinite(p.fitLastDisplay) ? p.fitLastDisplay : p.fitLast;
+  return (v === null || v === undefined) ? -Infinity : v;
 }
 
 // Sort value for a column, so the first click always puts "best" on top.
@@ -669,7 +670,7 @@ function renderBoard(state){
     const ab = !isFinite(av), bb = !isFinite(bv);
     if(ab || bb) return ab && bb ? 0 : (ab ? 1 : -1);
     return (bv - av) * (sortDir === -1 ? 1 : -1);
-  }).slice(0, 80);
+  });
 
   boardIds = list.map(p=>p.id);
   $("#board").innerHTML = list.map((p,i)=> playerRow(p, {

@@ -24,10 +24,16 @@ It looks at projected value, category fit, ADP, punt strategies, and who's likel
 
 ### Projections
 
-You can paste in your own projection data from most fantasy basketball sites. nineCat reads the table and builds the board from it.
+nineCat ships with a 500-player 2026–27 projection pool as its default draft pool.
+
+You can replace it with your own projections using the nineCat CSV schema:
+
+`PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO`
+
+The app validates the full file before replacing the player pool. `R#`, `FG%`, `FT%`, and `TOTAL` are not imported — nineCat calculates percentages, category value, and player rank itself. For reliable Yahoo draft sync, use Yahoo display names in the `PLAYER` column.
 
 Last season's stats are included for comparison.
 
 ### Note
 
-Projection data belongs to the original publishers and isn't included in the public repo unless it's openly licensed.
+nineCat is not affiliated with or endorsed by Yahoo.

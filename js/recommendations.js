@@ -22,6 +22,43 @@ function runRisk(p, gapPicks){
   return 1 / (1 + Math.exp(-x));
 }
 
+/*  FIT is a decision score, so its displayed zero should mean "typical option
+    available right now" rather than "average player in the top-200 scoring
+    population." Re-center the display on the median FIT of roughly the next
+    two rounds of fantasy-relevant players. This changes only the displayed
+    level; subtracting one common baseline preserves every FIT ordering/gap. */
+const FIT_MARKET_ROUNDS = 2;
+
+function fitMedian(values){
+  const a = values.filter(Number.isFinite).sort((x,y)=>x-y);
+  if(!a.length) return 0;
+  const m = Math.floor(a.length/2);
+  return a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2;
+}
+
+function applyFitMarketBaseline(avail){
+  const eligible = avail.filter(p=>p.rosterFit !== false);
+  const windowSize = Math.max(1, cfg.teams * FIT_MARKET_ROUNDS);
+  const market = [...eligible]
+    .sort((a,b)=>{
+      const ar = Number.isFinite(a.valRank) ? a.valRank : Infinity;
+      const br = Number.isFinite(b.valRank) ? b.valRank : Infinity;
+      if(ar !== br) return ar - br;
+      return (b.total || 0) - (a.total || 0);
+    })
+    .slice(0, windowSize);
+
+  const fitBaseline = fitMedian(market.map(p=>p.fitAdj));
+  const fitLastBaseline = fitMedian(market.map(p=>p.fitLast));
+
+  avail.forEach(p=>{
+    p.fitDisplay = Number.isFinite(p.fitAdj) ? p.fitAdj - fitBaseline : p.fitAdj;
+    p.fitLastDisplay = Number.isFinite(p.fitLast) ? p.fitLast - fitLastBaseline : p.fitLast;
+  });
+
+  return {fitBaseline, fitLastBaseline, fitWindowSize:market.length};
+}
+
 function evaluate(){
   const roster = myRoster();
   const tz = teamZ(roster);
@@ -76,6 +113,8 @@ function evaluate(){
       : null;
   });
 
+  const fitMarket = applyFitMarketBaseline(avail);
+
   return {roster, tz, w, avail, gap, riskGap, nxt, conviction, ramp,
-          enforceRosterFit, gaps: rosterGaps(roster)};
+          enforceRosterFit, gaps: rosterGaps(roster), ...fitMarket};
 }
