@@ -6,7 +6,7 @@
 const PROJECTION_DATASET_META = Object.freeze({
   id: "yahoo-2026-27-full500",
   kind: "bundled",
-  label: "2026–27 Yahoo Projections",
+  label: "2026–27 Projections",
   season: "2026-27",
   updated: "2026-08-24",
   source: "Yahoo Fantasy Basketball"
