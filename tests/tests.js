@@ -114,6 +114,45 @@ function registerTests(w){
       w.eval(`cfg.size = ${oldSize}`);
     }
   });
+
+  test("Scoring gives more percentage impact to higher FT volume at the same percentage", ()=>{
+    const list = [
+      player("PG", {gp:72, ftm:9, fta:10}),
+      player("SG", {gp:72, ftm:1.8, fta:2}),
+      player("C",  {gp:72, ftm:5, fta:10})
+    ];
+    w.scorePool(list, {gpw:0, field:"testZ", totalField:"testTotal"});
+    assert(list[0].testZ.ft > list[1].testZ.ft, "Same FT% on 10 attempts should matter more than on 2 attempts");
+    assert(list[1].testZ.ft > list[2].testZ.ft, "90% FT should score above 50% FT");
+  });
+
+  test("Scoring treats fewer turnovers as better", ()=>{
+    const list = [
+      player("PG", {gp:72, to:1}),
+      player("SG", {gp:72, to:3}),
+      player("C",  {gp:72, to:5})
+    ];
+    w.scorePool(list, {gpw:0, field:"testZ", totalField:"testTotal"});
+    assert(list[0].testZ.to > list[1].testZ.to, "1 TO should score better than 3 TO");
+    assert(list[1].testZ.to > list[2].testZ.to, "3 TO should score better than 5 TO");
+  });
+
+  test("scoreBoth produces both durability-weighted and per-game score sets", ()=>{
+    const oldGpw = w.eval("cfg.gpw");
+    try{
+      w.eval("cfg.gpw = 0.5");
+      const list = [
+        player("PG", {gp:82, pts:25, ast:7, fgm:8, fga:16, ftm:5, fta:6}),
+        player("SG", {gp:60, pts:20, ast:4, fgm:7, fga:15, ftm:4, fta:5}),
+        player("C",  {gp:72, pts:15, ast:2, fgm:6, fga:10, ftm:2, fta:4})
+      ];
+      w.scoreBoth(list);
+      assert(list.every(p=>p.z && p.zpg), "Every player should receive z and zpg objects");
+      assert(list.every(p=>Number.isFinite(p.total) && Number.isFinite(p.totalPg)), "Every player should receive total and totalPg");
+    } finally {
+      w.eval(`cfg.gpw = ${oldGpw}`);
+    }
+  });
 }
 
 async function run(){
