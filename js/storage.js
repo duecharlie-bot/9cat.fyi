@@ -18,6 +18,15 @@ function loadProjectionText(){
   try{ return localStorage.getItem(PROJ_KEY) || ""; }catch(e){ return ""; }
 }
 
+function clearProjectionText(){
+  try{
+    localStorage.removeItem(PROJ_KEY);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
 /*  League settings live in their own key, deliberately.
 
     They used to ride along inside the draft-state blob, which coupled them to

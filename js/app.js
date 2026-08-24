@@ -480,6 +480,49 @@ async function loadProjectionCsvFile(file){
   }
 }
 
+function syncProjectionRestoreButton(){
+  const btn = $("#imp_restore");
+  const note = $("#imp_restore_note");
+  if(!btn) return;
+
+  const customActive = !!loadProjectionText().trim();
+  btn.disabled = !customActive;
+
+  if(note){
+    note.textContent = customActive
+      ? "Switch back to nineCat's built-in 500-player projection pool. Draft picks reset; league settings and starred players stay."
+      : "The default 500-player projection pool is already active.";
+  }
+}
+
+$("#imp_restore").onclick = ()=>{
+  const customActive = !!loadProjectionText().trim();
+  if(!customActive){
+    syncProjectionRestoreButton();
+    return;
+  }
+
+  const ok = window.confirm(
+    "Restore nineCat's default projections?\n\n" +
+    "This will replace your custom projection pool and reset the current draft picks. " +
+    "League settings and starred players will be kept."
+  );
+  if(!ok) return;
+
+  if(!clearProjectionText()){
+    $("#impmsg").innerHTML = `<b>Could not restore defaults.</b><div>Browser storage could not be updated.</div>`;
+    return;
+  }
+
+  // Picks are tied to pool ids/signatures, so restoring the built-in pool is
+  // deliberately a fresh draft. League settings and stars use separate keys.
+  clearState();
+  $("#impmask").classList.remove("on");
+  setTimeout(()=> window.location.reload(), 100);
+};
+
+$("#b_imp").addEventListener("click", syncProjectionRestoreButton);
+
 $("#imp_close").onclick = ()=> $("#impmask").classList.remove("on");
 
 // Close the projections modal when the user clicks the backdrop,
@@ -862,7 +905,11 @@ if(!pool.length){
     + `<button id="b_dismiss" class="x" title="Dismiss">&times;</button>`;
 }
 $("#banner").classList.remove("hide");
-$("#b_banner2").onclick = ()=> $("#impmask").classList.add("on");
+syncProjectionRestoreButton();
+$("#b_banner2").onclick = ()=>{
+  syncProjectionRestoreButton();
+  $("#impmask").classList.add("on");
+};
 $("#i_photoauto").onclick = ()=> autoPhotos(false);
 $("#i_photogo").onclick = ()=>{
   const n = importPhotoIds($("#i_photos").value);
