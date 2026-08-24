@@ -24,7 +24,7 @@ It looks at projected value, category fit, ADP, punt strategies, and who's likel
 
 ### Projections
 
-nineCat ships with a 500-player 2026–27 Yahoo projection pool as its default draft pool.
+nineCat ships with a 500-player 2026–27 projection pool as its default draft pool.
 
 You can replace it with your own projections using the nineCat CSV schema:
 
@@ -36,4 +36,4 @@ Last season's stats are included for comparison.
 
 ### Note
 
-Yahoo is the source of the bundled 2026–27 projection data. nineCat is not affiliated with or endorsed by Yahoo.
+nineCat is not affiliated with or endorsed by Yahoo.
