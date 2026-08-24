@@ -1,0 +1,809 @@
+:root{
+  /* ---- Arena (default): dark, but lifted off pure black for legibility ---- */
+  --ink:#171D26;
+  --panel:#202834;
+  --panel-2:#293341;
+  --line:#36434F;
+  --line-soft:#2A3441;
+  --raise:#252F3C;
+  --chalk:#EEF3F9;
+  --dim:#A6B3C3;
+  --dimmer:#7E8C9E;
+  --wood:#D4A059;
+  --wood-hi:#E0B171;
+  --wood-text:var(--wood-text);
+  --cool:#57ACF2;
+  --hot:#E4636E;
+  --ok:#5CC489;
+  --pos-bg:#162E3D; --pos-fg:#A8D6F5; --pos-bd:#2B5D7C;
+  --neg-bg:#331A1E; --neg-fg:#F2B3B9; --neg-bd:#66303A;
+  --okk-bg:#183324; --okk-fg:#97DBB2; --okk-bd:#2F6647;
+  --you-bg:#1F3E2F;
+  --onclock-bg:var(--onclock-bg); --onclock-fg:#FFFFFF; --onclock-k:var(--onclock-k);
+  --banner-bg:#1C2E24; --banner-fg:#A6DEBC; --banner-bd:#2E4B39;
+  --banner-btn:#2E4B39; --banner-btnfg:#D6F0E2;
+  --mask:rgba(6,9,13,.72);
+  --scroll:#3E4C5C; --scroll-hi:#4E5F72;
+  --clock-a:#243140;
+  --clock-b:#28384A;
+  --clock-d:#223145;
+  --toolbar-grad1:#1F2936;
+  --toolbar-grad2:#171D26;
+  --control-bg:#1C2430;
+  --r:3px;
+}
+body[data-theme="court"]{
+  /* ---- Court: light, for bright rooms ---- */
+  --ink:#F2F5F9;
+  --panel:#FFFFFF;
+  --panel-2:#E9EEF4;
+  --line:#D0D9E3;
+  --line-soft:#E3E9F0;
+  --raise:#EDF1F7;
+  --chalk:#16202C;
+  --dim:#4E5C6E;
+  --dimmer:#78869A;
+  --wood:#8F5D12;
+  --wood-hi:#A46E1E;
+  --wood-text:#FFFFFF;
+  --cool:#1668BC;
+  --hot:#AE2F3B;
+  --ok:#1C7644;
+  --pos-bg:#E2EFFA; --pos-fg:#125388; --pos-bd:#B6D6F1;
+  --neg-bg:#FBE6E8; --neg-fg:#8E2028; --neg-bd:#EFC0C5;
+  --okk-bg:#E3F2E9; --okk-fg:#1A6339; --okk-bd:#BCDFCB;
+  --you-bg:#DCEFE3;
+  --onclock-bg:#F2E1C2; --onclock-fg:#5A3E13; --onclock-k:#8A6524;
+  --banner-bg:#E5F3EB; --banner-fg:#1A6339; --banner-bd:#BCDFCB;
+  --banner-btn:#1C7644; --banner-btnfg:#FFFFFF;
+  --mask:rgba(30,40,52,.55);
+  --scroll:#C4CEDA; --scroll-hi:#AAB7C6;
+  --clock-a:#EEF2F8;
+  --clock-b:#E6EDF6;
+  --clock-d:#E9F1F7;
+  --toolbar-grad1:#F7FAFD;
+  --toolbar-grad2:#EEF3F8;
+  --control-bg:#FFFFFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--ink);
+  color:var(--chalk);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.disp{font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:minmax(0,1.35fr) 5px minmax(0,1fr);background:var(--ink);height:100vh}
+.grip{
+  background:var(--line);cursor:col-resize;position:relative
+}
+.grip:hover,.grip.drag{background:var(--wood)}
+.grip::after{
+  content:"";position:absolute;inset:0 -4px;   /* easier to grab than 5px */
+}
+.col{background:var(--ink);overflow-y:auto;min-width:0}
+
+/* ---------- clock bar ---------- */
+.clock{
+  display:flex;align-items:stretch;gap:1px;
+  background:linear-gradient(90deg,var(--line-soft),var(--line));
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30;
+  box-shadow:0 1px 0 rgba(0,0,0,.16)
+}
+.clock-cell{
+  background:linear-gradient(180deg,var(--panel-2) 0%,var(--panel) 100%);
+  padding:8px 14px;display:flex;flex-direction:column;justify-content:center
+}
+.clock .clock-cell:nth-of-type(1){background:linear-gradient(180deg,var(--clock-a) 0%,var(--panel) 100%)}
+.clock .clock-cell:nth-of-type(2){background:linear-gradient(180deg,var(--clock-b) 0%,var(--panel) 100%)}
+.clock .clock-cell:nth-of-type(4){background:linear-gradient(180deg,var(--clock-d) 0%,var(--panel) 100%)}
+.clock-cell .k{font-size:9px;letter-spacing:.14em;color:var(--dimmer);text-transform:uppercase}
+.clock-cell .v{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1.1;color:var(--chalk)}
+.clock-cell.onclock{
+  background:linear-gradient(180deg,rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 24%), var(--raise);
+  box-shadow:inset 3px 0 0 var(--wood)
+}
+/*  Only .onclock used to carry flex:1, so the bar reflowed the moment the clock
+    reached you — that cell stretched on other teams' picks and didn't on yours.
+    A dedicated spacer keeps every cell content-sized and the buttons pinned
+    right, whoever is up.                                                     */
+.clock-gap{
+  flex:1;min-width:0;
+  background:linear-gradient(180deg,var(--panel-2) 0%,var(--panel) 100%)
+}
+.clock-cell.onclock .k{color:var(--onclock-k)}
+.clock-cell.onclock .v{color:var(--chalk)}
+.clock-cell.you{background:var(--you-bg)}
+.clock-cell.you .v{color:var(--ok)}
+.clock-btn{
+  background:linear-gradient(180deg,var(--panel-2) 0%,var(--panel) 100%);
+  border:0;color:var(--dim);padding:0 12px;cursor:pointer;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-family:"Saira Condensed",sans-serif;font-weight:700
+}
+.clock-btn:hover{background:var(--panel-2);color:var(--chalk)}
+#undo{
+  background:linear-gradient(
+    180deg,
+    color-mix(in srgb,var(--hot) 62%,var(--panel-2)) 0%,
+    color-mix(in srgb,var(--hot) 45%,var(--panel)) 100%
+  );
+  color:#fff;
+  box-shadow:inset 3px 0 0 var(--hot);
+  text-shadow:0 1px 1px rgba(0,0,0,.28)
+}
+#undo:hover{
+  background:linear-gradient(
+    180deg,
+    color-mix(in srgb,var(--hot) 76%,var(--panel-2)) 0%,
+    color-mix(in srgb,var(--hot) 58%,var(--panel)) 100%
+  );
+  color:#fff
+}
+
+/* ---------- section head ---------- */
+.head{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  padding:14px 16px 8px;border-bottom:1px solid var(--line)
+}
+.head h2{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:16px;letter-spacing:.1em;text-transform:uppercase}
+.head .note{font-size:11px;color:var(--dimmer)}
+
+/* ---------- recommendation ---------- */
+/*  Fixed height on the container, not just on its children.
+
+    This panel rewrites itself on every hover, and each child that can reflow —
+    the eyebrow, the name, the sub-line, the chips, the callout label — moved
+    everything below it. Pinning them one at a time only held until the next
+    string got longer. The whole block is a fixed box now; internals are clamped
+    to fit inside it.
+
+      eyebrow 13 (+4) + top 112 + actions 38 (+14) = 181
+      padding 16 top + 16 bottom                  =  32
+      ------------------------------------------------- 213
+    A couple of spare pixels prevent sub-pixel clipping.                   */
+.rec{
+  padding:16px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--panel) 0%,var(--ink) 100%);
+  height:216px;box-sizing:border-box;overflow:hidden
+}
+.rec-eyebrow{
+  font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--wood);margin-bottom:4px;
+  height:13px;line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.rec-name{
+  font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:32px;line-height:1.05;letter-spacing:0;
+  height:34px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.rec-sub{
+  color:var(--dim);font-size:13px;margin-top:3px;
+  height:20px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+/*  One row of chips. Wrapping to a second row was another few pixels of shift;
+    the chips are ordered by importance, so any that don't fit are the least
+    interesting ones.                                                        */
+.rec-why{margin-top:12px;display:flex;flex-wrap:nowrap;gap:5px;height:26px;overflow:hidden}
+.rec-why .chip{flex:0 0 auto}
+.chip{font-size:11px;padding:4px 8px;border-radius:var(--r);border:1px solid var(--line);color:var(--dim);letter-spacing:.04em}
+.chip.up{border-color:var(--pos-bd);color:var(--pos-fg);background:var(--pos-bg)}
+.chip.risk{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
+.rec-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:nowrap;height:38px}
+.rec-actions .btn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.btn{
+  font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  font-size:12px;padding:8px 14px;border-radius:var(--r);border:1px solid var(--line);
+  background:var(--panel-2);color:var(--chalk);cursor:pointer
+}
+.btn:hover{background:var(--line)}
+.btn.primary{background:var(--wood);border-color:var(--wood);color:var(--wood-text)}
+.btn.primary:hover{background:var(--wood-hi)}
+.btn:focus-visible,.px:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--wood);outline-offset:1px}
+.empty{padding:28px 16px;color:var(--dimmer);font-size:13px}
+
+/* ---------- ledger (signature) ---------- */
+.ledger{padding:12px 16px 18px}
+/*  The value column was auto-width. Hovering adds "→ 0.57", and that string is
+    a different length for every player — so the column resized, the 1fr bar
+    track resized with it, and every bar in the ledger twitched sideways. Fixed
+    width, so the track never moves.                                          */
+.lrow{display:grid;grid-template-columns:42px 1fr 102px 34px;align-items:center;gap:9px;height:27px}
+.lcat{font-size:11px;letter-spacing:.08em;color:var(--dimmer);text-transform:uppercase}
+.lrow.lev .lcat{color:var(--wood)}
+.ltrack{position:relative;height:12px;background:var(--panel);border-radius:2px;overflow:visible}
+.lmid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
+.lbar{position:absolute;top:0;bottom:0;border-radius:2px;transition:all .18s ease}
+.lbar.pos{background:var(--cool)}
+.lbar.neg{background:var(--hot)}
+.lghost{position:absolute;top:-2px;bottom:-2px;border:1px dashed var(--wood);border-radius:2px;pointer-events:none}
+.lval{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;overflow:hidden}
+.ledger-key{font-size:11px;color:var(--dimmer);padding:8px 16px 0;line-height:1.5}
+
+/* ---------- search + board ---------- */
+.searchwrap{
+  padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;
+  position:sticky;top:0;
+  background:linear-gradient(180deg,var(--toolbar-grad1) 0%,var(--toolbar-grad2) 100%);
+  z-index:20
+}
+input[type=text],input[type=number],select{
+  background:var(--control-bg);border:1px solid var(--line);color:var(--chalk);
+  padding:7px 10px;border-radius:var(--r);font-family:inherit;font-size:13px;width:100%;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03)
+}
+input::placeholder{color:var(--dimmer)}
+.seg{
+  display:flex;border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;flex:0 0 auto;background:var(--panel)
+}
+.seg button{
+  background:transparent;border:0;color:var(--dim);font-size:10px;letter-spacing:.08em;
+  text-transform:uppercase;padding:0 10px;cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700
+}
+.seg button:hover{background:var(--panel-2);color:var(--chalk)}
+.seg button.on{background:var(--wood);color:var(--wood-text)}
+
+table{width:100%;border-collapse:collapse}
+thead th{
+  /* offset measured at runtime — the search bar above is sticky too */
+  position:sticky;top:var(--stickytop,56px);background:var(--ink);z-index:10;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+  font-weight:600;text-align:right;padding:9px 6px;border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap
+}
+thead th.l{text-align:left}
+thead th:hover{color:var(--chalk)}
+tbody td{padding:8px 6px;border-bottom:1px solid var(--line-soft);font-size:13px;text-align:right;white-space:nowrap}
+tbody td.l{text-align:left}
+/*  With a resizable split the board can get narrow enough to scroll sideways,
+    which used to carry the player's name off screen — leaving rows of numbers
+    with nothing to identify them. Pin the name column instead.              */
+tbody tr{background:var(--ink)}
+thead th.l,tbody td.l{position:sticky;left:0;z-index:12;background:inherit}
+thead th.l{background:var(--ink);z-index:14}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--panel)}
+/*  Row 1 is already identifiable by sitting at the top of a Fit-sorted board;
+    a permanent gold trim just competes with the selection highlight.        */
+tbody tr.top{}
+.pname{
+  position:relative;
+  font-weight:600;
+  font-size:14px;
+  letter-spacing:.01em;
+  padding-right:112px;
+}
+.ppos{color:var(--dimmer);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.fit{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px}
+.delta{font-size:10px;color:var(--dimmer)}
+.delta.up{color:var(--ok)}
+.delta.dn{color:var(--hot)}
+.risk-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--hot);margin-left:5px;vertical-align:middle}
+
+/* ---------- roster / log ---------- */
+.roster{padding:6px 16px 16px}
+.slot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+.roster-player{cursor:pointer;transition:background .12s ease}
+.roster-player:hover{background:var(--raise)}
+.roster-player.stats-open{background:var(--raise);border-bottom-color:transparent}
+.roster-caret{color:var(--dimmer);font-size:10px;line-height:1;flex:0 0 auto}
+.roster-player:hover .roster-caret,.roster-player.stats-open .roster-caret{color:var(--wood)}
+.roster-proj{
+  margin:0 0 4px;padding:9px 10px 10px;background:var(--raise);border-bottom:1px solid var(--line-soft);
+  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px 9px
+}
+.roster-proj .rp-head{grid-column:1/-1;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:1px}
+.roster-proj .rp-stat{min-width:0}
+.roster-proj .rp-k{display:block;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--dimmer)}
+.roster-proj .rp-v{display:block;margin-top:1px;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--chalk);white-space:nowrap}
+.slot .idx{color:var(--dimmer);font-size:10px;width:22px;flex:0 0 22px}
+.slot .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.open .nm{color:var(--dimmer);font-style:italic}
+.px{background:none;border:0;color:var(--dimmer);cursor:pointer;font-size:14px;padding:0 4px;line-height:1}
+.px:hover{color:var(--hot)}
+
+/* ---------- modal ---------- */
+.mask{
+  position:fixed;inset:0;background:var(--mask);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:20px;z-index:100
+}
+.mask.on{display:flex}
+/*  Raised off the page rather than the same flat panel as everything behind it,
+    so a dialog reads as a dialog even at a glance.                          */
+.modal{
+  background:var(--panel-2);border:1px solid var(--line);border-top:2px solid var(--wood);
+  border-radius:6px;width:100%;max-width:620px;max-height:86vh;overflow-y:auto;padding:22px;
+  box-shadow:0 24px 64px rgba(0,0,0,.5)
+}
+.modal h3{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:17px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.modal p{font-size:13px;color:var(--dim);margin-bottom:12px}
+textarea{
+  width:100%;height:190px;background:var(--ink);border:1px solid var(--line);color:var(--chalk);
+  border-radius:var(--r);padding:10px;font-family:"IBM Plex Mono",monospace;font-size:11px;line-height:1.5;resize:vertical
+}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fld label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:4px}
+.msg{font-size:12px;margin-top:10px}
+.msg.bad{color:var(--hot)}
+.msg.good{color:var(--ok)}
+
+/* sort indicator */
+thead th.on{color:var(--wood)}
+thead th .arw{opacity:0;margin-left:3px}
+thead th.on .arw{opacity:1}
+
+/* punt locks */
+.lcat{cursor:pointer;user-select:none}
+.lcat:hover{color:var(--chalk)}
+.lrow.punt .lcat{color:var(--hot);text-decoration:line-through}
+.lrow.chase .lcat{color:var(--ok)}
+.lrow.punt .ltrack{opacity:.32}
+
+/* placeholder banner */
+.banner{
+  background:var(--banner-bg);border-bottom:1px solid var(--banner-bd);color:var(--banner-fg);
+  padding:8px 16px;font-size:12px;display:flex;
+  align-items:center;gap:8px
+}
+.banner > span{flex:1;min-width:0}
+.banner.hide{display:none}
+.banner button.x{
+  background:none;color:var(--banner-fg);font-size:17px;line-height:1;padding:0 4px;
+  margin-left:2px
+}
+.banner button.x:hover{color:#fff}
+.banner button{
+  background:var(--banner-btn);border:0;color:var(--banner-btnfg);padding:4px 10px;border-radius:var(--r);
+  font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;cursor:pointer;flex:0 0 auto
+}
+#b_banner2{margin-left:auto}
+
+/* gp slider */
+.gpw{display:grid;grid-template-columns:140px 1fr 104px 46px;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);font-size:11px;color:var(--dimmer)}
+.gpw input[type=range]{width:100%;accent-color:var(--wood);margin:0}
+
+.prev{width:100%;border-collapse:collapse;margin-top:10px;font-size:11px}
+.prev td,.prev th{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right}
+.prev th{color:var(--dimmer);font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.prev td.l,.prev th.l{text-align:left}
+
+.catgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.catgrid label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:3px}
+.cwx{font-style:normal;font-size:9px;color:var(--wood);margin-left:3px}
+
+/* dismiss buttons */
+.dismiss{position:absolute;top:8px;right:10px;background:none;border:0;color:var(--dimmer);
+  font-size:15px;line-height:1;cursor:pointer;padding:2px 4px}
+.dismiss:hover{color:var(--chalk)}
+.sug,.gapnote{position:relative}
+.sug a{color:var(--wood);text-decoration:none;margin-left:4px}
+.sug a:hover{text-decoration:underline}
+.tinybtn{background:var(--panel-2);border:1px solid var(--line);color:var(--dimmer);justify-self:stretch;
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;
+  border-radius:var(--r);cursor:pointer;font-family:"Saira Condensed",sans-serif;font-weight:700;flex:0 0 auto}
+.tinybtn.on{border-color:var(--wood);color:var(--wood)}
+.tinybtn:hover{color:var(--chalk)}
+.pickerlbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);
+  align-self:center;margin-right:2px}
+.scrolly{max-height:340px;overflow-y:auto}
+
+/* active locks + change diff */
+.active{padding:10px 16px;border-bottom:1px solid var(--line-soft);display:flex;flex-wrap:wrap;gap:6px}
+.lockchip{
+  font-size:11px;padding:5px 9px;border-radius:var(--r);cursor:pointer;
+  letter-spacing:.04em;border:1px solid var(--line);color:var(--dim)
+}
+.lockchip b{margin-left:4px;font-weight:700}
+.lockchip.auto{opacity:.6}
+.lockchip.punt{border-color:var(--neg-bd);color:var(--neg-fg);background:var(--neg-bg)}
+.lockchip.chase{border-color:var(--okk-bd);color:var(--okk-fg);background:var(--okk-bg)}
+.lockchip.chase2{border-color:var(--ok);color:var(--okk-fg);background:var(--okk-bg);box-shadow:inset 0 0 0 1px var(--ok)}
+.lrow.chase2 .lcat{color:var(--ok);font-weight:700}
+.lockchip:hover{border-color:var(--wood);color:var(--chalk)}
+.lockchip.clear{color:var(--dimmer)}
+.sug.diff{background:var(--raise);font-size:11px}
+.sug.diff .up{color:var(--ok)}
+.sug.diff .dn{color:var(--hot)}
+
+/* roster gap advisory */
+.gapnote{margin-top:12px;padding:10px 12px;border-radius:var(--r);background:var(--raise);
+  border-left:2px solid var(--dimmer);font-size:13px;color:var(--dim);line-height:1.5}
+.gapnote .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dimmer);margin-bottom:3px}
+.gapnote.warm{border-left-color:var(--wood)}
+.gapnote.warm .k{color:var(--wood)}
+.gapnote.hot{border-left-color:var(--hot);background:var(--neg-bg)}
+.gapnote.hot .k{color:var(--hot)}
+
+/* punt radar */
+.sug{padding:12px 16px;border-bottom:1px solid var(--line-soft);font-size:13px;color:var(--dim);line-height:1.5}
+.sug .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);margin-bottom:3px}
+.sug b{color:var(--chalk)}
+.sug.quiet{color:var(--dimmer);font-size:11px}
+.sug.warn{background:var(--neg-bg);border-left:2px solid var(--hot)}
+.sug.warn .k{color:var(--hot)}
+.sug .mini{margin-top:8px}
+
+/* tradeoff callout */
+/*  Always rendered, never conditionally hidden. Popping this block in and out
+    as you hover different players shoved the ledger, punt radar and roster up
+    and down on every mouse move. Fixed height keeps everything below it still. */
+/*  Fixed, not min-height: this block changes wording on every hover, and any
+    reflow here moves the whole right-hand column. The text area is clamped to
+    two lines so a long name can't push the button out of the box.           */
+.tradeoff{
+  margin-top:12px;padding:10px 12px;border-left:2px solid var(--wood);
+  background:var(--raise);font-size:13px;color:var(--dim);line-height:1.45;
+  border-radius:0 var(--r) var(--r) 0;
+  height:104px;box-sizing:border-box;overflow:hidden
+}
+.tradeoff .tt{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;height:38px
+}
+.tradeoff .mini{margin-top:6px}
+.tradeoff .mini[disabled]{opacity:.4;cursor:default}
+/*  One line, always. "Board rates Gilgeous-Alexander higher by 3.1" wraps where
+    "Costs you 2.1 of raw value" doesn't, and that extra line shifted the text
+    and button below it — the last of the jitter.                            */
+.tradeoff .k{
+  font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood);
+  margin-bottom:4px;height:12px;line-height:12px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.tradeoff b{color:var(--chalk)}
+.tradeoff.rec-default{
+  border-left-color:var(--line);
+  background:color-mix(in srgb,var(--raise) 78%,var(--ink));
+}
+.tradeoff.rec-default .k{color:var(--dimmer)}
+.tradeoff.rec-default .tt{color:var(--dim)}
+.mini{
+  display:block;margin-top:8px;background:none;border:1px solid var(--line);color:var(--dim);
+  padding:5px 9px;border-radius:var(--r);cursor:pointer;font-size:11px;font-family:inherit
+}
+.mini:hover{border-color:var(--wood);color:var(--chalk)}
+
+/* ---------- collapsible league setup sections ---------- */
+.setup-details{
+  margin:18px 0 16px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);overflow:hidden
+}
+.setup-details summary{
+  list-style:none;cursor:pointer;padding:11px 12px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;color:var(--chalk);
+  font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:15px;
+  letter-spacing:.08em;text-transform:uppercase;user-select:none
+}
+.setup-details summary::-webkit-details-marker{display:none}
+.setup-details summary::after{
+  content:"▸";color:var(--wood);font-size:13px;transition:transform .15s ease
+}
+.setup-details[open] summary::after{transform:rotate(90deg)}
+.setup-details-hint{
+  margin-left:auto;color:var(--dimmer);font-family:"IBM Plex Sans",system-ui,sans-serif;
+  font-weight:500;font-size:10px;letter-spacing:0;text-transform:none
+}
+.setup-details-body{padding:0 12px 12px;border-top:1px solid var(--line-soft)}
+.setup-details-body > p{margin-top:10px}
+
+@media (max-width:900px){
+  .rec{height:auto;overflow:visible}
+  .shell{grid-template-columns:1fr;height:auto}
+  .col{height:auto;overflow:visible}
+  .rec-name{font-size:28px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+
+/* ---------- roster gap notice ---------- */
+.rgap{
+  position:relative;padding:9px 16px;font-size:12px;color:var(--dim);line-height:1.5;
+  border-bottom:1px solid var(--line-soft);border-left:2px solid var(--dimmer);background:var(--raise)
+}
+.rgap.warm{border-left-color:var(--wood)}
+.rgap.hot{border-left-color:var(--hot);background:var(--neg-bg);color:var(--neg-fg)}
+.rgap .dismiss{top:6px;right:8px}
+
+.rgap.top-alert{
+  position:sticky;top:0;z-index:45;
+  border-top:0;box-shadow:0 3px 12px rgba(0,0,0,.22)
+}
+.ledger-collapse{
+  border:1px solid var(--line);background:var(--panel-2);color:var(--dim);
+  border-radius:var(--r);padding:3px 8px;cursor:pointer;font-size:10px;
+  font-family:"Saira Condensed",sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase
+}
+.ledger-collapse:hover{color:var(--chalk);border-color:var(--wood)}
+.ledger-body.hide{display:none}
+
+/* ---------- freshly logged pick ---------- */
+@keyframes pickflash{
+  0%{background:var(--wood);color:var(--wood-text)}
+  100%{background:transparent}
+}
+.slot.flash{animation:pickflash 1.6s ease-out}
+@media (prefers-reduced-motion:reduce){ .slot.flash{animation:none;background:var(--raise)} }
+
+/* ---------- help table ---------- */
+/*  The board sets `tbody td { text-align:right; white-space:nowrap }` globally,
+    and browsers wrap loose <tr>s in an implicit <tbody> — so this table picked
+    both up, right-aligning the prose and forcing it onto one line.          */
+.helptbl{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  font-size:12px;
+  margin:10px 0 6px;
+  table-layout:fixed
+}
+.helptbl td{
+  padding:10px 10px;
+  border-bottom:1px solid var(--line-soft);
+  color:var(--dim);
+  vertical-align:top;
+  text-align:left;
+  white-space:normal;
+  line-height:1.55
+}
+.helptbl td:first-child{
+  width:76px;
+  padding-left:10px;
+  padding-right:16px;
+  color:var(--wood);
+  font-family:"Saira Condensed",sans-serif;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase
+}
+.helptbl td:last-child{
+  padding-right:4px;
+}
+.helptbl b{color:var(--chalk)}
+
+/* ---------- menu + tuning ---------- */
+/*  The menu is absolutely positioned, so it needs a positioned ancestor or it
+    anchors to the viewport and lands in the far corner of the other panel. */
+.topwrap{position:relative;z-index:60}
+.menu{
+  position:absolute;right:8px;top:100%;z-index:60;display:none;flex-direction:column;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 8px 24px rgba(0,0,0,.35);min-width:190px;overflow:hidden
+}
+.menu.on{display:flex}
+.menu button{
+  background:none;border:0;color:var(--dim);text-align:left;padding:10px 14px;cursor:pointer;
+  font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:12px;letter-spacing:.08em;
+  text-transform:uppercase;border-bottom:1px solid var(--line-soft)
+}
+.menu button:last-child{border-bottom:0}
+.menu button:hover{background:var(--panel-2);color:var(--chalk)}
+.tuning{
+  display:block;width:100%;
+  background:linear-gradient(
+    90deg,
+    color-mix(in srgb,var(--wood) 18%,var(--panel)) 0%,
+    color-mix(in srgb,var(--wood) 8%,var(--panel)) 34%,
+    var(--panel) 100%
+  );
+  border:0;
+  border-top:1px solid color-mix(in srgb,var(--wood) 42%,var(--line));
+  border-bottom:1px solid color-mix(in srgb,var(--wood) 28%,var(--line));
+  box-shadow:inset 3px 0 0 var(--wood);
+  color:var(--wood-hi);
+  text-align:left;
+  padding:7px 16px;
+  cursor:pointer;
+  font-family:"Saira Condensed",sans-serif;
+  font-weight:700;
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase
+}
+.tuning:hover{
+  background:linear-gradient(
+    90deg,
+    color-mix(in srgb,var(--wood) 24%,var(--panel-2)) 0%,
+    color-mix(in srgb,var(--wood) 10%,var(--panel)) 38%,
+    var(--panel) 100%
+  );
+  color:var(--chalk)
+}
+#tuning.hide{display:none}
+
+/* ---------- board footnote ---------- */
+.boardfoot{
+  padding:10px 16px 14px;font-size:11px;color:var(--dimmer);line-height:1.6;
+  border-top:1px solid var(--line-soft)
+}
+.boardfoot b{color:var(--dim);font-weight:600}
+
+/* ---------- first-run intro ---------- */
+.intro{
+  margin:0 0 16px;padding:11px 13px;border-left:2px solid var(--wood);background:var(--raise);
+  border-radius:0 var(--r) var(--r) 0;font-size:13px;color:var(--dim);line-height:1.55
+}
+.intro b{color:var(--chalk)}
+
+/* ---------- import steps ---------- */
+.steps{margin:0 0 14px;padding:0 0 0 22px;font-size:13px;color:var(--dim);line-height:1.55}
+.steps li{margin-bottom:11px}
+.steps li::marker{color:var(--wood);font-weight:700}
+.steps b{color:var(--chalk)}
+.steps em{display:block;font-style:normal;font-size:11px;color:var(--dimmer);margin-top:3px}
+.src{display:inline-flex;gap:6px;margin-left:6px;flex-wrap:wrap}
+.src a{
+  font-size:10px;padding:1px 6px;border:1px solid var(--line);border-radius:var(--r);
+  color:var(--wood);text-decoration:none
+}
+.src a:hover{border-color:var(--wood);background:var(--panel-2)}
+
+/* ---------- head to head ---------- */
+#h2h{padding:12px 16px;border-bottom:1px solid var(--line-soft);background:var(--raise)}
+.h2h-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+.h2h-head .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--wood)}
+.h2h-head .score{font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:22px;line-height:1}
+.h2h-head .score.win{color:var(--ok)} .h2h-head .score.lose{color:var(--hot)} .h2h-head .score.tie{color:var(--dim)}
+.h2h-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.h2hc{
+  font-size:10px;text-align:center;padding:4px 2px;border-radius:var(--r);
+  border:1px solid var(--line);color:var(--dim);line-height:1.3
+}
+.h2hc em{display:block;font-style:normal;font-family:"IBM Plex Mono",monospace;font-size:10px}
+.h2hc.w{border-color:var(--okk-bd);background:var(--okk-bg);color:var(--okk-fg)}
+.h2hc.l{border-color:var(--neg-bd);background:var(--neg-bg);color:var(--neg-fg)}
+.h2hc.t{border-color:var(--line);background:var(--panel);color:var(--dim)}
+tbody tr.nofit{opacity:.32;cursor:not-allowed}
+tbody tr.nofit:hover{background:var(--ink)}
+tbody tr.nofit .again{display:none}
+.h2h-note{margin-top:9px;font-size:11px;color:var(--dimmer);line-height:1.5}
+
+/* ---------- starred / saved players drawer ---------- */
+.star{
+  display:inline-block;width:16px;margin-right:6px;cursor:pointer;
+  color:var(--dimmer);font-size:13px;line-height:1;vertical-align:baseline
+}
+.star:hover{color:var(--wood)}
+.star.on{color:var(--wood)}
+
+/*  The saved list used to be extra <tbody>s at the END of the main table.
+    That meant it existed, but only after all ~80 board rows — so it was not a
+    bottom drawer at all. Give the left pane its own scroll area and keep this
+    drawer as a sibling underneath it. It now stays visible regardless of where
+    the board itself is scrolled.                                               */
+.boardcol{display:flex;flex-direction:column;overflow:hidden}
+.boardscroll{flex:1 1 auto;min-height:0;min-width:0;overflow:auto}
+.startray{
+  flex:0 0 auto;min-width:0;max-height:min(42vh,360px);overflow:hidden;
+  background:var(--ink);border-top:1px solid var(--wood);
+  box-shadow:0 -10px 28px rgba(0,0,0,.28);z-index:25
+}
+#starbtn{
+  display:flex;align-items:center;gap:6px;width:100%;background:var(--panel);border:0;
+  color:var(--wood);text-align:left;padding:8px 10px;cursor:pointer;
+  font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase
+}
+#starbtn:hover{background:var(--panel-2);color:var(--chalk)}
+#starcount{color:var(--dimmer)}
+#starcaret{margin-left:auto;color:var(--dimmer)}
+.startray-body{max-height:min(34vh,290px);overflow:auto;background:var(--ink)}
+.startable{width:100%;min-width:860px;border-collapse:collapse}
+.startable tbody tr{background:var(--ink)}
+.startable tbody tr:hover{background:var(--panel)}
+.startable tbody td.l{position:sticky;left:0;z-index:2;background:inherit}
+
+/*  A starred player someone else took: still listed, visibly out of reach.   */
+tbody tr.gone{opacity:.42}
+tbody tr.gone:hover{background:transparent}
+tbody tr.gone .pname{text-decoration:line-through;text-decoration-thickness:1px}
+.takenby{color:var(--hot);letter-spacing:.04em}
+
+@media (max-width:900px){
+  .boardcol{display:block;overflow:visible}
+  .boardscroll{overflow:visible;height:auto}
+  .startray{position:sticky;bottom:0;max-height:none}
+  .startray-body{max-height:280px}
+}
+
+/* ---------- selected row ---------- */
+.again{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  margin-left:0;
+  white-space:nowrap;
+  font-family:"Saira Condensed",sans-serif;
+  font-weight:700;
+  font-size:9px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--wood);
+  border:1px solid var(--wood-lo,var(--line));
+  border-radius:var(--r);
+  padding:1px 5px;
+  vertical-align:middle
+}
+tbody tr.sel{background:var(--pos-bg);box-shadow:inset 3px 0 0 var(--wood)}
+tbody tr.focus{background:var(--raise);box-shadow:inset 3px 0 0 var(--dimmer)}
+tbody tr.focus:hover{background:var(--raise)}
+tbody tr.sel .pname{color:var(--chalk)}
+tbody tr.sel:hover{background:var(--pos-bg)}
+
+/* ---------- recommendation photo ---------- */
+/*  The photo is 96px and a long name can wrap to two lines, so this region has
+    to be pinned too or the block below it moves.                            */
+.rec-top{display:flex;gap:14px;align-items:flex-start;height:112px;overflow:hidden}
+.rec-info{display:flex;flex-direction:column;justify-content:flex-start}
+.rec-info{flex:1;min-width:0}
+.rec-photo{
+  position:relative;flex:0 0 auto;width:96px;height:96px;border-radius:50%;
+  overflow:hidden;border:2px solid var(--line);background:var(--panel-2)
+}
+.rec-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;
+  background:var(--panel-2)}
+/* A loaded photo replaces the monogram outright — cutout PNGs are transparent,
+   so leaving the badge behind shows initials through the player's head. */
+.rec-photo.has-photo .mono-badge{display:none}
+.rec-photo.has-photo{background:var(--panel-2)}
+.mono-badge{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:"Saira Condensed",sans-serif;font-weight:900;font-size:34px;letter-spacing:.02em;
+  color:hsl(var(--h) 45% 78%);background:hsl(var(--h) 30% 22%)
+}
+body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(var(--h) 45% 88%)}
+@media (max-width:900px){ .rec-photo{width:72px;height:72px} .mono-badge{font-size:26px} }
+
+/* ---------- hover projection in the ledger ---------- */
+.lnext{font-style:normal;font-size:11px;color:var(--dimmer);margin-left:5px}
+.lnext.up{color:var(--ok)}
+.lnext.dn{color:var(--hot)}
+
+/* ---------- ledger: team selector + standings rank ---------- */
+.ledgersel{
+  background:var(--panel);border:1px solid var(--line);color:var(--dim);
+  font-family:inherit;font-size:11px;padding:3px 6px;border-radius:var(--r);width:auto;max-width:150px
+}
+.lrank{
+  font-size:10px;color:var(--dimmer);text-align:right;font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums
+}
+.lrank.first{color:var(--ok);font-weight:600}
+
+/* ---------- themed scrollbars ---------- */
+*{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:6px;
+  border:3px solid var(--ink);background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--scroll-hi);border:3px solid var(--ink);background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+
+/* ---------- roster position tag ---------- */
+.rpos{font-size:10px;letter-spacing:.06em;color:var(--dimmer);
+  border:1px solid var(--line);border-radius:var(--r);padding:1px 5px;flex:0 0 auto}
+.slot .nm{flex:1}
+
+/* ---------- team name grid ---------- */
+.namegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:220px;overflow-y:auto}
+
+/* ---------- site footer ---------- */
+.site-footer{
+  padding:10px 16px;
+  border-top:1px solid var(--line-soft);
+  color:var(--dimmer);
+  font-size:11px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:var(--ink);
+}
+.site-footer a{
+  color:var(--dimmer);
+  text-decoration:none;
+}
+.site-footer a:hover{color:var(--wood)}
+
