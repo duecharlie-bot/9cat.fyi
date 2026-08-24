@@ -2,6 +2,14 @@
 
 /* Bundled nineCat 2026–27 projection sample.
    Data only: parser/scoring logic lives under js/. */
+const PROJECTION_DATASET_META = Object.freeze({
+  id: "ninecat-2026-27-sample",
+  kind: "bundled",
+  label: "2026–27 Projections",
+  season: "2026-27",
+  updated: "2026-08-24",
+  source: "nineCat bundled sample"
+});
 const RAW = `
 R#	PLAYER	ADP	POS	TEAM	GP	MPG	FG%	FT%	3PM	PTS	TREB	AST	STL	BLK	TO	TOTAL
 1	Nikola Jokic	1.7	C	DEN	72	35.1	0.573 (10.5/18.3)	0.816 (5.6/6.8)	1.8	28.4	12.7	10.4	1.6	0.7	3.5	15.96

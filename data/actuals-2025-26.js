@@ -2,6 +2,15 @@
 
 /* Bundled 2025–26 historical actuals used for prior-season context.
    Source/attribution remains documented in projections.js and the UI. */
+const ACTUALS_DATASET_META = Object.freeze({
+  id: "boxscorelab-2025-26-actuals",
+  kind: "historical",
+  label: "2025–26 Actuals",
+  season: "2025-26",
+  dataThrough: "2026-08-09",
+  source: "BoxScore Lab",
+  license: "CC BY 4.0"
+});
 const RAW_LAST = `
 Player	Pos	Team	G	FGM	FGA	FTM	FTA	3P	TRB	AST	STL	BLK	TOV	PTS
 Amen Thompson	G-F	HOU	79	7.0506	13.2152	3.8481	4.9367	0.3165	7.7722	5.3165	1.5063	0.6076	2.4051	18.2658
