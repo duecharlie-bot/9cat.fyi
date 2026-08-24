@@ -644,7 +644,7 @@ function registerTests(w){
     assert((pos & w.Node.DOCUMENT_POSITION_FOLLOWING) !== 0, "Roster alert should appear before the recommendation panel in the DOM");
   });
 
-  test("Category Ledger collapse control hides and restores the ledger body", ()=>{
+  test("Team Profile collapse control hides and restores the profile body", ()=>{
     const btn = w.document.getElementById("ledgercollapse");
     const body = w.document.getElementById("ledgerbody");
     assert(btn && body, "Expected ledger collapse controls");
@@ -662,7 +662,7 @@ function registerTests(w){
     if(startedHidden) btn.click();
   });
 
-  test("Z and Totals modes keep identical Category Ledger bar geometry", ()=>{
+  test("Z and Totals modes keep identical Team Profile bar geometry", ()=>{
     const oldPicks = w.eval("picks");
     const oldMode = w.eval("ledgerMode"); w.__oldLedgerMode=oldMode;
     const oldTeam = w.eval("ledgerTeam"); w.__oldLedgerTeam=oldTeam;
@@ -885,9 +885,10 @@ function registerTests(w){
       const intro = w.document.getElementById("s_intro");
       assert(intro && intro.style.display !== "none", "First-run setup intro should be visible");
       const text = intro.textContent.replace(/\s+/g," ").trim();
-      assert(text.includes("Step 1 of 2"), "Expected first-run step indicator");
+      assert(text.includes("First-time setup"), "Expected standalone first-time setup label");
       assert(text.includes("league size") && text.includes("draft slot"), "Expected league size and draft slot guidance");
-      assert(text.toLowerCase().includes("projections are already loaded"), "Expected bundled-projection reassurance");
+      assert(text.includes("30-player sample"), "Expected accurate sample-pool guidance");
+      assert(text.toLowerCase().includes("load a full projection set"), "Expected full-pool guidance before a real draft");
       equal(w.document.getElementById("s_save").textContent, "Save and continue");
     } finally {
       w.eval(`firstRun = ${oldFirstRun ? "true" : "false"}`);
@@ -895,17 +896,26 @@ function registerTests(w){
     }
   });
 
-  test("Quick start tells new users that importing projections is optional", ()=>{
+  test("Quick start is standalone and accurately explains the sample projection pool", ()=>{
     const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
-    assert(text.includes("Step 2 of 2"), "Expected second onboarding step");
-    assert(text.toLowerCase().includes("starter projection set"), "Expected starter projection guidance");
-    assert(text.toLowerCase().includes("importing your own projections is optional"), "Expected import to be framed as optional");
+    assert(!text.includes("Step 2 of 2"), "Quick start should not pretend to be a second step when reopened from the menu");
+    assert(text.includes("30-player sample projection set"), "Expected accurate sample-pool guidance");
+    assert(text.toLowerCase().includes("before a real draft, load a full projection set"), "Expected full projection requirement");
   });
 
-  test("Quick start explains Total versus Fit and recommends drafting from Fit", ()=>{
+  test("Quick start explains Total, Fit, and next-pick scarcity in simple language", ()=>{
     const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
     assert(text.includes("Total") && text.includes("Fit"), "Expected Total and Fit explanation");
-    assert(text.includes("When they disagree, use Fit"), "Expected a clear recommendation to use Fit");
+    assert(text.includes("unlikely to make it back to your next pick"), "Expected next-pick scarcity explanation");
+  });
+
+  test("Team Profile is the user-facing name for the former Category Ledger", ()=>{
+    const heading = w.document.querySelector("#ledger h2");
+    assert(heading, "Expected Team Profile heading");
+    equal(heading.textContent.trim(), "Team Profile");
+    const quick = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(quick.includes("Team Profile"), "Expected Quick start to use Team Profile terminology");
+    assert(!quick.includes("Category Ledger"), "Old Category Ledger terminology should be removed from Quick start");
   });
 
   test("Quick start presents Yahoo sync as optional automation", ()=>{
