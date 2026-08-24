@@ -725,6 +725,157 @@ function registerTests(w){
     }
   });
 
+  test("Bundled current-season projection dataset parses to the expected 30-player sample", ()=>{
+    const rows = w.eval("dedupe(parsePool(RAW))");
+    equal(rows.length, 30, "Bundled projection sample size changed unexpectedly");
+    equal(rows[0].name, "Nikola Jokic");
+    equal(rows[rows.length-1].name, "Dejounte Murray");
+  });
+
+  test("Bundled historical actuals dataset is present and substantial", ()=>{
+    const rows = w.eval("dedupe(parsePool(RAW_LAST))");
+    assert(rows.length > 100, `Expected a substantial historical dataset, got ${rows.length} rows`);
+  });
+
+  test("Historical actuals can still match normalized current-player names", ()=>{
+    const current = w.eval("dedupe(parsePool(RAW))");
+    const hist = w.eval("dedupe(parsePool(RAW_LAST))");
+    const currentKeys = new Set(current.map(p=>w.eval(`nameKey(${JSON.stringify(p.name)})`)));
+    const historicalKeys = new Set(hist.map(p=>w.eval(`nameKey(${JSON.stringify(p.name)})`)));
+    for(const expected of ["Nikola Jokic","Luka Doncic","Shai Gilgeous-Alexander"]){
+      const key = w.eval(`nameKey(${JSON.stringify(expected)})`);
+      assert(currentKeys.has(key), `${expected} should exist in current projections`);
+      assert(historicalKeys.has(key), `${expected} should match historical actuals after normalization`);
+    }
+  });
+
+  test("Bundled projection dataset exposes season and update metadata", ()=>{
+    const meta = w.eval("PROJECTION_DATASET_META");
+    equal(meta.kind, "bundled");
+    equal(meta.season, "2026-27");
+    equal(meta.updated, "2026-08-24");
+    equal(meta.label, "2026–27 Projections");
+  });
+
+  test("Historical dataset exposes source and data-through metadata", ()=>{
+    const meta = w.eval("ACTUALS_DATASET_META");
+    equal(meta.kind, "historical");
+    equal(meta.source, "BoxScore Lab");
+    equal(meta.license, "CC BY 4.0");
+    equal(meta.dataThrough, "2026-08-09");
+  });
+
+  test("Bundled projection summary includes label, player count and updated date", ()=>{
+    const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 30))");
+    equal(summary, "2026–27 Projections · 30 players · Updated Aug 24, 2026");
+  });
+
+  test("Custom projection imports are clearly distinguished from bundled data", ()=>{
+    const meta = w.eval("projectionDatasetMeta('custom table', 184)");
+    equal(meta.kind, "custom");
+    equal(meta.label, "Custom projections");
+    equal(meta.playerCount, 184);
+    equal(w.eval("projectionDatasetSummary(projectionDatasetMeta('custom table', 184))"), "Custom projections · 184 players");
+  });
+
+  test("Player-name normalization rules are loaded from dedicated data", ()=>{
+    const rules = w.eval("PLAYER_NAME_RULES");
+    equal(rules.foldChars["đ"], "d");
+    assert(rules.suffixes.includes("jr"), "Expected Jr suffix rule");
+    assert(rules.suffixes.includes("iii"), "Expected III suffix rule");
+  });
+
+  test("Source team abbreviations are centralized in player-name rules", ()=>{
+    const teams = w.eval("PLAYER_NAME_RULES.teamAbbreviations");
+    for(const t of ["NY","NYK","NO","NOP","PHO","PHX","GS","GSW"]){
+      assert(teams.includes(t), `Expected ${t} team abbreviation`);
+    }
+  });
+
+  test("Generational suffixes still normalize to the same player key", ()=>{
+    equal(w.eval(`nameKey("Jaren Jackson Jr.")`), w.eval(`nameKey("Jaren Jackson")`));
+    equal(w.eval(`nameKey("Trey Murphy III")`), w.eval(`nameKey("Trey Murphy")`));
+  });
+
+  test("Player cleanup preserves suffixes while stripping source team and position", ()=>{
+    equal(w.eval(`cleanName("Trey Murphy III NO SG/SF")`), "Trey Murphy III");
+    equal(w.eval(`cleanName("Stephen Curry GSW PG")`), "Stephen Curry");
+  });
+
+
+  test("Projection import validation rejects an empty paste without creating rows", ()=>{
+    const v = w.validateProjectionImport("");
+    equal(v.ok, false);
+    equal(v.code, "empty");
+    equal(v.rows.length, 0);
+    assert(v.message.includes("Paste a projection table"), "Expected a clear empty-import message");
+  });
+
+  test("Projection import validation rejects tables without field-goal volume", ()=>{
+    const text = [
+      "PLAYER\tPOS\tTEAM\tFG%\tFT%\tPTS\tREB\tAST\tSTL\tBLK\tTO",
+      "Alpha One\tPG\tAAA\t0.50\t0.80\t20\t5\t5\t1\t0.5\t2",
+      "Bravo Two\tSG\tBBB\t0.48\t0.82\t18\t4\t4\t1\t0.4\t2",
+      "Charlie Three\tSF\tCCC\t0.47\t0.75\t16\t6\t3\t1\t0.6\t2",
+      "Delta Four\tPF\tDDD\t0.52\t0.70\t14\t8\t2\t1\t1\t2",
+      "Echo Five\tC\tEEE\t0.55\t0.68\t12\t10\t2\t0.8\t1.5\t2"
+    ].join("\n");
+    const v = w.validateProjectionImport(text);
+    equal(v.ok, false);
+    equal(v.code, "too-few-players");
+    equal(v.rows.length, 0);
+    assert(v.message.includes("field-goal makes and attempts"), "Expected field-goal volume guidance");
+  });
+
+  test("Projection import validation requires a meaningful pool, not a tiny accidental parse", ()=>{
+    const text = [
+      "PLAYER\tPOS\tTEAM\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO",
+      "Alpha One\tPG\tAAA\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
+      "Bravo Two\tSG\tBBB\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2"
+    ].join("\n");
+    const v = w.validateProjectionImport(text);
+    equal(v.ok, false);
+    equal(v.rows.length, 2);
+    assert(v.message.includes("at least 5 players"), "Expected minimum-pool guidance");
+  });
+
+  test("Projection import validation reports duplicates and unreadable rows", ()=>{
+    const header = "PLAYER\tPOS\tTEAM\tGP\tADP\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO";
+    const rows = [
+      "Alpha One\tPG\tAAA\t70\t10\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
+      "Bravo Two\tSG\tBBB\t70\t20\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2",
+      "Charlie Three\tSF\tCCC\t70\t30\t47% (4.7/10)\t75% (3.8/5)\t1\t16\t6\t3\t1\t0.6\t2",
+      "Delta Four\tPF\tDDD\t70\t40\t52% (5.2/10)\t70% (3.5/5)\t1\t14\t8\t2\t1\t1\t2",
+      "Echo Five\tC\tEEE\t70\t50\t55% (5.5/10)\t68% (3.4/5)\t0\t12\t10\t2\t0.8\t1.5\t2",
+      "Alpha One\tPG\tAAA\t82\t10\t51% (5.1/10)\t80% (4/5)\t2\t21\t5\t5\t1\t0.5\t2",
+      "this row is not a projection row"
+    ];
+    const v = w.validateProjectionImport([header, ...rows].join("\n"));
+    equal(v.ok, true);
+    equal(v.parsedRows, 6);
+    equal(v.rows.length, 5);
+    equal(v.duplicates, 1);
+    assert(v.skipped.length >= 0, "Skipped diagnostics should always be an array");
+    equal(v.rows.find(p=>p.name==="Alpha One").gp, 82, "Dedupe should keep the higher-GP row");
+  });
+
+  test("Projection import validation reports optional GP and ADP coverage", ()=>{
+    const text = [
+      "PLAYER\tPOS\tTEAM\tGP\tADP\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO",
+      "Alpha One\tPG\tAAA\t70\t10\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
+      "Bravo Two\tSG\tBBB\t68\t20\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2",
+      "Charlie Three\tSF\tCCC\t66\t30\t47% (4.7/10)\t75% (3.8/5)\t1\t16\t6\t3\t1\t0.6\t2",
+      "Delta Four\tPF\tDDD\t64\t40\t52% (5.2/10)\t70% (3.5/5)\t1\t14\t8\t2\t1\t1\t2",
+      "Echo Five\tC\tEEE\t62\t50\t55% (5.5/10)\t68% (3.4/5)\t0\t12\t10\t2\t0.8\t1.5\t2"
+    ].join("\n");
+    const v = w.validateProjectionImport(text);
+    equal(v.ok, true);
+    equal(v.rows.length, 5);
+    equal(v.withGP, 5);
+    equal(v.withADP, 5);
+    equal(v.withKnownPos, 5);
+  });
+
 }
 
 async function run(){
