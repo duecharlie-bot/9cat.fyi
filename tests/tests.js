@@ -480,6 +480,107 @@ function registerTests(w){
     }
   });
 
+
+  test("Projection text round-trips through local storage", ()=>{
+    const key = w.eval("PROJ_KEY");
+    const old = w.localStorage.getItem(key);
+    try{
+      const sample = "Player\tPTS\nTest Guard\t22.4";
+      w.saveProjectionText(sample);
+      equal(w.loadProjectionText(), sample);
+    } finally {
+      if(old === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, old);
+    }
+  });
+
+  test("League settings save and restore independently of draft picks", ()=>{
+    const key = w.eval("CFG_KEY");
+    const oldRaw = w.localStorage.getItem(key);
+    const oldCfg = JSON.parse(JSON.stringify(w.eval("cfg")));
+    const oldShape = w.eval("shape");
+    const oldTheme = w.document.body.dataset.theme;
+    const oldPending = w.eval("pendingUI");
+    try{
+      w.eval("cfg.teams=7; cfg.slot=3; shape=0.37; document.body.dataset.theme='court'; saveSettings()");
+      w.eval("cfg.teams=4; cfg.slot=1; shape=0.91; document.body.dataset.theme='arena'; pendingUI=null");
+      assert(w.loadSettings(), "Expected saved league settings to load");
+      equal(w.eval("cfg.teams"), 7);
+      equal(w.eval("cfg.slot"), 3);
+      approx(w.eval("shape"), 0.37);
+      equal(w.document.body.dataset.theme, "court");
+    } finally {
+      w.__oldCfgCopy = oldCfg; w.__oldPending = oldPending; w.__oldShape = oldShape; w.__oldTheme = oldTheme;
+      w.eval("Object.assign(cfg, window.__oldCfgCopy); shape=window.__oldShape; document.body.dataset.theme=window.__oldTheme; pendingUI=window.__oldPending");
+      delete w.__oldCfgCopy; delete w.__oldPending; delete w.__oldShape; delete w.__oldTheme;
+      if(oldRaw === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, oldRaw);
+    }
+  });
+
+  test("Draft state round-trips when the projection-pool signature matches", ()=>{
+    const saveKey = w.eval("SAVE_KEY");
+    const cfgKey = w.eval("CFG_KEY");
+    const oldSaveRaw = w.localStorage.getItem(saveKey);
+    const oldCfgRaw = w.localStorage.getItem(cfgKey);
+    const oldPicks = w.eval("picks"), oldLocks = w.eval("locks"), oldLedgerTeam = w.eval("ledgerTeam");
+    try{
+      w.__testPicks = [{playerId:987,teamIdx:2,overall:0}];
+      w.__testLocks = {blk:"chase2",to:"punt"};
+      w.eval("picks=window.__testPicks; locks=window.__testLocks; ledgerTeam=2; saveState()");
+      w.eval("picks=[]; locks={}; ledgerTeam=null");
+      assert(w.loadState(), "Expected matching draft state to restore");
+      equal(w.eval("picks.length"), 1);
+      equal(w.eval("picks[0].playerId"), 987);
+      equal(w.eval("locks.blk"), "chase2");
+      equal(w.eval("locks.to"), "punt");
+      equal(w.eval("ledgerTeam"), 2);
+    } finally {
+      w.__oldPicks=oldPicks; w.__oldLocks=oldLocks; w.__oldLedgerTeam=oldLedgerTeam;
+      w.eval("picks=window.__oldPicks; locks=window.__oldLocks; ledgerTeam=window.__oldLedgerTeam");
+      delete w.__testPicks; delete w.__testLocks; delete w.__oldPicks; delete w.__oldLocks; delete w.__oldLedgerTeam;
+      if(oldSaveRaw === null) w.localStorage.removeItem(saveKey); else w.localStorage.setItem(saveKey, oldSaveRaw);
+      if(oldCfgRaw === null) w.localStorage.removeItem(cfgKey); else w.localStorage.setItem(cfgKey, oldCfgRaw);
+    }
+  });
+
+  test("Saved picks are rejected when the projection-pool signature changes", ()=>{
+    const key = w.eval("SAVE_KEY");
+    const oldRaw = w.localStorage.getItem(key);
+    const oldPicks = w.eval("picks"), oldLocks = w.eval("locks"), oldLedgerTeam = w.eval("ledgerTeam");
+    try{
+      w.__sentinelPicks=[{playerId:111,teamIdx:0,overall:0}];
+      w.__sentinelLocks={ast:"chase"};
+      w.eval("picks=window.__sentinelPicks; locks=window.__sentinelLocks; ledgerTeam=1");
+      w.localStorage.setItem(key, JSON.stringify({sig:"definitely-not-this-pool",picks:[{playerId:999,teamIdx:3,overall:0}],locks:{blk:"punt"},ledgerTeam:3}));
+      assert(!w.loadState(), "Mismatched projection signature must not restore the saved draft");
+      equal(w.eval("picks[0].playerId"), 111, "Current picks should remain untouched on signature mismatch");
+      equal(w.eval("locks.ast"), "chase");
+      equal(w.eval("ledgerTeam"), 1);
+    } finally {
+      w.__oldPicks=oldPicks; w.__oldLocks=oldLocks; w.__oldLedgerTeam=oldLedgerTeam;
+      w.eval("picks=window.__oldPicks; locks=window.__oldLocks; ledgerTeam=window.__oldLedgerTeam");
+      delete w.__sentinelPicks; delete w.__sentinelLocks; delete w.__oldPicks; delete w.__oldLocks; delete w.__oldLedgerTeam;
+      if(oldRaw === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, oldRaw);
+    }
+  });
+
+  test("Clearing draft state preserves league settings and projection text", ()=>{
+    const saveKey=w.eval("SAVE_KEY"), cfgKey=w.eval("CFG_KEY"), projKey=w.eval("PROJ_KEY");
+    const oldSave=w.localStorage.getItem(saveKey), oldCfg=w.localStorage.getItem(cfgKey), oldProj=w.localStorage.getItem(projKey);
+    try{
+      w.localStorage.setItem(saveKey, "draft-test");
+      w.localStorage.setItem(cfgKey, "settings-test");
+      w.localStorage.setItem(projKey, "projections-test");
+      w.clearState();
+      equal(w.localStorage.getItem(saveKey), null);
+      equal(w.localStorage.getItem(cfgKey), "settings-test");
+      equal(w.localStorage.getItem(projKey), "projections-test");
+    } finally {
+      if(oldSave===null) w.localStorage.removeItem(saveKey); else w.localStorage.setItem(saveKey,oldSave);
+      if(oldCfg===null) w.localStorage.removeItem(cfgKey); else w.localStorage.setItem(cfgKey,oldCfg);
+      if(oldProj===null) w.localStorage.removeItem(projKey); else w.localStorage.setItem(projKey,oldProj);
+    }
+  });
+
 }
 
 async function run(){
