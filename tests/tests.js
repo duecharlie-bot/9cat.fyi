@@ -725,6 +725,30 @@ function registerTests(w){
     }
   });
 
+  test("Bundled current-season projection dataset parses to the expected 30-player sample", ()=>{
+    const rows = w.eval("dedupe(parsePool(RAW))");
+    equal(rows.length, 30, "Bundled projection sample size changed unexpectedly");
+    equal(rows[0].name, "Nikola Jokic");
+    equal(rows[rows.length-1].name, "Dejounte Murray");
+  });
+
+  test("Bundled historical actuals dataset is present and substantial", ()=>{
+    const rows = w.eval("dedupe(parsePool(RAW_LAST))");
+    assert(rows.length > 100, `Expected a substantial historical dataset, got ${rows.length} rows`);
+  });
+
+  test("Historical actuals can still match normalized current-player names", ()=>{
+    const current = w.eval("dedupe(parsePool(RAW))");
+    const hist = w.eval("dedupe(parsePool(RAW_LAST))");
+    const currentKeys = new Set(current.map(p=>w.eval(`nameKey(${JSON.stringify(p.name)})`)));
+    const historicalKeys = new Set(hist.map(p=>w.eval(`nameKey(${JSON.stringify(p.name)})`)));
+    for(const expected of ["Nikola Jokic","Luka Doncic","Shai Gilgeous-Alexander"]){
+      const key = w.eval(`nameKey(${JSON.stringify(expected)})`);
+      assert(currentKeys.has(key), `${expected} should exist in current projections`);
+      assert(historicalKeys.has(key), `${expected} should match historical actuals after normalization`);
+    }
+  });
+
 }
 
 async function run(){
