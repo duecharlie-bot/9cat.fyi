@@ -62,7 +62,7 @@
       <thead>
         <tr>
           <th class="l" data-s="name">Player<span class="arw">▾</span></th>
-          <th data-s="fit" title="Total, adjusted for your roster: categories you can still swing count more, ones already won or lost count less, and players who won't survive to your next pick count more. This is the column to draft from.">Fit<span class="arw">▾</span></th>
+          <th data-s="fit" title="Total, adjusted for your roster and availability. Fit is re-centered as the draft moves: 0 is the median Fit among roughly the best two rounds of players still available. Positive is better than a typical current option.">Fit<span class="arw">▾</span></th>
           <th data-s="rank" title="Rank by Total across the whole pool — our own ordering, not the projection source&#39;s. Compare with ADP to see who the market is under- or over-drafting.">#<span class="arw">▾</span></th>
           <th data-s="adp" title="Average draft position — where the market is taking him, regardless of what the projections say.">ADP<span class="arw">▾</span></th>
           <th data-s="total" title="Add up the nine category numbers to the right and you get this. It's the player in a vacuum — total production, before anything about your roster. Switch the view to Z-scores to see the columns add up.">Total<span class="arw">▾</span></th>
@@ -81,8 +81,7 @@
     </table>
     <div class="boardfoot">
       <b>Total</b> is the nine category numbers added up — the player on his own.
-      <b>Fit</b> is that same number weighted for your roster and for who won't last until your next pick.
-      When they disagree, Fit is the one to draft from.
+      <b>Fit</b> is that same number weighted for your roster and for who won't last until your next pick. It is re-centered as the draft moves, so <b>0</b> is a typical option among roughly the best two rounds still available. When Total and Fit disagree, Fit is the one to draft from.
     </div>
     </div><!-- /.boardscroll -->
 
@@ -192,7 +191,7 @@
         <span class="quickstart-num">1</span>
         <div>
           <b>Draft your players</b>
-          <p><b>Total</b> is a player's projected value. <b>Fit</b> starts there, then adjusts for how well the player fits your roster. Players who are unlikely to make it back to your next pick get a small boost.</p>
+          <p><b>Total</b> is a player's projected value. <b>Fit</b> adjusts that for your roster and who is likely to make it back. Fit is relative to the current board: positive means better than a typical option available now.</p>
         </div>
       </div>
       <div class="quickstart-card">
@@ -304,9 +303,9 @@
 <script src="js/roster.js"></script>
 <script src="js/draft.js"></script>
 <script src="js/punts.js"></script>
-<script src="js/recommendations.js"></script>
+<script src="js/recommendations.js?v=fit-market"></script>
 <script src="js/storage.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/ui.js?v=fit-market"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
