@@ -775,7 +775,7 @@ function registerTests(w){
     equal(meta.kind, "bundled");
     equal(meta.season, "2026-27");
     equal(meta.updated, "2026-08-24");
-    equal(meta.label, "2026–27 Yahoo Projections");
+    equal(meta.label, "2026–27 Projections");
   });
 
   test("Historical dataset exposes source and data-through metadata", ()=>{
@@ -788,7 +788,7 @@ function registerTests(w){
 
   test("Bundled projection summary includes label, player count and updated date", ()=>{
     const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 500))");
-    equal(summary, "2026–27 Yahoo Projections · 500 players · Updated Aug 24, 2026");
+    equal(summary, "2026–27 Projections · 500 players · Updated Aug 24, 2026");
   });
 
   test("Custom projection imports are clearly distinguished from bundled data", ()=>{
@@ -905,7 +905,7 @@ function registerTests(w){
       const text = intro.textContent.replace(/\s+/g," ").trim();
       assert(text.includes("First-time setup"), "Expected standalone first-time setup label");
       assert(text.includes("league size") && text.includes("draft slot"), "Expected league size and draft slot guidance");
-      assert(text.includes("500-player 2026–27 Yahoo projection pool"), "Expected bundled Yahoo-pool guidance");
+      assert(text.includes("500-player 2026–27 projection pool"), "Expected bundled projection-pool guidance");
       assert(text.includes("replace it anytime"), "Expected custom-projection guidance");
       equal(w.document.getElementById("s_save").textContent, "Save and continue");
     } finally {
@@ -914,10 +914,10 @@ function registerTests(w){
     }
   });
 
-  test("Quick start is standalone and accurately explains the bundled Yahoo projection pool", ()=>{
+  test("Quick start is standalone and accurately explains the bundled projection pool", ()=>{
     const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
     assert(!text.includes("Step 2 of 2"), "Quick start should not pretend to be a second step when reopened from the menu");
-    assert(text.includes("500-player 2026–27 Yahoo projection pool"), "Expected bundled Yahoo-pool guidance");
+    assert(text.includes("500-player 2026–27 projection pool"), "Expected bundled projection-pool guidance");
     assert(text.includes("replace it anytime"), "Expected custom-projection guidance");
   });
 
