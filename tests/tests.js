@@ -803,70 +803,65 @@ function registerTests(w){
   });
 
 
-  test("Projection import validation rejects an empty paste without creating rows", ()=>{
+  test("Projection import validation rejects an empty import without creating rows", ()=>{
     const v = w.validateProjectionImport("");
     equal(v.ok, false);
     equal(v.code, "empty");
     equal(v.rows.length, 0);
-    assert(v.message.includes("Paste a projection table"), "Expected a clear empty-import message");
+    assert(v.message.includes("Choose a projections CSV"), "Expected strict CSV import guidance");
   });
 
-  test("Projection import validation rejects tables without field-goal volume", ()=>{
+  test("Projection import validation rejects legacy source-table headers", ()=>{
     const text = [
-      "PLAYER\tPOS\tTEAM\tFG%\tFT%\tPTS\tREB\tAST\tSTL\tBLK\tTO",
-      "Alpha One\tPG\tAAA\t0.50\t0.80\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t0.48\t0.82\t18\t4\t4\t1\t0.4\t2",
-      "Charlie Three\tSF\tCCC\t0.47\t0.75\t16\t6\t3\t1\t0.6\t2",
-      "Delta Four\tPF\tDDD\t0.52\t0.70\t14\t8\t2\t1\t1\t2",
-      "Echo Five\tC\tEEE\t0.55\t0.68\t12\t10\t2\t0.8\t1.5\t2"
+      "R#\tPLAYER\tADP\tPOS\tTEAM\tGP\tMPG\tFG%\tFT%\t3PM\tPTS\tTREB\tAST\tSTL\tBLK\tTO\tTOTAL",
+      "1\tAlpha One\t10\tPG\tAAA\t70\t34\t0.50 (5/10)\t0.80 (4/5)\t2\t20\t5\t5\t1\t0.5\t2\t1"
+    ].join("\n");
+    const v = w.validateProjectionImport(text);
+    equal(v.ok, false);
+    equal(v.code, "bad-header");
+    assert(v.message.includes("PLAYER,ADP,POS,TEAM"), "Expected canonical header guidance");
+  });
+
+  test("Projection import validation requires a meaningful canonical CSV pool", ()=>{
+    const text = [
+      "PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO",
+      "Alpha One,10,PG,AAA,70,34,5,10,4,5,2,20,5,5,1,0.5,2",
+      "Bravo Two,20,SG,BBB,68,33,4.8,10,4.1,5,2,18,4,4,1,0.4,2"
     ].join("\n");
     const v = w.validateProjectionImport(text);
     equal(v.ok, false);
     equal(v.code, "too-few-players");
-    equal(v.rows.length, 0);
-    assert(v.message.includes("field-goal makes and attempts"), "Expected field-goal volume guidance");
-  });
-
-  test("Projection import validation requires a meaningful pool, not a tiny accidental parse", ()=>{
-    const text = [
-      "PLAYER\tPOS\tTEAM\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO",
-      "Alpha One\tPG\tAAA\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2"
-    ].join("\n");
-    const v = w.validateProjectionImport(text);
-    equal(v.ok, false);
     equal(v.rows.length, 2);
     assert(v.message.includes("at least 5 players"), "Expected minimum-pool guidance");
   });
 
-  test("Projection import validation reports duplicates and unreadable rows", ()=>{
-    const header = "PLAYER\tPOS\tTEAM\tGP\tADP\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO";
+  test("Projection import validation rejects duplicate canonical player names", ()=>{
+    const header = "PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO";
     const rows = [
-      "Alpha One\tPG\tAAA\t70\t10\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t70\t20\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2",
-      "Charlie Three\tSF\tCCC\t70\t30\t47% (4.7/10)\t75% (3.8/5)\t1\t16\t6\t3\t1\t0.6\t2",
-      "Delta Four\tPF\tDDD\t70\t40\t52% (5.2/10)\t70% (3.5/5)\t1\t14\t8\t2\t1\t1\t2",
-      "Echo Five\tC\tEEE\t70\t50\t55% (5.5/10)\t68% (3.4/5)\t0\t12\t10\t2\t0.8\t1.5\t2",
-      "Alpha One\tPG\tAAA\t82\t10\t51% (5.1/10)\t80% (4/5)\t2\t21\t5\t5\t1\t0.5\t2",
-      "this row is not a projection row"
+      "Alpha One,10,PG,AAA,70,34,5,10,4,5,2,20,5,5,1,0.5,2",
+      "Bravo Two,20,SG,BBB,70,33,4.8,10,4.1,5,2,18,4,4,1,0.4,2",
+      "Charlie Three,30,SF,CCC,70,32,4.7,10,3.8,5,1,16,6,3,1,0.6,2",
+      "Delta Four,40,PF,DDD,70,31,5.2,10,3.5,5,1,14,8,2,1,1,2",
+      "Echo Five,50,C,EEE,70,30,5.5,10,3.4,5,0,12,10,2,0.8,1.5,2",
+      "Alpha One,11,PG,AAA,82,35,5.1,10,4,5,2,21,5,5,1,0.5,2"
     ];
     const v = w.validateProjectionImport([header, ...rows].join("\n"));
-    equal(v.ok, true);
+    equal(v.ok, false);
+    equal(v.code, "duplicate-players");
     equal(v.parsedRows, 6);
-    equal(v.rows.length, 5);
+    equal(v.rows.length, 6);
     equal(v.duplicates, 1);
-    assert(v.skipped.length >= 0, "Skipped diagnostics should always be an array");
-    equal(v.rows.find(p=>p.name==="Alpha One").gp, 82, "Dedupe should keep the higher-GP row");
+    assert(v.message.includes("Alpha One"), "Expected duplicate player to be named");
   });
 
   test("Projection import validation reports optional GP and ADP coverage", ()=>{
     const text = [
-      "PLAYER\tPOS\tTEAM\tGP\tADP\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO",
-      "Alpha One\tPG\tAAA\t70\t10\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t68\t20\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2",
-      "Charlie Three\tSF\tCCC\t66\t30\t47% (4.7/10)\t75% (3.8/5)\t1\t16\t6\t3\t1\t0.6\t2",
-      "Delta Four\tPF\tDDD\t64\t40\t52% (5.2/10)\t70% (3.5/5)\t1\t14\t8\t2\t1\t1\t2",
-      "Echo Five\tC\tEEE\t62\t50\t55% (5.5/10)\t68% (3.4/5)\t0\t12\t10\t2\t0.8\t1.5\t2"
+      "PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO",
+      "Alpha One,10,PG,AAA,70,34,5,10,4,5,2,20,5,5,1,0.5,2",
+      "Bravo Two,20,SG,BBB,68,33,4.8,10,4.1,5,2,18,4,4,1,0.4,2",
+      "Charlie Three,30,SF,CCC,66,32,4.7,10,3.8,5,1,16,6,3,1,0.6,2",
+      "Delta Four,40,PF,DDD,64,31,5.2,10,3.5,5,1,14,8,2,1,1,2",
+      "Echo Five,50,C,EEE,62,30,5.5,10,3.4,5,0,12,10,2,0.8,1.5,2"
     ].join("\n");
     const v = w.validateProjectionImport(text);
     equal(v.ok, true);
@@ -874,6 +869,8 @@ function registerTests(w){
     equal(v.withGP, 5);
     equal(v.withADP, 5);
     equal(v.withKnownPos, 5);
+    equal(v.rows[0].mpg, 34);
+    equal(v.rows[0].srcRank, null, "Source rank should not exist in canonical imports");
   });
 
 
