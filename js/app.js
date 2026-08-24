@@ -424,6 +424,105 @@ $("#s_save").onclick = ()=>{
 };
 
 // Import
+const importEsc = s => String(s ?? "").replace(/[&<>"']/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
+function projectionImportPreview(validation, sourceLabel=""){
+  const msg = $("#impmsg");
+  const go = $("#imp_go");
+  go.disabled = !validation.ok;
+
+  if(!validation.ok){
+    const detail = validation.errors?.[0] && validation.errors[0] !== validation.message
+      ? `<div class="mono" style="color:var(--dimmer);margin-top:5px">${importEsc(validation.errors[0])}</div>`
+      : "";
+    msg.className = "msg bad";
+    msg.innerHTML = `${importEsc(validation.message)}${detail}`;
+    return;
+  }
+
+  const rows = validation.rows;
+  msg.className = "msg good";
+  msg.innerHTML = `<b>Ready to import ${rows.length} players.</b>
+    ${sourceLabel ? `<span style="color:var(--dimmer)"> ${importEsc(sourceLabel)}</span>` : ""}
+    <div class="mono" style="font-size:10px;color:var(--dimmer);margin-top:5px">${validation.withADP}/${rows.length} with ADP · ${validation.withGP}/${rows.length} with GP · strict nineCat CSV validated</div>
+    <table class="prev"><tr><th class="l">Sanity check</th><th>ADP</th><th>POS</th><th>FG</th><th>FT</th><th>PTS</th><th>REB</th></tr>
+    ${rows.slice(0,4).map(p=>`<tr><td class="l">${importEsc(p.name)}</td><td class="mono">${p.adp ?? "—"}</td><td>${importEsc(p.pos.join("/"))}</td>
+      <td class="mono">${p.fgm}/${p.fga}</td><td class="mono">${p.ftm}/${p.fta}</td>
+      <td class="mono">${p.pts}</td><td class="mono">${p.reb}</td></tr>`).join("")}</table>`;
+}
+
+function setProjectionImportText(text, sourceLabel=""){
+  $("#impbox").value = String(text || "");
+  const validation = validateProjectionImport($("#impbox").value);
+  projectionImportPreview(validation, sourceLabel);
+  return validation;
+}
+
+async function loadProjectionCsvFile(file){
+  if(!file) return;
+  const meta = $("#impfilemeta");
+  const name = String(file.name || "projections.csv");
+  if(!/\.csv$/i.test(name)){
+    meta.textContent = `${name} · not a CSV file`;
+    meta.style.color = "var(--hot)";
+    setProjectionImportText("");
+    return;
+  }
+  try{
+    const text = await file.text();
+    meta.textContent = `${name} · ${Math.max(1, Math.round(file.size/1024))} KB`;
+    meta.style.color = "var(--dim)";
+    setProjectionImportText(text, name);
+  }catch(e){
+    meta.textContent = `${name} · could not read file`;
+    meta.style.color = "var(--hot)";
+    setProjectionImportText("");
+  }
+}
+
+function syncProjectionRestoreButton(){
+  const btn = $("#imp_restore");
+  const note = $("#imp_restore_note");
+  if(!btn) return;
+
+  const customActive = !!loadProjectionText().trim();
+  btn.disabled = !customActive;
+
+  if(note){
+    note.textContent = customActive
+      ? "Switch back to nineCat's built-in 500-player projection pool. Draft picks reset; league settings and starred players stay."
+      : "The default 500-player projection pool is already active.";
+  }
+}
+
+$("#imp_restore").onclick = ()=>{
+  const customActive = !!loadProjectionText().trim();
+  if(!customActive){
+    syncProjectionRestoreButton();
+    return;
+  }
+
+  const ok = window.confirm(
+    "Restore nineCat's default projections?\n\n" +
+    "This will replace your custom projection pool and reset the current draft picks. " +
+    "League settings and starred players will be kept."
+  );
+  if(!ok) return;
+
+  if(!clearProjectionText()){
+    $("#impmsg").innerHTML = `<b>Could not restore defaults.</b><div>Browser storage could not be updated.</div>`;
+    return;
+  }
+
+  // Picks are tied to pool ids/signatures, so restoring the built-in pool is
+  // deliberately a fresh draft. League settings and stars use separate keys.
+  clearState();
+  $("#impmask").classList.remove("on");
+  setTimeout(()=> window.location.reload(), 100);
+};
+
+$("#b_imp").addEventListener("click", syncProjectionRestoreButton);
+
 $("#imp_close").onclick = ()=> $("#impmask").classList.remove("on");
 
 // Close the projections modal when the user clicks the backdrop,
@@ -432,42 +531,40 @@ $("#impmask").addEventListener("click", e=>{
   if(e.target === e.currentTarget) e.currentTarget.classList.remove("on");
 });
 
+$("#impfile").addEventListener("change", e=> loadProjectionCsvFile(e.target.files?.[0]));
+const impdrop = $("#impdrop");
+["dragenter","dragover"].forEach(type=>impdrop.addEventListener(type, e=>{
+  e.preventDefault(); e.stopPropagation(); impdrop.classList.add("drag");
+}));
+["dragleave","drop"].forEach(type=>impdrop.addEventListener(type, e=>{
+  e.preventDefault(); e.stopPropagation(); impdrop.classList.remove("drag");
+}));
+impdrop.addEventListener("drop", e=> loadProjectionCsvFile(e.dataTransfer?.files?.[0]));
+impdrop.addEventListener("keydown", e=>{
+  if(e.key === "Enter" || e.key === " "){ e.preventDefault(); $("#impfile").click(); }
+});
+
+$("#impbox").addEventListener("input", ()=>{
+  $("#impfilemeta").textContent = "Pasted CSV";
+  $("#impfilemeta").style.color = "var(--dimmer)";
+  projectionImportPreview(validateProjectionImport($("#impbox").value), "Pasted CSV");
+});
+$("#imp_go").disabled = true;
+
 $("#imp_go").onclick = ()=>{
-  const validation = validateProjectionImport($("#impbox").value);
+  const csvText = $("#impbox").value;
+  const validation = validateProjectionImport(csvText);
   const rows = validation.rows;
-  const msg = $("#impmsg");
-  const skipped = validation.skipped;
 
   if(!validation.ok){
-    const unreadable = skipped[0]
-      ? `<br>First unreadable row:<br><span class="mono" style="color:var(--dimmer)">${skipped[0].slice(0,110).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}</span>`
-      : "";
-    msg.className = "msg bad";
-    msg.innerHTML = `${validation.message}${unreadable}<br>
-      <span class="mono" style="color:var(--dimmer)">${validation.sourceLines} non-empty lines read · ${validation.parsedRows} player rows recognized</span>`;
+    projectionImportPreview(validation);
     return;
   }
 
   /* ---- this season's projections: replace the pool ---- */
-  saveProjectionText($("#impbox").value);
+  saveProjectionText(csvText);
   pool = rows; picks = []; locks = {};
   scoreBoth(pool);
-  const withGP = validation.withGP;
-  const withRank = validation.withRank;
-  const withADP = validation.withADP;
-
-  msg.className = "msg good";
-  msg.innerHTML = `Loaded <b>${pool.length}</b> players
-    ${withGP ? `· ${withGP} with GP (durability slider live)` : `· no GP column, durability slider stays off`}
-    ${withRank ? `· ${withRank} with source rank` : ``}
-    ${withADP ? `· ${withADP} with ADP` : `· no ADP, run risk falls back to value rank`}
-    ${validation.duplicates ? `· merged ${validation.duplicates} duplicate row${validation.duplicates===1?"":"s"}` : ``}
-    ${skipped.length ? `· skipped ${skipped.length} unreadable row${skipped.length===1?"":"s"}` : ``}
-    <div class="mono" style="font-size:10px;color:var(--dimmer);margin-top:5px">${validation.sourceLines} non-empty source lines · ${validation.parsedRows} player rows recognized · ${pool.length} unique players accepted</div>
-    <table class="prev"><tr><th class="l">Sanity check</th><th>POS</th><th>FG</th><th>FT</th><th>PTS</th><th>REB</th><th>GP</th></tr>
-    ${pool.slice(0,4).map(p=>`<tr><td class="l">${p.name}</td><td>${p.pos.join("/")}</td>
-      <td class="mono">${p.fgm}/${p.fga}</td><td class="mono">${p.ftm}/${p.fta}</td>
-      <td class="mono">${p.pts}</td><td class="mono">${p.reb}</td><td class="mono">${p.gp||"—"}</td></tr>`).join("")}</table>`;
 
   $("#banner").classList.add("hide");
   syncGPW();
@@ -478,13 +575,11 @@ $("#imp_go").onclick = ()=>{
   // existing league settings before reloading.
   saveState();
 
-  // The pasted projection text is already persisted in localStorage.
-  // Reboot the page so the normal startup path reloads the pool and
-  // attaches the built-in historical data before rendering.
+  // The validated CSV is already persisted in localStorage. Reboot so the
+  // normal startup path attaches the built-in historical data before rendering.
   $("#impmask").classList.remove("on");
   setTimeout(()=> window.location.reload(), 150);
 };
-
 
 /* ============================================================
    YAHOO LIVE DRAFT BRIDGE — pick-number aware + fallback-line placeholders (v0.5)
@@ -796,7 +891,7 @@ syncGPW();
 
 if(!pool.length){
   $("#banner").innerHTML =
-    `<span>No projections loaded yet — open Projections and paste a table to begin.</span>`
+    `<span>No projections loaded yet — open Projections and import a nineCat CSV to begin.</span>`
     + `<button id="b_banner2">Load projections</button>`;
 } else {
   const datasetMeta = projectionDatasetMeta(savedProjectionText, pool.length);
@@ -810,7 +905,11 @@ if(!pool.length){
     + `<button id="b_dismiss" class="x" title="Dismiss">&times;</button>`;
 }
 $("#banner").classList.remove("hide");
-$("#b_banner2").onclick = ()=> $("#impmask").classList.add("on");
+syncProjectionRestoreButton();
+$("#b_banner2").onclick = ()=>{
+  syncProjectionRestoreButton();
+  $("#impmask").classList.add("on");
+};
 $("#i_photoauto").onclick = ()=> autoPhotos(false);
 $("#i_photogo").onclick = ()=>{
   const n = importPhotoIds($("#i_photos").value);
