@@ -153,6 +153,91 @@ function registerTests(w){
       w.eval(`cfg.gpw = ${oldGpw}`);
     }
   });
+
+  test("G and F flex slots accept only the correct position families", ()=>{
+    assert(w.slotEligible("G", player("PG")), "G should accept PG");
+    assert(w.slotEligible("G", player("SG")), "G should accept SG");
+    assert(!w.slotEligible("G", player("SF")), "G should not accept SF");
+    assert(w.slotEligible("F", player("SF")), "F should accept SF");
+    assert(w.slotEligible("F", player("PF")), "F should accept PF");
+    assert(!w.slotEligible("F", player("SG")), "F should not accept SG");
+  });
+
+  test("A centre cannot fit when the only remaining slot is G", ()=>{
+    const oldSize = w.eval("cfg.size");
+    try{
+      w.eval("cfg.size = 6"); // PG, SG, SF, PF, C, G
+      const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
+      assert(!w.canFitRoster(roster, player("C")), "A second pure C should not fit into the remaining G slot");
+      assert(w.canFitRoster(roster, player("PG")), "A PG should fit into the remaining G slot");
+    } finally {
+      w.eval(`cfg.size = ${oldSize}`);
+    }
+  });
+
+  test("Roster legality is enforced on my turn", ()=>{
+    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size")};
+    const oldPool = w.eval("pool");
+    const oldPicks = w.eval("picks");
+    const oldLocks = w.eval("locks");
+    try{
+      const zeroZ = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      const mk = (id,name,pos)=>player(pos,{id,name,team:"TST",gp:72,adp:99,z:{...zeroZ},zpg:{...zeroZ},total:0,totalPg:0,last:null});
+      const testPool = [
+        mk(1,"PG","PG"), mk(2,"SG","SG"), mk(3,"SF","SF"), mk(4,"PF","PF"), mk(5,"C","C"),
+        mk(6,"Wemby","C")
+      ];
+      // Seven logged picks means pick 8 in a 4-team snake, which is Team 1 / us.
+      // Five of those picks belong to us, leaving only the G slot open in a 6-slot roster.
+      const testPicks = [
+        {playerId:1,teamIdx:0,overall:0}, {playerId:2,teamIdx:0,overall:1},
+        {playerId:3,teamIdx:0,overall:2}, {playerId:4,teamIdx:0,overall:3},
+        {playerId:5,teamIdx:0,overall:4}, {playerId:null,teamIdx:2,overall:5},
+        {playerId:null,teamIdx:1,overall:6}
+      ];
+      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {};
+      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks");
+      const state = w.evaluate();
+      assert(state.enforceRosterFit, "Roster fit should be enforced when our team is on the clock");
+      const wemby = state.avail.find(p=>p.id===6);
+      assert(wemby && wemby.rosterFit === false, "Pure C should be unavailable when our only open slot is G");
+    } finally {
+      w.__oldPool = oldPool; w.__oldPicks = oldPicks; w.__oldLocks = oldLocks;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
+    }
+  });
+
+  test("My roster slots do not block an opponent's pick", ()=>{
+    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size")};
+    const oldPool = w.eval("pool");
+    const oldPicks = w.eval("picks");
+    const oldLocks = w.eval("locks");
+    try{
+      const zeroZ = {fg:0,ft:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
+      const mk = (id,name,pos)=>player(pos,{id,name,team:"TST",gp:72,adp:99,z:{...zeroZ},zpg:{...zeroZ},total:0,totalPg:0,last:null});
+      const testPool = [
+        mk(1,"PG","PG"), mk(2,"SG","SG"), mk(3,"SF","SF"), mk(4,"PF","PF"), mk(5,"C","C"),
+        mk(6,"Wemby","C")
+      ];
+      // Six logged picks means pick 7 in a 4-team snake: Team 2, not us.
+      const testPicks = [
+        {playerId:1,teamIdx:0,overall:0}, {playerId:2,teamIdx:0,overall:1},
+        {playerId:3,teamIdx:0,overall:2}, {playerId:4,teamIdx:0,overall:3},
+        {playerId:5,teamIdx:0,overall:4}, {playerId:null,teamIdx:2,overall:5}
+      ];
+      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {};
+      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks");
+      const state = w.evaluate();
+      assert(!state.enforceRosterFit, "Our roster fit should not be enforced on another team's pick");
+      const wemby = state.avail.find(p=>p.id===6);
+      assert(wemby && wemby.rosterFit === true, "Wemby must stay selectable for the opponent even though he cannot fit our G-only opening");
+    } finally {
+      w.__oldPool = oldPool; w.__oldPicks = oldPicks; w.__oldLocks = oldLocks;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
+    }
+  });
 }
 
 async function run(){
