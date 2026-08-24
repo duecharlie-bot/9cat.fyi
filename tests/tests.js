@@ -146,5 +146,19 @@ async function run(){
   summaryEl.textContent=`${passed} passed · ${failed} failed · ${tests.length} total`;
 }
 
-frame.addEventListener("load",()=>setTimeout(run,100));
+frame.addEventListener("load",()=>setTimeout(run,150));
 rerun.addEventListener("click",run);
+
+// Attach the load listener before navigating the iframe. On a fast/cached
+// Netlify preview the old harness could miss the iframe's load event and sit
+// forever on "Loading nineCat…".
+frame.src = "../index.html";
+
+// Fallback in case a browser restores the frame unusually quickly.
+setTimeout(()=>{
+  if(summaryEl.textContent === "Loading nineCat…" || summaryEl.textContent === "Running…"){
+    try{
+      if(frame.contentDocument && frame.contentDocument.readyState === "complete") run();
+    }catch(_e){}
+  }
+}, 1200);
