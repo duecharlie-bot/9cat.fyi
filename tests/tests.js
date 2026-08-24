@@ -581,6 +581,60 @@ function registerTests(w){
     }
   });
 
+
+  test("Name matching folds accents and punctuation consistently", ()=>{
+    equal(w.nameKey("Nikola Jokić"), w.nameKey("Nikola Jokic"));
+    equal(w.nameKey("Luka Dončić Jr."), w.nameKey("Luka Doncic"));
+  });
+
+  test("Projection parser reads header-mapped made/attempt columns", ()=>{
+    const text = [
+      "Player\\tPos\\tTeam\\tGP\\tFGM\\tFGA\\tFTM\\tFTA\\t3PM\\tPTS\\tREB\\tAST\\tSTL\\tBLK\\tTO\\tADP",
+      "Victor Wembanyama\\tC\\tSAS\\t71\\t10.2\\t19.1\\t5.3\\t6.1\\t3.2\\t28.9\\t11.4\\t4.2\\t1.3\\t3.7\\t3.4\\t2.0"
+    ].join("\\n").replace(/\\\\t/g,"\\t").replace(/\\\\n/g,"\\n");
+    const rows = w.parsePool(text);
+    equal(rows.length, 1);
+    equal(rows[0].name, "Victor Wembanyama");
+    equal(rows[0].pos[0], "C");
+    approx(rows[0].fgm, 10.2); approx(rows[0].fga, 19.1);
+    approx(rows[0].ftm, 5.3); approx(rows[0].fta, 6.1);
+    approx(rows[0].pts, 28.9); approx(rows[0].adp, 2.0);
+  });
+
+  test("Projection parser reads combined percentage volume cells", ()=>{
+    const text = [
+      "Player\\tPos\\tTeam\\tGP\\tFG%\\tFT%\\t3PM\\tPTS\\tREB\\tAST\\tSTL\\tBLK\\tTO",
+      "Nikola Jokic\\tC\\tDEN\\t79\\t57.4% (11.2/19.5)\\t81.2% (5.2/6.4)\\t2.0\\t29.6\\t12.7\\t10.2\\t1.7\\t0.7\\t3.4"
+    ].join("\\n").replace(/\\\\t/g,"\\t").replace(/\\\\n/g,"\\n");
+    const rows = w.parsePool(text);
+    equal(rows.length, 1);
+    approx(rows[0].fgm, 11.2); approx(rows[0].fga, 19.5);
+    approx(rows[0].ftm, 5.2); approx(rows[0].fta, 6.4);
+    approx(rows[0].ast, 10.2);
+  });
+
+  test("Projection parser ignores repeated header rows", ()=>{
+    const header = "Player\\tPos\\tTeam\\tGP\\tFGM\\tFGA\\tFTM\\tFTA\\t3PM\\tPTS\\tREB\\tAST\\tSTL\\tBLK\\tTO".replace(/\\\\t/g,"\\t");
+    const a = "Player A\\tPG\\tAAA\\t70\\t7\\t14\\t4\\t5\\t2\\t20\\t4\\t8\\t1\\t0.2\\t3".replace(/\\\\t/g,"\\t");
+    const b = "Player B\\tC\\tBBB\\t72\\t6\\t10\\t2\\t4\\t0\\t14\\t10\\t2\\t0.5\\t2\\t2".replace(/\\\\t/g,"\\t");
+    const rows = w.parsePool([header,a,header,b].join("\\n"));
+    equal(rows.length, 2);
+    equal(rows[0].name, "Player A");
+    equal(rows[1].name, "Player B");
+  });
+
+  test("Projection dedupe keeps the highest-GP row and reindexes ids", ()=>{
+    const rows = [
+      {name:"Example Player",gp:22,id:99,pts:10},
+      {name:"Example Player",gp:61,id:100,pts:18},
+      {name:"Other Player",gp:70,id:101,pts:12}
+    ];
+    const out = w.dedupe(rows);
+    equal(out.length, 2);
+    equal(out.find(x=>x.name==="Example Player").pts, 18);
+    equal(JSON.stringify(out.map(x=>x.id)), JSON.stringify([0,1]));
+  });
+
 }
 
 async function run(){
