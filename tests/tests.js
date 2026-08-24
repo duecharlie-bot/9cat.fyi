@@ -154,6 +154,27 @@ function registerTests(w){
     }
   });
 
+  test("Scoring baseline is capped at the top 200 projected players", ()=>{
+    const makeList = count => Array.from({length:count},(_,i)=>
+      player("PG", {gp:72, pts:201-i, ast:(i%10)+1, reb:(i%7)+1, fgm:5, fga:10, ftm:4, fta:5})
+    );
+
+    const top200 = makeList(200);
+    w.scorePool(top200, {gpw:0});
+    const topScore = top200[0].z.pts;
+    const topTotal = top200[0].total;
+
+    const withFringe = makeList(200);
+    withFringe.push(player("PG", {gp:72, pts:0, ast:0, reb:0, fgm:1, fga:10, ftm:1, fta:5}));
+    w.scorePool(withFringe, {gpw:0});
+
+    approx(withFringe[0].z.pts, topScore, 1e-9,
+      "A player below the top-200 baseline should not drag down the PTS mean/SD");
+    approx(withFringe[0].total, topTotal, 1e-9,
+      "A player below the top-200 baseline should not change top-player Total");
+    equal(withFringe[200].valRank, 201, "The fringe player should still be ranked/scored");
+  });
+
   test("G and F flex slots accept only the correct position families", ()=>{
     assert(w.slotEligible("G", player("PG")), "G should accept PG");
     assert(w.slotEligible("G", player("SG")), "G should accept SG");
@@ -459,6 +480,31 @@ function registerTests(w){
     }
   });
 
+  test("FIT display is centered on the next two rounds of available value", ()=>{
+    const oldTeams = w.eval("cfg.teams");
+    try{
+      w.eval("cfg.teams=2");                    // two rounds = four players
+      const rows = [
+        {valRank:1,total:10,fitAdj:4,fitLast:8,rosterFit:true},
+        {valRank:2,total:9, fitAdj:3,fitLast:7,rosterFit:true},
+        {valRank:3,total:8, fitAdj:2,fitLast:6,rosterFit:true},
+        {valRank:4,total:7, fitAdj:1,fitLast:5,rosterFit:true},
+        {valRank:5,total:6, fitAdj:-100,fitLast:-100,rosterFit:true}
+      ];
+      w.__fitRows=rows;
+      const market = w.eval("applyFitMarketBaseline(window.__fitRows)");
+      approx(market.fitBaseline, 2.5);
+      equal(market.fitWindowSize, 4);
+      approx(rows[0].fitDisplay, 1.5);
+      approx(rows[3].fitDisplay, -1.5);
+      approx(rows[4].fitDisplay, -102.5, 1e-9, "A deep fringe player must not drag down the current-market zero");
+      approx(rows[0].fitDisplay - rows[1].fitDisplay, rows[0].fitAdj - rows[1].fitAdj, 1e-9, "Re-centering must preserve FIT gaps/order");
+    } finally {
+      w.eval(`cfg.teams=${oldTeams}`);
+      delete w.__fitRows;
+    }
+  });
+
   test("Hard chase tilts Fit toward the chased category", ()=>{
     const oldCfg = {teams:w.eval("cfg.teams"),slot:w.eval("cfg.slot"),size:w.eval("cfg.size"),scarcity:w.eval("cfg.scarcity")};
     const oldCatW=w.eval("cfg.catW"), oldPool=w.eval("pool"), oldPicks=w.eval("picks"), oldLocks=w.eval("locks"), oldShape=w.eval("shape");
@@ -644,7 +690,7 @@ function registerTests(w){
     assert((pos & w.Node.DOCUMENT_POSITION_FOLLOWING) !== 0, "Roster alert should appear before the recommendation panel in the DOM");
   });
 
-  test("Category Ledger collapse control hides and restores the ledger body", ()=>{
+  test("Team Profile collapse control hides and restores the profile body", ()=>{
     const btn = w.document.getElementById("ledgercollapse");
     const body = w.document.getElementById("ledgerbody");
     assert(btn && body, "Expected ledger collapse controls");
@@ -662,7 +708,7 @@ function registerTests(w){
     if(startedHidden) btn.click();
   });
 
-  test("Z and Totals modes keep identical Category Ledger bar geometry", ()=>{
+  test("Z and Totals modes keep identical Team Profile bar geometry", ()=>{
     const oldPicks = w.eval("picks");
     const oldMode = w.eval("ledgerMode"); w.__oldLedgerMode=oldMode;
     const oldTeam = w.eval("ledgerTeam"); w.__oldLedgerTeam=oldTeam;
@@ -725,11 +771,11 @@ function registerTests(w){
     }
   });
 
-  test("Bundled current-season projection dataset parses to the expected 30-player sample", ()=>{
+  test("Bundled current-season projection dataset parses to the expected 500-player Yahoo pool", ()=>{
     const rows = w.eval("dedupe(parsePool(RAW))");
-    equal(rows.length, 30, "Bundled projection sample size changed unexpectedly");
-    equal(rows[0].name, "Nikola Jokic");
-    equal(rows[rows.length-1].name, "Dejounte Murray");
+    equal(rows.length, 500, "Bundled Yahoo projection pool size changed unexpectedly");
+    equal(rows[0].name, "Victor Wembanyama");
+    equal(rows[rows.length-1].name, "Nate Williams");
   });
 
   test("Bundled historical actuals dataset is present and substantial", ()=>{
@@ -766,8 +812,8 @@ function registerTests(w){
   });
 
   test("Bundled projection summary includes label, player count and updated date", ()=>{
-    const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 30))");
-    equal(summary, "2026–27 Projections · 30 players · Updated Aug 24, 2026");
+    const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 500))");
+    equal(summary, "2026–27 Projections · 500 players · Updated Aug 24, 2026");
   });
 
   test("Custom projection imports are clearly distinguished from bundled data", ()=>{
@@ -803,70 +849,103 @@ function registerTests(w){
   });
 
 
-  test("Projection import validation rejects an empty paste without creating rows", ()=>{
+  test("Restore default projections clears only the custom projection override", ()=>{
+    const projKey = w.eval("PROJ_KEY");
+    const cfgKey = w.eval("CFG_KEY");
+    const saveKey = w.eval("SAVE_KEY");
+    const starKey = w.eval("STAR_KEY");
+
+    const oldProj = w.localStorage.getItem(projKey);
+    const oldCfg = w.localStorage.getItem(cfgKey);
+    const oldSave = w.localStorage.getItem(saveKey);
+    const oldStars = w.localStorage.getItem(starKey);
+
+    try{
+      w.localStorage.setItem(projKey, "CUSTOM CSV");
+      w.localStorage.setItem(cfgKey, "KEEP SETTINGS");
+      w.localStorage.setItem(saveKey, "DRAFT STATE");
+      w.localStorage.setItem(starKey, "KEEP STARS");
+
+      equal(w.clearProjectionText(), true);
+      equal(w.localStorage.getItem(projKey), null, "Projection override should be removed");
+      equal(w.localStorage.getItem(cfgKey), "KEEP SETTINGS", "League settings should be preserved");
+      equal(w.localStorage.getItem(saveKey), "DRAFT STATE", "Projection helper itself should not silently clear draft state");
+      equal(w.localStorage.getItem(starKey), "KEEP STARS", "Starred players should be preserved");
+
+      // The actual restore action separately calls clearState(), because picks
+      // are pool-specific. Verify that helper still leaves settings/stars alone.
+      w.clearState();
+      equal(w.localStorage.getItem(saveKey), null, "Restore should be able to reset draft state");
+      equal(w.localStorage.getItem(cfgKey), "KEEP SETTINGS");
+      equal(w.localStorage.getItem(starKey), "KEEP STARS");
+    } finally {
+      const restore = (k,v)=> v === null ? w.localStorage.removeItem(k) : w.localStorage.setItem(k,v);
+      restore(projKey, oldProj);
+      restore(cfgKey, oldCfg);
+      restore(saveKey, oldSave);
+      restore(starKey, oldStars);
+    }
+  });
+
+  test("Projection import validation rejects an empty import without creating rows", ()=>{
     const v = w.validateProjectionImport("");
     equal(v.ok, false);
     equal(v.code, "empty");
     equal(v.rows.length, 0);
-    assert(v.message.includes("Paste a projection table"), "Expected a clear empty-import message");
+    assert(v.message.includes("Choose a projections CSV"), "Expected strict CSV import guidance");
   });
 
-  test("Projection import validation rejects tables without field-goal volume", ()=>{
+  test("Projection import validation rejects legacy source-table headers", ()=>{
     const text = [
-      "PLAYER\tPOS\tTEAM\tFG%\tFT%\tPTS\tREB\tAST\tSTL\tBLK\tTO",
-      "Alpha One\tPG\tAAA\t0.50\t0.80\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t0.48\t0.82\t18\t4\t4\t1\t0.4\t2",
-      "Charlie Three\tSF\tCCC\t0.47\t0.75\t16\t6\t3\t1\t0.6\t2",
-      "Delta Four\tPF\tDDD\t0.52\t0.70\t14\t8\t2\t1\t1\t2",
-      "Echo Five\tC\tEEE\t0.55\t0.68\t12\t10\t2\t0.8\t1.5\t2"
+      "R#\tPLAYER\tADP\tPOS\tTEAM\tGP\tMPG\tFG%\tFT%\t3PM\tPTS\tTREB\tAST\tSTL\tBLK\tTO\tTOTAL",
+      "1\tAlpha One\t10\tPG\tAAA\t70\t34\t0.50 (5/10)\t0.80 (4/5)\t2\t20\t5\t5\t1\t0.5\t2\t1"
+    ].join("\n");
+    const v = w.validateProjectionImport(text);
+    equal(v.ok, false);
+    equal(v.code, "bad-header");
+    assert(v.message.includes("PLAYER,ADP,POS,TEAM"), "Expected canonical header guidance");
+  });
+
+  test("Projection import validation requires a meaningful canonical CSV pool", ()=>{
+    const text = [
+      "PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO",
+      "Alpha One,10,PG,AAA,70,34,5,10,4,5,2,20,5,5,1,0.5,2",
+      "Bravo Two,20,SG,BBB,68,33,4.8,10,4.1,5,2,18,4,4,1,0.4,2"
     ].join("\n");
     const v = w.validateProjectionImport(text);
     equal(v.ok, false);
     equal(v.code, "too-few-players");
-    equal(v.rows.length, 0);
-    assert(v.message.includes("field-goal makes and attempts"), "Expected field-goal volume guidance");
-  });
-
-  test("Projection import validation requires a meaningful pool, not a tiny accidental parse", ()=>{
-    const text = [
-      "PLAYER\tPOS\tTEAM\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO",
-      "Alpha One\tPG\tAAA\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2"
-    ].join("\n");
-    const v = w.validateProjectionImport(text);
-    equal(v.ok, false);
     equal(v.rows.length, 2);
     assert(v.message.includes("at least 5 players"), "Expected minimum-pool guidance");
   });
 
-  test("Projection import validation reports duplicates and unreadable rows", ()=>{
-    const header = "PLAYER\tPOS\tTEAM\tGP\tADP\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO";
+  test("Projection import validation rejects duplicate canonical player names", ()=>{
+    const header = "PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO";
     const rows = [
-      "Alpha One\tPG\tAAA\t70\t10\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t70\t20\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2",
-      "Charlie Three\tSF\tCCC\t70\t30\t47% (4.7/10)\t75% (3.8/5)\t1\t16\t6\t3\t1\t0.6\t2",
-      "Delta Four\tPF\tDDD\t70\t40\t52% (5.2/10)\t70% (3.5/5)\t1\t14\t8\t2\t1\t1\t2",
-      "Echo Five\tC\tEEE\t70\t50\t55% (5.5/10)\t68% (3.4/5)\t0\t12\t10\t2\t0.8\t1.5\t2",
-      "Alpha One\tPG\tAAA\t82\t10\t51% (5.1/10)\t80% (4/5)\t2\t21\t5\t5\t1\t0.5\t2",
-      "this row is not a projection row"
+      "Alpha One,10,PG,AAA,70,34,5,10,4,5,2,20,5,5,1,0.5,2",
+      "Bravo Two,20,SG,BBB,70,33,4.8,10,4.1,5,2,18,4,4,1,0.4,2",
+      "Charlie Three,30,SF,CCC,70,32,4.7,10,3.8,5,1,16,6,3,1,0.6,2",
+      "Delta Four,40,PF,DDD,70,31,5.2,10,3.5,5,1,14,8,2,1,1,2",
+      "Echo Five,50,C,EEE,70,30,5.5,10,3.4,5,0,12,10,2,0.8,1.5,2",
+      "Alpha One,11,PG,AAA,82,35,5.1,10,4,5,2,21,5,5,1,0.5,2"
     ];
     const v = w.validateProjectionImport([header, ...rows].join("\n"));
-    equal(v.ok, true);
+    equal(v.ok, false);
+    equal(v.code, "duplicate-players");
     equal(v.parsedRows, 6);
-    equal(v.rows.length, 5);
+    equal(v.rows.length, 6);
     equal(v.duplicates, 1);
-    assert(v.skipped.length >= 0, "Skipped diagnostics should always be an array");
-    equal(v.rows.find(p=>p.name==="Alpha One").gp, 82, "Dedupe should keep the higher-GP row");
+    assert(v.message.includes("Alpha One"), "Expected duplicate player to be named");
   });
 
   test("Projection import validation reports optional GP and ADP coverage", ()=>{
     const text = [
-      "PLAYER\tPOS\tTEAM\tGP\tADP\tFG%\tFT%\t3PM\tPTS\tREB\tAST\tSTL\tBLK\tTO",
-      "Alpha One\tPG\tAAA\t70\t10\t50% (5/10)\t80% (4/5)\t2\t20\t5\t5\t1\t0.5\t2",
-      "Bravo Two\tSG\tBBB\t68\t20\t48% (4.8/10)\t82% (4.1/5)\t2\t18\t4\t4\t1\t0.4\t2",
-      "Charlie Three\tSF\tCCC\t66\t30\t47% (4.7/10)\t75% (3.8/5)\t1\t16\t6\t3\t1\t0.6\t2",
-      "Delta Four\tPF\tDDD\t64\t40\t52% (5.2/10)\t70% (3.5/5)\t1\t14\t8\t2\t1\t1\t2",
-      "Echo Five\tC\tEEE\t62\t50\t55% (5.5/10)\t68% (3.4/5)\t0\t12\t10\t2\t0.8\t1.5\t2"
+      "PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO",
+      "Alpha One,10,PG,AAA,70,34,5,10,4,5,2,20,5,5,1,0.5,2",
+      "Bravo Two,20,SG,BBB,68,33,4.8,10,4.1,5,2,18,4,4,1,0.4,2",
+      "Charlie Three,30,SF,CCC,66,32,4.7,10,3.8,5,1,16,6,3,1,0.6,2",
+      "Delta Four,40,PF,DDD,64,31,5.2,10,3.5,5,1,14,8,2,1,1,2",
+      "Echo Five,50,C,EEE,62,30,5.5,10,3.4,5,0,12,10,2,0.8,1.5,2"
     ].join("\n");
     const v = w.validateProjectionImport(text);
     equal(v.ok, true);
@@ -874,6 +953,89 @@ function registerTests(w){
     equal(v.withGP, 5);
     equal(v.withADP, 5);
     equal(v.withKnownPos, 5);
+    equal(v.rows[0].mpg, 34);
+    equal(v.rows[0].srcRank, null, "Source rank should not exist in canonical imports");
+  });
+
+
+  test("First-run league setup clearly leads with the two required draft-order settings", ()=>{
+    const oldFirstRun = w.eval("firstRun");
+    try{
+      w.eval("firstRun = true");
+      w.openSet();
+      const intro = w.document.getElementById("s_intro");
+      assert(intro && intro.style.display !== "none", "First-run setup intro should be visible");
+      const text = intro.textContent.replace(/\s+/g," ").trim();
+      assert(text.includes("First-time setup"), "Expected standalone first-time setup label");
+      assert(text.includes("league size") && text.includes("draft slot"), "Expected league size and draft slot guidance");
+      assert(text.includes("500-player 2026–27 projection pool"), "Expected bundled projection-pool guidance");
+      assert(text.includes("replace it anytime"), "Expected custom-projection guidance");
+      equal(w.document.getElementById("s_save").textContent, "Save and continue");
+    } finally {
+      w.eval(`firstRun = ${oldFirstRun ? "true" : "false"}`);
+      w.document.getElementById("setmask").classList.remove("on");
+    }
+  });
+
+  test("Quick start is standalone and accurately explains the bundled projection pool", ()=>{
+    const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(!text.includes("Step 2 of 2"), "Quick start should not pretend to be a second step when reopened from the menu");
+    assert(text.includes("500-player 2026–27 projection pool"), "Expected bundled projection-pool guidance");
+    assert(text.includes("replace it anytime"), "Expected custom-projection guidance");
+  });
+
+  test("Quick start explains Total, Fit, and next-pick scarcity in simple language", ()=>{
+    const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(text.includes("Total") && text.includes("Fit"), "Expected Total and Fit explanation");
+    assert(text.includes("unlikely to make it back to your next pick"), "Expected next-pick scarcity explanation");
+  });
+
+  test("Team Profile is the user-facing name for the former Category Ledger", ()=>{
+    const heading = w.document.getElementById("ledgerbody")?.previousElementSibling?.querySelector("h2");
+    assert(heading, "Expected Team Profile heading");
+    equal(heading.textContent.trim(), "Team Profile");
+    const quick = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(quick.includes("Team Profile"), "Expected Quick start to use Team Profile terminology");
+    assert(!quick.includes("Category Ledger"), "Old Category Ledger terminology should be removed from Quick start");
+  });
+
+  test("Quick start presents Yahoo sync as optional automation", ()=>{
+    const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
+    assert(text.includes("Yahoo sync is optional"), "Expected optional Yahoo sync guidance");
+    assert(text.includes("Chrome extension"), "Expected Chrome extension explanation");
+    assert(text.includes("Manual drafting works normally without the extension"), "Expected manual-draft fallback guidance");
+  });
+
+  test("Quick start Start drafting control closes the onboarding modal", ()=>{
+    const mask = w.document.getElementById("helpmask");
+    const btn = w.document.getElementById("help_close");
+    equal(btn.textContent.trim(), "Start drafting");
+    mask.classList.add("on");
+    btn.click();
+    assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
+  });
+
+  test("Player board is not capped at 80 available players", ()=>{
+    const oldQ = w.document.getElementById("q").value;
+    const oldPos = w.eval("posFilter");
+    try{
+      w.document.getElementById("q").value = "";
+      w.eval('posFilter = "ALL"');
+      const count = w.eval(`(()=>{
+        const base = pool[0];
+        const mock = Array.from({length:120}, (_,i)=>({
+          ...base, id:900000+i, name:"Board Test "+i, fitAdj:120-i,
+          total:120-i, valRank:i+1, rosterFit:true, risk:0
+        }));
+        renderBoard({avail:mock});
+        return document.querySelectorAll("#board tr[data-id]").length;
+      })()`);
+      equal(count, 120, "Expected all 120 available players to render; board is still capped");
+    } finally {
+      w.document.getElementById("q").value = oldQ;
+      w.eval(`posFilter = ${JSON.stringify(oldPos)}`);
+      w.render();
+    }
   });
 
 }
