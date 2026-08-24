@@ -530,8 +530,9 @@ function statCell(p, c, mode){
     are actually building, not a hypothetical replay of last season.         */
 function fitMode(){ return $("#mode").value === "last"; }
 function fitFor(p){
-  if(!fitMode()) return p.fitAdj;
-  return (p.fitLast === null || p.fitLast === undefined) ? -Infinity : p.fitLast;
+  if(!fitMode()) return Number.isFinite(p.fitDisplay) ? p.fitDisplay : p.fitAdj;
+  const v = Number.isFinite(p.fitLastDisplay) ? p.fitLastDisplay : p.fitLast;
+  return (v === null || v === undefined) ? -Infinity : v;
 }
 
 // Sort value for a column, so the first click always puts "best" on top.
