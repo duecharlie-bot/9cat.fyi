@@ -106,7 +106,7 @@
     <div class="rec" id="rec"></div>
 
     <div class="head">
-      <h2>Category Ledger</h2>
+      <h2>Team Profile</h2>
       <span style="display:flex;align-items:center;gap:8px">
         <span class="note" id="ledgernote">Hover a player to preview</span>
         <span class="seg" id="ledgermode">
@@ -142,9 +142,9 @@
   <div class="modal">
     <h3>League setup</h3>
     <div id="s_intro" class="intro" style="display:none">
-      <span class="onboard-step">Step 1 of 2</span>
+      <span class="onboard-step">First-time setup</span>
       <b>Set your league size and draft slot.</b> Those two settings determine the snake order and when your next pick comes back around.
-      <span class="onboard-sub">Your starter projections are already loaded. The defaults are fine for everything else if you just want to start drafting.</span>
+      <span class="onboard-sub">nineCat includes a 30-player sample so you can explore the app. Before a real draft, load a full projection set.</span>
     </div>
     <p>Snake order is derived from these. Change them before the draft starts.</p>
     <div class="grid2">
@@ -182,32 +182,31 @@
 <!-- ============ HELP MODAL ============ -->
 <div class="mask" id="helpmask">
   <div class="modal quickstart-modal">
-    <span class="onboard-step">Step 2 of 2</span>
     <h3>Quick start</h3>
     <p class="quickstart-lede">
-      You're ready to draft. nineCat already includes a starter projection set, so importing your own projections is optional.
+      nineCat includes a 30-player sample projection set so you can try the app. Before a real draft, load a full projection set in <b>Settings → Load projections</b>.
     </p>
 
     <div class="quickstart-grid">
       <div class="quickstart-card">
         <span class="quickstart-num">1</span>
         <div>
-          <b>Draft from Fit</b>
-          <p><b>Total</b> is projected value in a vacuum. <b>Fit</b> starts from that value, then adjusts for your roster and who may be gone before your next pick. When they disagree, use Fit.</p>
+          <b>Draft your players</b>
+          <p><b>Total</b> is a player's projected value. <b>Fit</b> starts there, then adjusts for how well the player fits your roster. Players who are unlikely to make it back to your next pick get a small boost.</p>
         </div>
       </div>
       <div class="quickstart-card">
         <span class="quickstart-num">2</span>
         <div>
           <b>Log every pick</b>
-          <p>Click a player once to inspect him and again to draft him. Log opponents' picks too so nineCat always knows who's left and when you're back on the clock.</p>
+          <p>Hover or click a player to inspect him and see how his stats affect your <b>Team Profile</b>. Click again to draft him. Use <b>Undo</b> or <b>Ctrl+Z</b> to revert the last pick.</p>
         </div>
       </div>
       <div class="quickstart-card">
         <span class="quickstart-num">3</span>
         <div>
           <b>Watch your team change</b>
-          <p>The Category Ledger shows where your roster is strong or weak. Punt Radar can suggest categories to concede or chase, but nothing is applied until you choose it.</p>
+          <p>Your <b>Team Profile</b> shows where your roster is strong or weak. Punt Radar can suggest categories to punt or chase. You can also select punts and chases manually.</p>
         </div>
       </div>
       <div class="quickstart-card">
@@ -220,7 +219,7 @@
     </div>
 
     <div class="quickstart-tip">
-      Want different projections later? Open <b>Settings → Load projections</b>. Your draft and settings save automatically as you go.
+      Your draft and settings save automatically as you go.
     </div>
 
     <div class="quickstart-actions">
