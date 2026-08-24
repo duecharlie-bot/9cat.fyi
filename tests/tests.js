@@ -1037,8 +1037,9 @@ function registerTests(w){
         picks = [{playerId:pool[0].id, teamIdx:0, overall:0}];
         locks = {fg:"punt"};
         yahooPickBuffer.set(1,{pickNo:1,name:pool[0].name});
-        resetYahooSyncedDraft();
       `);
+      assert(typeof w.resetYahooSyncedDraft === "function", "Expected Yahoo reset handler to be exported");
+      w.resetYahooSyncedDraft();
       equal(w.eval("picks.length"), 0, "Expected synced picks to reset");
       equal(w.eval("yahooPickBuffer.size"), 0, "Expected Yahoo capture buffer to reset");
       equal(w.eval("locks.fg"), "punt", "Strategy locks should survive a Yahoo tab-close reset");
