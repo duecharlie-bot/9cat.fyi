@@ -19,10 +19,11 @@ function myNextPick(from){
 
 function reindex(){ picks.sort((a,b)=>a.overall-b.overall).forEach((p,i)=>p.overall=i); }
 
-function draft(id){
+function draft(id, draftSource="manual"){
   if(picks.length >= cfg.teams * cfg.size) return;
   if(takenIds().has(id)) return;
   picks.push({playerId:id, teamIdx:teamOnClock(picks.length), overall:picks.length});
+  window.ninecatTrackDraftProgress?.(draftSource, picks.length, cfg.teams * cfg.size);
   $("#q").value = "";
   hoverId = null;
   selectedId = null;

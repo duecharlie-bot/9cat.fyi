@@ -81,7 +81,7 @@ document.addEventListener("click", closeMenu);
 $("#menu").addEventListener("click", e=> e.stopPropagation());
 $("#b_set").onclick  = ()=>{ closeMenu(); openSet(); };
 $("#b_imp").onclick  = ()=>{ closeMenu(); $("#impmask").classList.add("on"); };
-$("#b_help").onclick = ()=>{ closeMenu(); $("#helpmask").classList.add("on"); };
+$("#b_help").onclick = ()=>{ closeMenu(); $("#helpmask").classList.add("on"); window.ninecatTrack?.("quick_start_opened"); };
 $("#theme").onclick  = ()=>{
   document.body.dataset.theme = document.body.dataset.theme === "court" ? "arena" : "court";
   closeMenu(); render();
@@ -89,7 +89,7 @@ $("#theme").onclick  = ()=>{
 $("#reset").onclick = ()=>{
   closeMenu();
   if(!picks.length || confirm(`Clear all ${picks.length} logged picks? Your loaded projections stay.`)){
-    picks = []; locks = {}; hoverId = null; selectedId = null; armedDraftId = null; ledgerTeam = null; clearState(); $("#q").value = ""; render();
+    picks = []; locks = {}; hoverId = null; selectedId = null; armedDraftId = null; ledgerTeam = null; clearState(); window.ninecatResetDraftAnalytics?.(); $("#q").value = ""; render();
   }
 };
 

@@ -412,7 +412,7 @@ $("#s_save").onclick = ()=>{
   if(resetDraft){
     picks = []; locks = {}; hoverId = null; selectedId = null; armedDraftId = null;
     rosterInspectId = null; ledgerTeam = null; recMessageCleared = false;
-    ui.gapHidden = ""; ui.sugHidden.clear(); clearState(); $("#q").value = "";
+    ui.gapHidden = ""; ui.sugHidden.clear(); clearState(); window.ninecatResetDraftAnalytics?.(); $("#q").value = "";
   } else {
     picks = picks.filter(p => p.overall < cfg.teams * cfg.size);
     reindex();
@@ -517,6 +517,7 @@ $("#imp_restore").onclick = ()=>{
   // Picks are tied to pool ids/signatures, so restoring the built-in pool is
   // deliberately a fresh draft. League settings and stars use separate keys.
   clearState();
+  window.ninecatResetDraftAnalytics?.();
   $("#impmask").classList.remove("on");
   setTimeout(()=> window.location.reload(), 100);
 };
@@ -563,6 +564,8 @@ $("#imp_go").onclick = ()=>{
 
   /* ---- this season's projections: replace the pool ---- */
   saveProjectionText(csvText);
+  window.ninecatResetDraftAnalytics?.();
+  window.ninecatTrackAfterReload?.("projection_imported", {player_count: rows.length});
   pool = rows; picks = []; locks = {};
   scoreBoth(pool);
 
@@ -591,7 +594,7 @@ $("#imp_go").onclick = ()=>{
    ============================================================ */
 const YAHOO_PAGE_SOURCE = "9cat-page";
 const YAHOO_EXT_SOURCE  = "9cat-extension";
-const YAHOO_CAPABILITIES = ["yahoo-pick-number-v1", "yahoo-snapshot-v1", "yahoo-out-of-pool-v1", "yahoo-fallback-line-v1"];
+const YAHOO_CAPABILITIES = ["yahoo-pick-number-v1", "yahoo-snapshot-v1", "yahoo-out-of-pool-v1", "yahoo-fallback-line-v1", "yahoo-reset-draft-v1"];
 const yahooPickBuffer = new Map();   // overall pick number -> Yahoo pick record
 
 function yahooSyncPill(){
@@ -797,6 +800,7 @@ function reconcileYahooBuffer(){
     teamIdx:teamOnClock(i),
     overall:i
   }));
+  window.ninecatTrackDraftProgress?.("yahoo", picks.length, cfg.teams * cfg.size);
 
   selectedId = null;
   hoverId = null;
@@ -821,6 +825,28 @@ function applyYahooDraftSnapshot(rawPicks){
   return reconcileYahooBuffer();
 }
 
+function resetYahooSyncedDraft(){
+  yahooPickBuffer.clear();
+  picks = [];
+  selectedId = null;
+  hoverId = null;
+  armedDraftId = null;
+  flashPick = null;
+  clearTimeout(reconcileYahooBuffer._flash);
+
+  // Persist an empty pick log so a refresh cannot resurrect the draft that just
+  // ended. Strategy locks, league settings and starred players are separate and
+  // intentionally survive this reset.
+  saveState();
+  render();
+  setYahooSyncStatus("Yahoo · waiting", "dim");
+  announceNinecatState();
+}
+
+// Explicit export for the regression harness. The actual extension still reaches
+// this through the YAHOO_RESET_DRAFT message handler below.
+window.resetYahooSyncedDraft = resetYahooSyncedDraft;
+
 function applyYahooDraftPick(raw){
   const obj = (raw && typeof raw === "object") ? raw : {name:raw};
   const explicit = normalizeYahooPick(obj);
@@ -842,7 +868,7 @@ function applyYahooDraftPick(raw){
     yahooAck("duplicate", p.name, "Player is already in the 9cat pick log");
     return true;
   }
-  draft(p.id);
+  draft(p.id, "yahoo");
   setYahooSyncStatus(`Yahoo · synced ${picks.length}`, "ok");
   yahooAck("applied", p.name, `Logged as pick ${picks.length}`);
   announceNinecatState();
@@ -856,9 +882,11 @@ window.addEventListener("message", e=>{
   if(d.type === "YAHOO_PICK") applyYahooDraftPick(d.pick || {name:d.name});
   if(d.type === "YAHOO_SNAPSHOT") applyYahooDraftSnapshot(d.picks || []);
   if(d.type === "YAHOO_RESET_CAPTURE") yahooPickBuffer.clear();
+  if(d.type === "YAHOO_RESET_DRAFT") resetYahooSyncedDraft();
   if(d.type === "YAHOO_STATUS"){
     if(d.enabled === false) setYahooSyncStatus("Yahoo · paused", "warn");
     else if(d.yahooConnected){
+      window.ninecatTrackOnceSession?.("yahoo_sync_connected", "yahoo_sync_connected");
       const contiguous = +d.contiguousCount || 0;
       const captured = +d.capturedCount || 0;
       if(captured > contiguous){
