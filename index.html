@@ -143,17 +143,16 @@
     <h3>League setup</h3>
     <div id="s_intro" class="intro" style="display:none">
       <span class="onboard-step">First-time setup</span>
-      <b>Set your league size and draft slot.</b> Those two settings determine the snake order and when your next pick comes back around.
+      <b>Set your league size and draft slot.</b>
       <span class="onboard-sub">nineCat includes a 500-player 2026–27 projection pool, so you can draft immediately. You can replace it anytime in Settings → Load projections.</span>
     </div>
-    <p>Snake order is derived from these. Change them before the draft starts.</p>
     <div class="grid2">
       <div class="fld"><label>Teams</label><input type="number" id="s_teams" min="4" max="20"></div>
       <div class="fld"><label>Your draft slot</label><input type="number" id="s_slot" min="1" max="20"></div>
       <div class="fld"><label>Roster spots</label><input type="number" id="s_size" min="5" max="20"></div>
       <div class="fld"><label>Punt aggression (0–10)</label><input type="number" id="s_aggr" min="0" max="10" step="1"></div>
     </div>
-    <p style="margin-bottom:16px"><b style="color:var(--chalk)">Punt aggression</b> is how readily the engine writes a category off. <b style="color:var(--chalk)">0</b> keeps chasing all nine to the end; <b style="color:var(--chalk)">10</b> abandons a losing category the moment it slips. <b style="color:var(--chalk)">5</b> is a sane default.</p>
+    <p style="margin-bottom:16px"><b style="color:var(--chalk)">Punt aggression</b> controls how quickly the engine recommends punting a category. <b style="color:var(--chalk)">0</b> means it will never recommend a punt; <b style="color:var(--chalk)">10</b> means it will recommend one as soon as a category starts to slip. <b style="color:var(--chalk)">5</b> is a balanced default.</p>
     <h3 style="margin-top:20px">Team names <span style="font-weight:400;font-size:11px;color:var(--dimmer);text-transform:none;letter-spacing:0">optional</span></h3>
     <p>Leave blank for "Team 1", "Team 2" and so on. Your own slot is highlighted.</p>
     <div class="namegrid" id="s_names"></div>
@@ -165,8 +164,7 @@
       </summary>
       <div class="setup-details-body">
         <p>Match your league's scoring. <b style="color:var(--chalk)">1</b> = counts normally,
-           <b style="color:var(--chalk)">0</b> = not scored at all. This is a league setting —
-           punting a category you're losing is a separate, per-roster choice.</p>
+           <b style="color:var(--chalk)">0</b> = not scored at all.</p>
         <div class="catgrid" id="s_cats"></div>
         <div style="margin:10px 0 2px">
           <button class="mini" id="s_cats_std" style="display:inline-block;margin-right:6px">Standard 9-cat</button>
