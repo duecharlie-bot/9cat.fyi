@@ -1000,18 +1000,19 @@ function registerTests(w){
     assert(!quick.includes("Category Ledger"), "Old Category Ledger terminology should be removed from Quick start");
   });
 
-  test("Quick start presents Yahoo sync as optional automation", ()=>{
+  test("Quick start presents Yahoo + ESPN sync as optional automation", ()=>{
     const text = w.document.getElementById("helpmask").textContent.replace(/\s+/g," ").trim();
-    assert(text.includes("Yahoo sync is optional"), "Expected optional Yahoo sync guidance");
+    assert(text.includes("Yahoo + ESPN sync is optional"), "Expected optional Yahoo + ESPN sync guidance");
+    assert(text.includes("Yahoo or ESPN draft picks"), "Expected both supported draft providers");
     assert(text.includes("Chrome extension"), "Expected Chrome extension explanation");
     assert(text.includes("Manual drafting works normally without the extension"), "Expected manual-draft fallback guidance");
   });
 
-  test("Yahoo Draft Sync store links use the public Chrome Web Store listing", ()=>{
+  test("Draft Sync store links use the public Chrome Web Store listing", ()=>{
     const expected = "https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc";
     const menuLink = w.document.getElementById("ext_store_link");
     const quickLink = w.document.getElementById("quickstart_ext_link");
-    assert(menuLink, "Expected Yahoo Draft Sync link in the Settings menu");
+    assert(menuLink, "Expected Draft Sync link in the Settings menu");
     assert(quickLink, "Expected install link in Quick start");
     equal(menuLink.href, expected, "Settings menu extension link should use the canonical store URL");
     equal(quickLink.href, expected, "Quick start extension link should use the canonical store URL");
@@ -1092,7 +1093,7 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=yahoo-reset-stable-71f";
+frame.src = "../index.html?v=ga4-minimal-1";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
