@@ -6,6 +6,7 @@ const summaryEl = document.getElementById("summary");
 const rerun = document.getElementById("rerun");
 
 const tests = [];
+let testRunInProgress = false;
 function test(name, fn){ tests.push({name,fn}); }
 function assert(condition, message="Assertion failed"){
   if(!condition) throw new Error(message);
@@ -1006,6 +1007,18 @@ function registerTests(w){
     assert(text.includes("Manual drafting works normally without the extension"), "Expected manual-draft fallback guidance");
   });
 
+  test("Yahoo Draft Sync store links use the public Chrome Web Store listing", ()=>{
+    const expected = "https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc";
+    const menuLink = w.document.getElementById("ext_store_link");
+    const quickLink = w.document.getElementById("quickstart_ext_link");
+    assert(menuLink, "Expected Yahoo Draft Sync link in the Settings menu");
+    assert(quickLink, "Expected install link in Quick start");
+    equal(menuLink.href, expected, "Settings menu extension link should use the canonical store URL");
+    equal(quickLink.href, expected, "Quick start extension link should use the canonical store URL");
+    equal(menuLink.target, "_blank", "Settings link should open in a new tab");
+    equal(quickLink.target, "_blank", "Quick start link should open in a new tab");
+  });
+
   test("Quick start Start drafting control closes the onboarding modal", ()=>{
     const mask = w.document.getElementById("helpmask");
     const btn = w.document.getElementById("help_close");
@@ -1041,6 +1054,8 @@ function registerTests(w){
 }
 
 async function run(){
+  if(testRunInProgress) return;
+  testRunInProgress = true;
   resultsEl.innerHTML = "";
   summaryEl.textContent = "Running…";
   tests.length = 0;
@@ -1068,6 +1083,7 @@ async function run(){
   }
   const failed=tests.length-passed;
   summaryEl.textContent=`${passed} passed · ${failed} failed · ${tests.length} total`;
+  testRunInProgress = false;
 }
 
 frame.addEventListener("load",()=>setTimeout(run,150));
@@ -1076,11 +1092,11 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html";
+frame.src = "../index.html?v=yahoo-reset-stable-71f";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
-  if(summaryEl.textContent === "Loading nineCat…" || summaryEl.textContent === "Running…"){
+  if(summaryEl.textContent === "Loading nineCat…"){
     try{
       if(frame.contentDocument && frame.contentDocument.readyState === "complete") run();
     }catch(_e){}

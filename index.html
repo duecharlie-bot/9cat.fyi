@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=extension-link-reset-fix2">
 </head>
 <body data-theme="arena">
 
@@ -22,6 +22,7 @@
       <button id="b_set">League setup</button>
       <button id="b_imp">Load projections</button>
       <button id="b_help">Quick start</button>
+      <a id="ext_store_link" href="https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc" target="_blank" rel="noopener noreferrer">Get Yahoo Draft Sync ↗</a>
       <button id="theme">Light / dark mode</button>
       <button id="reset" style="color:var(--hot)">Reset draft</button>
     </div>
@@ -213,6 +214,7 @@
         <div>
           <b>Yahoo sync is optional</b>
           <p>If you use the nineCat Chrome extension, completed Yahoo draft picks can be logged automatically. Manual drafting works normally without the extension.</p>
+          <a class="btn extension-install" id="quickstart_ext_link" href="https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc" target="_blank" rel="noopener noreferrer">Install Yahoo Draft Sync ↗</a>
         </div>
       </div>
     </div>
@@ -310,6 +312,6 @@
 <script src="js/recommendations.js?v=fit-market"></script>
 <script src="js/storage.js"></script>
 <script src="js/ui.js?v=fit-market"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=yahoo-reset-export-fix3"></script>
 </body>
 </html>
