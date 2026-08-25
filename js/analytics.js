@@ -9,7 +9,7 @@
    Deploy previews / localhost are excluded so testing does not pollute data.
    ============================================================ */
 (function(){
-  const MEASUREMENT_ID = "G-MZ157ENM5F";
+  const MEASUREMENT_ID = "G-3B2CJNG8LF";
   const PROD_HOSTS = new Set(["9cat.fyi", "www.9cat.fyi"]);
   const enabled = PROD_HOSTS.has(String(location.hostname || "").toLowerCase());
 
