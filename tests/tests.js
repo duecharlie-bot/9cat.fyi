@@ -1038,8 +1038,13 @@ function registerTests(w){
         locks = {fg:"punt"};
         yahooPickBuffer.set(1,{pickNo:1,name:pool[0].name});
       `);
-      assert(typeof w.resetYahooSyncedDraft === "function", "Expected Yahoo reset handler to be exported");
-      w.resetYahooSyncedDraft();
+      // Exercise the same message path the Chrome extension uses in production.
+      // This avoids depending on a test-only window export.
+      const yahooSource = w.eval("YAHOO_EXT_SOURCE");
+      w.dispatchEvent(new w.MessageEvent("message", {
+        data: {source:yahooSource, type:"YAHOO_RESET_DRAFT"},
+        source:w
+      }));
       equal(w.eval("picks.length"), 0, "Expected synced picks to reset");
       equal(w.eval("yahooPickBuffer.size"), 0, "Expected Yahoo capture buffer to reset");
       equal(w.eval("locks.fg"), "punt", "Strategy locks should survive a Yahoo tab-close reset");
