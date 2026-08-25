@@ -20,11 +20,11 @@ function fmt(n, d=1){ return (n>=0?"":"") + n.toFixed(d); }
     .482 FG% against a pool average of .483 rendered as a red mark.           */
 const NEUTRAL = 0.22;
 function zColor(z){
-  if(Math.abs(z) < NEUTRAL) return "var(--dimmer)";
+  if(Math.abs(z) < NEUTRAL) return "var(--mid)";
   return z >= 0 ? "var(--cool)" : "var(--hot)";
 }
 function zOpacity(z){
-  return Math.abs(z) < NEUTRAL ? 0.55 : Math.min(1, 0.5 + Math.abs(z)/2.2);
+  return Math.abs(z) < NEUTRAL ? 0.92 : Math.min(1, 0.86 + Math.abs(z)/5);
 }
 const zText = z => Math.abs(z) < 0.05 ? "0.0" : z.toFixed(1);
 
@@ -442,7 +442,9 @@ function renderLedger(state){
       rank = roster.length ? 1 + allZ.filter((t,i)=> rosters[i].length > 0 && t[c.k] > tz[c.k]).length : null;
     }
 
-    const bar = `<div class="lbar ${barW>=0?"pos":"neg"}" style="${barW>=0
+    const eliteCut = Math.max(1, Math.ceil(live / 4));
+    const elite = barW > 0 && rank !== null && rank <= eliteCut && curProfile >= 0.35;
+    const bar = `<div class="lbar ${elite?"elite":barW>=0?"pos":"neg"}" style="${barW>=0
       ? `left:50%;width:${barW}%`
       : `right:50%;width:${-barW}%`}"></div>`;
 
@@ -451,11 +453,11 @@ function renderLedger(state){
       : `right:50%;width:${-ghostW}%`}"></div>`;
 
     const lock = isMine ? (locks[c.k] || "") : "";
-    return `<div class="lrow ${lev?"lev":""} ${lock}">
+    return `<div class="lrow ${lev?"lev":""} ${elite?"elite":""} ${lock}">
       <span class="lcat" data-c="${c.k}" title="${isMine ? "Click through: auto \u2192 punt \u2192 chase \u2192 hard chase" : "Switch back to your team to set punts"}">${c.label}${cw(c.k)!==1?`<em class="cwx">\u00d7${cw(c.k)}</em>`:""}</span>
       <span class="ltrack"><span class="lmid"></span>${bar}${ghost}</span>
       <span class="lval">
-        <span style="color:${roster.length?zColor(valZ):"var(--dimmer)"}">${valTxt}</span>
+        <span class="main" style="color:${roster.length?zColor(valZ):"var(--dimmer)"}">${valTxt}</span>
         ${nextTxt !== null ? `<em class="lnext ${better>0?"up":better<0?"dn":""}">\u2192 ${nextTxt}</em>` : ``}
       </span>
       <span class="lrank ${rank===1?"first":""}" title="${rank?`${rank} of ${live} drafted teams`:""}">${rank?`${rank}/${live}`:"\u2014"}</span>
@@ -658,6 +660,7 @@ function renderBoard(state){
     p.pos.some(x => fold(x) === q));
 
   const key = sortKey;
+  const showRisk = teamOnClock(picks.length) === myTeamIdx();
   list = [...list].sort((a,b)=>{
     if(key === "fit" && (a.rosterFit === false || b.rosterFit === false) && a.rosterFit !== b.rosterFit)
       return a.rosterFit === false ? 1 : -1;
@@ -678,7 +681,7 @@ function renderBoard(state){
         "gone soon" dot on someone ranked 40th is noise — it's true (the market
         rates him higher than the projections do) but it isn't a decision you
         actually face.                                                        */
-    flagRisk: p.risk > 0.6 && i < 15 && key === "fit",
+    flagRisk: showRisk && p.risk > 0.6 && i < 15 && key === "fit",
     top: i === 0 && key === "fit"
   })).join("") || `<tr><td class="l" colspan="14" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
 
