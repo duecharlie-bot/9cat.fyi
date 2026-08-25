@@ -218,8 +218,8 @@ body{
     width, so the track never moves.                                          */
 .lrow{display:grid;grid-template-columns:42px 1fr 102px 34px;align-items:center;gap:9px;height:27px}
 .lcat{font-size:11px;letter-spacing:.08em;color:var(--dimmer);text-transform:uppercase}
-.lrow.lev .lcat{color:var(--wood)}
 .lrow.elite .lcat{color:var(--ok);font-weight:700}
+.lrow.weak .lcat{color:var(--hot);font-weight:700}
 .ltrack{position:relative;height:12px;background:var(--panel);border-radius:2px;overflow:visible}
 .lmid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
 .lbar{position:absolute;top:0;bottom:0;border-radius:2px;transition:all .18s ease}
