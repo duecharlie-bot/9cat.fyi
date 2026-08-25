@@ -830,10 +830,7 @@ function renderSuggest(state){
       body = sug.map(s=>`
         <div class="sug">
           <div class="k">Consider punting ${s.cat.label}</div>
-          Drafting best-available finishes you <b>${Math.abs(s.gap).toFixed(1)} behind</b> a typical team here.
-          ${s.reach < 0
-            ? `Even chasing it all draft doesn't reach par — it's not winnable.`
-            : `Chasing it back to par costs about <b>${s.cost.toFixed(0)}</b> of value spent on players you'd otherwise pass.`}
+          Drafting best-available leaves you <b>${Math.abs(s.gap).toFixed(1)} behind</b> a typical team here.
           <button class="mini" data-c="${s.cat.k}">Punt ${s.cat.label}</button>
           <button class="dismiss" data-hide="${s.cat.k}" title="Dismiss">&times;</button>
         </div>`).join("") +
