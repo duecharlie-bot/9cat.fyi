@@ -448,6 +448,7 @@ function renderLedger(state){
 
     const eliteCut = Math.max(1, Math.ceil(live / 4));
     const elite = barW > 0 && rank !== null && rank <= eliteCut && curProfile >= 0.35;
+    const weak = barW < 0 && rank !== null && rank > live - eliteCut && curProfile <= -0.35;
     const bar = `<div class="lbar ${barW>=0?"pos":"neg"}" style="${barW>=0
       ? `left:50%;width:${barW}%`
       : `right:50%;width:${-barW}%`}"></div>`;
@@ -457,7 +458,7 @@ function renderLedger(state){
       : `right:50%;width:${-ghostW}%`}"></div>`;
 
     const lock = isMine ? (locks[c.k] || "") : "";
-    return `<div class="lrow ${lev?"lev":""} ${elite?"elite":""} ${lock}">
+    return `<div class="lrow ${elite?"elite":""} ${weak?"weak":""} ${lock}">
       <span class="lcat" data-c="${c.k}" title="${isMine ? "Click through: auto \u2192 punt \u2192 chase \u2192 hard chase" : "Switch back to your team to set punts"}">${c.label}${cw(c.k)!==1?`<em class="cwx">\u00d7${cw(c.k)}</em>`:""}</span>
       <span class="ltrack"><span class="lmid"></span>${bar}${ghost}</span>
       <span class="lval">
