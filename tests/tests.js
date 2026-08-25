@@ -1027,7 +1027,7 @@ function registerTests(w){
     assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
   });
 
-  test("Yahoo full reset clears picks and capture buffer without clearing strategy locks", ()=>{
+  test("Yahoo full reset clears picks and capture buffer without clearing strategy locks", async ()=>{
     const oldPicks = w.eval("JSON.stringify(picks)");
     const oldLocks = w.eval("JSON.stringify(locks)");
     const saveKey = w.eval("SAVE_KEY");
@@ -1038,13 +1038,25 @@ function registerTests(w){
         locks = {fg:"punt"};
         yahooPickBuffer.set(1,{pickNo:1,name:pool[0].name});
       `);
-      // Exercise the same message path the Chrome extension uses in production.
-      // This avoids depending on a test-only window export.
-      const yahooSource = w.eval("YAHOO_EXT_SOURCE");
-      w.dispatchEvent(new w.MessageEvent("message", {
-        data: {source:yahooSource, type:"YAHOO_RESET_DRAFT"},
-        source:w
-      }));
+
+      // Send the message from inside the iframe itself. The production handler
+      // intentionally requires e.source === window, so dispatching a synthetic
+      // MessageEvent from the parent test page does not faithfully reproduce
+      // the extension's window.postMessage bridge.
+      w.eval(`
+        window.postMessage(
+          {source:YAHOO_EXT_SOURCE, type:"YAHOO_RESET_DRAFT"},
+          "*"
+        );
+      `);
+
+      // postMessage is asynchronous. Wait briefly for the iframe's real
+      // message listener to process the reset.
+      const deadline = Date.now() + 750;
+      while(w.eval("picks.length") !== 0 && Date.now() < deadline){
+        await new Promise(resolve=>setTimeout(resolve, 10));
+      }
+
       equal(w.eval("picks.length"), 0, "Expected synced picks to reset");
       equal(w.eval("yahooPickBuffer.size"), 0, "Expected Yahoo capture buffer to reset");
       equal(w.eval("locks.fg"), "punt", "Strategy locks should survive a Yahoo tab-close reset");
