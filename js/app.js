@@ -5,12 +5,9 @@ let cfg = {
   /*  Per-category weight, to match your league's scoring. 1 = counts normally,
       0 = not scored at all (8-cat leagues drop turnovers entirely). This is a
       LEAGUE SETTING, not a strategy — punting is separate and per-roster.    */
-  /*  Turnovers ship at 0.75 rather than 1.0. Every rostered team finishes
-      underwater in TO, so a category-league turnover loss is partly priced in
-      already, and full weight pushed high-usage guards further down the board
-      than the market will ever let you exploit. Set it back to 1 in Setup if
-      your league scores all nine equally — that's the stricter reading.      */
-  catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:0.75},
+  /*  Standard 9-cat now weights turnovers at 1.0 again. Use 0 only for
+      8-cat leagues, or adjust manually if your league has custom scoring.   */
+  catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:1},
   names: []            // optional league team names, indexed by draft slot
 };
 const teamName = i => (cfg.names[i] && cfg.names[i].trim()) || ("Team " + (i+1));
@@ -800,7 +797,7 @@ function reconcileYahooBuffer(){
     teamIdx:teamOnClock(i),
     overall:i
   }));
-  window.ninecatTrackDraftProgress?.("yahoo", picks.length, cfg.teams * cfg.size);
+  window.ninecatTrackDraftProgress?.(window.__ninecatDraftProvider || "yahoo", picks.length, cfg.teams * cfg.size);
 
   selectedId = null;
   hoverId = null;
@@ -839,7 +836,7 @@ function resetYahooSyncedDraft(){
   // intentionally survive this reset.
   saveState();
   render();
-  setYahooSyncStatus("Yahoo · waiting", "dim");
+  setYahooSyncStatus("Draft Sync · waiting", "dim");
   announceNinecatState();
 }
 
@@ -884,18 +881,23 @@ window.addEventListener("message", e=>{
   if(d.type === "YAHOO_RESET_CAPTURE") yahooPickBuffer.clear();
   if(d.type === "YAHOO_RESET_DRAFT") resetYahooSyncedDraft();
   if(d.type === "YAHOO_STATUS"){
-    if(d.enabled === false) setYahooSyncStatus("Yahoo · paused", "warn");
-    else if(d.yahooConnected){
-      window.ninecatTrackOnceSession?.("yahoo_sync_connected", "yahoo_sync_connected");
+    const provider = d.provider === "espn" ? "espn" : "yahoo";
+    const label = provider === "espn" ? "ESPN" : "Yahoo";
+    const connected = d.draftConnected ?? (provider === "espn" ? d.espnConnected : d.yahooConnected);
+    window.__ninecatDraftProvider = provider;
+
+    if(d.enabled === false) setYahooSyncStatus(`${label} · paused`, "warn");
+    else if(connected){
+      window.ninecatTrackOnceSession?.(`draft_sync_connected_${provider}`, "draft_sync_connected", {provider});
       const contiguous = +d.contiguousCount || 0;
       const captured = +d.capturedCount || 0;
       if(captured > contiguous){
-        setYahooSyncStatus(`Yahoo · waiting for #${contiguous + 1} · ${captured} seen`, "warn");
+        setYahooSyncStatus(`${label} · waiting for #${contiguous + 1} · ${captured} seen`, "warn");
       } else {
         const n = contiguous || captured || 0;
-        setYahooSyncStatus(`Yahoo · live${n ? ` ${n}` : ""}`, "ok");
+        setYahooSyncStatus(`${label} · live${n ? ` ${n}` : ""}`, "ok");
       }
-    } else setYahooSyncStatus("Yahoo · waiting", "dim");
+    } else setYahooSyncStatus("Draft Sync · waiting", "dim");
   }
 });
 
