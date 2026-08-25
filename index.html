@@ -22,7 +22,7 @@
       <button id="b_set">League setup</button>
       <button id="b_imp">Load projections</button>
       <button id="b_help">Quick start</button>
-      <a id="ext_store_link" href="https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc" target="_blank" rel="noopener noreferrer">Get Yahoo Draft Sync ↗</a>
+      <a id="ext_store_link" href="https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc" target="_blank" rel="noopener noreferrer">Get Draft Sync ↗</a>
       <button id="theme">Light / dark mode</button>
       <button id="reset" style="color:var(--hot)">Reset draft</button>
     </div>
@@ -122,7 +122,7 @@
       <div class="ledger-key" id="ledgerkey"></div>
     </div>
 
-    <div class="head"><h2>Punt Radar</h2><span class="note">Click a ledger label to punt by hand</span></div>
+    <div class="head"><h2>Punt Radar</h2><span class="note">Click a category to punt. Double/Triple-click to chase.</span></div>
     <div id="suggest"></div>
 
     <div class="head"><h2 id="rosterhead">My Roster</h2><span class="note" id="rostercount"></span></div>
@@ -153,7 +153,7 @@
       <div class="fld"><label>Punt aggression (0–10)</label><input type="number" id="s_aggr" min="0" max="10" step="1"></div>
     </div>
     <p style="margin-bottom:16px"><b style="color:var(--chalk)">Punt aggression</b> controls how quickly the engine recommends punting a category. <b style="color:var(--chalk)">0</b> means it will never recommend a punt; <b style="color:var(--chalk)">10</b> means it will recommend one as soon as a category starts to slip. <b style="color:var(--chalk)">5</b> is a balanced default.</p>
-    <h3 style="margin-top:20px">Team names <span style="font-weight:400;font-size:11px;color:var(--dimmer);text-transform:none;letter-spacing:0">optional</span></h3>
+    <h3 class="modal-subhead">Team names <span class="subhead-optional">optional</span></h3>
     <p>Leave blank for "Team 1", "Team 2" and so on. Your own slot is highlighted.</p>
     <div class="namegrid" id="s_names"></div>
 
@@ -190,7 +190,7 @@
         <span class="quickstart-num">1</span>
         <div>
           <b>Draft your players</b>
-          <p><b>Total</b> is a player's projected value. <b>Fit</b> adjusts that for your roster and gives extra weight to players unlikely to make it back to your next pick. Fit is relative to the current board: positive means better than a typical option available now.</p>
+          <p><b>Total</b> is a player's projected value. <b>Fit</b> adjusts that for your roster and gives extra weight to players unlikely to make it back to your next pick. </p>
         </div>
       </div>
       <div class="quickstart-card">
@@ -210,9 +210,9 @@
       <div class="quickstart-card">
         <span class="quickstart-num">4</span>
         <div>
-          <b>Yahoo sync is optional</b>
-          <p>If you use the nineCat Chrome extension, completed Yahoo draft picks can be logged automatically. Manual drafting works normally without the extension.</p>
-          <a class="btn extension-install" id="quickstart_ext_link" href="https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc" target="_blank" rel="noopener noreferrer">Install Yahoo Draft Sync ↗</a>
+          <b>Yahoo + ESPN sync is optional</b>
+          <p>If you use the nineCat Chrome extension, completed Yahoo or ESPN draft picks can be logged automatically. Manual drafting works normally without the extension.</p>
+          <a class="btn extension-install" id="quickstart_ext_link" href="https://chromewebstore.google.com/detail/ninecat-draft-sync/eigbepgkcbocjpoogdklpckigealbjkc" target="_blank" rel="noopener noreferrer">Install Draft Sync ↗</a>
         </div>
       </div>
     </div>
@@ -248,7 +248,7 @@
       </div>
       <div class="schema-label">Required header</div>
       <code class="schema-code">PLAYER,ADP,POS,TEAM,GP,MPG,FGM,FGA,FTM,FTA,3PM,PTS,REB,AST,STL,BLK,TO</code>
-      <p class="import-note"><b>PLAYER</b> should use the Yahoo display name for reliable draft sync. <b>POS</b> uses values such as PG, SG/SF or PF/C. ADP, GP and MPG may be blank; every stat column is required.</p>
+      <p class="import-note"><b>PLAYER</b> should use a recognizable player name for reliable draft sync. <b>POS</b> uses values such as PG, SG/SF or PF/C. ADP, GP and MPG may be blank; every stat column is required.</p>
     </div>
 
     <input id="impfile" type="file" accept=".csv,text/csv" hidden>

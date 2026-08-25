@@ -12,9 +12,12 @@
   --wood:#D4A059;
   --wood-hi:#E0B171;
   --wood-text:var(--wood-text);
-  --cool:#57ACF2;
-  --hot:#E4636E;
+  --cool:#79C9FF;
+  --hot:#FF8DA1;
   --ok:#5CC489;
+  --mid:#F2C36B;
+  --profile-cool:#57ACF2;
+  --profile-hot:#E4636E;
   --pos-bg:#162E3D; --pos-fg:#A8D6F5; --pos-bd:#2B5D7C;
   --neg-bg:#331A1E; --neg-fg:#F2B3B9; --neg-bd:#66303A;
   --okk-bg:#183324; --okk-fg:#97DBB2; --okk-bd:#2F6647;
@@ -47,8 +50,11 @@ body[data-theme="court"]{
   --wood-hi:#A46E1E;
   --wood-text:#FFFFFF;
   --cool:#1668BC;
-  --hot:#AE2F3B;
+  --hot:#C4476A;
   --ok:#1C7644;
+  --mid:#8F5D12;
+  --profile-cool:#1668BC;
+  --profile-hot:#AE2F3B;
   --pos-bg:#E2EFFA; --pos-fg:#125388; --pos-bd:#B6D6F1;
   --neg-bg:#FBE6E8; --neg-fg:#8E2028; --neg-bd:#EFC0C5;
   --okk-bg:#E3F2E9; --okk-fg:#1A6339; --okk-bd:#BCDFCB;
@@ -212,12 +218,13 @@ body{
     width, so the track never moves.                                          */
 .lrow{display:grid;grid-template-columns:42px 1fr 102px 34px;align-items:center;gap:9px;height:27px}
 .lcat{font-size:11px;letter-spacing:.08em;color:var(--dimmer);text-transform:uppercase}
-.lrow.lev .lcat{color:var(--wood)}
+.lrow.elite .lcat{color:var(--ok);font-weight:700}
+.lrow.weak .lcat{color:var(--hot);font-weight:700}
 .ltrack{position:relative;height:12px;background:var(--panel);border-radius:2px;overflow:visible}
 .lmid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line)}
 .lbar{position:absolute;top:0;bottom:0;border-radius:2px;transition:all .18s ease}
-.lbar.pos{background:var(--cool)}
-.lbar.neg{background:var(--hot)}
+.lbar.pos{background:var(--profile-cool)}
+.lbar.neg{background:var(--profile-hot)}
 .lghost{position:absolute;top:-2px;bottom:-2px;border:1px dashed var(--wood);border-radius:2px;pointer-events:none}
 .lval{font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;overflow:hidden}
 .ledger-key{font-size:11px;color:var(--dimmer);padding:8px 16px 0;line-height:1.5}
@@ -622,15 +629,18 @@ thead th.on .arw{opacity:1}
 
 /* ---------- first-run intro ---------- */
 .intro{
-  margin:0 0 16px;padding:11px 13px;border-left:2px solid var(--wood);background:var(--raise);
+  margin:0 0 16px;padding:14px 16px;border-left:3px solid var(--wood);background:var(--raise);
   border-radius:0 var(--r) var(--r) 0;font-size:13px;color:var(--dim);line-height:1.55
 }
-.intro b{color:var(--chalk)}
-.onboard-step{
-  display:block;margin-bottom:5px;font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:600;
-  letter-spacing:.13em;text-transform:uppercase;color:var(--wood)
+.intro b{
+  display:block;color:var(--chalk);font-family:"Saira Condensed",sans-serif;font-weight:700;
+  font-size:23px;letter-spacing:.01em;line-height:1.06;margin:0 0 8px
 }
-.onboard-sub{display:block;margin-top:5px;font-size:11px;color:var(--dimmer)}
+.onboard-step{
+  display:block;margin-bottom:8px;font-family:"Saira Condensed",sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--wood-hi)
+}
+.onboard-sub{display:block;margin-top:6px;font-size:12px;color:var(--dimmer);line-height:1.5}
 .quickstart-modal{max-width:700px}
 .quickstart-lede{font-size:14px!important;color:var(--dim)!important;line-height:1.55;margin-bottom:16px!important}
 .quickstart-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
@@ -641,7 +651,7 @@ thead th.on .arw{opacity:1}
   display:flex;align-items:center;justify-content:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;
   background:var(--wood);color:var(--wood-text);font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:700
 }
-.quickstart-card b{color:var(--chalk);font-size:12px}
+.quickstart-card b{color:var(--chalk);font-size:13px}
 .quickstart-card p{margin:3px 0 0!important;font-size:11px!important;line-height:1.5;color:var(--dimmer)!important}
 .quickstart-card .extension-install{
   display:inline-block;margin-top:10px;padding:6px 10px;font-size:10px;text-decoration:none
@@ -797,14 +807,9 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 }
 .lrank.first{color:var(--ok);font-weight:600}
 
-/* ---------- themed scrollbars ---------- */
-*{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
-::-webkit-scrollbar{width:11px;height:11px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--scroll);border-radius:6px;
-  border:3px solid var(--ink);background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{background:var(--scroll-hi);border:3px solid var(--ink);background-clip:padding-box}
-::-webkit-scrollbar-corner{background:transparent}
+/* ---------- native browser scrollbars ---------- */
+/* Use the platform scrollbar styling instead of a custom themed version. */
+*{scrollbar-width:auto;scrollbar-color:auto}
 
 /* ---------- roster position tag ---------- */
 .rpos{font-size:10px;letter-spacing:.06em;color:var(--dimmer);
@@ -813,6 +818,8 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 
 /* ---------- team name grid ---------- */
 .namegrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:220px;overflow-y:auto}
+.modal-subhead{margin-top:20px!important;font-size:14px!important;letter-spacing:.1em!important}
+.subhead-optional{font-weight:400;font-size:11px;color:var(--dimmer);text-transform:none;letter-spacing:0}
 
 /* ---------- site footer ---------- */
 .site-footer{
