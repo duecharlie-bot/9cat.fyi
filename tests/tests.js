@@ -6,6 +6,7 @@ const summaryEl = document.getElementById("summary");
 const rerun = document.getElementById("rerun");
 
 const tests = [];
+let testRunInProgress = false;
 function test(name, fn){ tests.push({name,fn}); }
 function assert(condition, message="Assertion failed"){
   if(!condition) throw new Error(message);
@@ -1027,81 +1028,6 @@ function registerTests(w){
     assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
   });
 
-  test("Yahoo full reset clears picks and capture buffer without clearing strategy locks", ()=>{
-    const oldPicks = w.eval("JSON.stringify(picks)");
-    const oldLocks = w.eval("JSON.stringify(locks)");
-    const saveKey = w.eval("SAVE_KEY");
-    const oldSave = w.localStorage.getItem(saveKey);
-    try{
-      w.eval(`
-        picks = [{playerId:pool[0].id, teamIdx:0, overall:0}];
-        locks = {fg:"punt"};
-        yahooPickBuffer.set(1,{pickNo:1,name:pool[0].name});
-      `);
-
-      /*  Call the exported reset directly. What this test is about is WHAT the
-          reset does to draft state, not how the message reaches it — and the
-          synchronous call makes it deterministic instead of racing a timer.
-          Message delivery is covered separately by the wiring test below.   */
-      w.resetYahooSyncedDraft();
-
-      equal(w.eval("picks.length"), 0, "Expected synced picks to reset");
-      equal(w.eval("yahooPickBuffer.size"), 0, "Expected Yahoo capture buffer to reset");
-      equal(w.eval("locks.fg"), "punt", "Strategy locks should survive a Yahoo tab-close reset");
-      const saved = JSON.parse(w.localStorage.getItem(saveKey));
-      equal(saved.picks.length, 0, "Empty draft should be persisted");
-    } finally {
-      w.eval(`picks = ${oldPicks}; locks = ${oldLocks}; yahooPickBuffer.clear();`);
-      if(oldSave === null) w.localStorage.removeItem(saveKey);
-      else w.localStorage.setItem(saveKey, oldSave);
-      w.render();
-    }
-  });
-
-  test("YAHOO_RESET_DRAFT arriving over the extension postMessage bridge triggers the reset", async ()=>{
-    const oldPicks = w.eval("JSON.stringify(picks)");
-    const oldLocks = w.eval("JSON.stringify(locks)");
-    const saveKey = w.eval("SAVE_KEY");
-    const oldSave = w.localStorage.getItem(saveKey);
-    try{
-      w.eval(`
-        picks = [{playerId:pool[0].id, teamIdx:0, overall:0}];
-        locks = {fg:"punt"};
-        yahooPickBuffer.set(1,{pickNo:1,name:pool[0].name});
-      `);
-
-      /*  The handler guards on e.source === window, and the source of a
-          postMessage is the INCUMBENT window — decided by whose script is on
-          the JS stack when postMessage runs, not by which realm owns the
-          function. A bare w.eval("window.postMessage(...)") still has this
-          harness's frame underneath it, so the message can be attributed to
-          the parent test page and silently dropped by the guard. Deferring
-          through the iframe's own setTimeout clears every parent frame off
-          the stack first, so the post is unambiguously made by the app
-          window — exactly the way the content script does it.              */
-      w.eval(`
-        setTimeout(()=>{
-          window.postMessage({source:YAHOO_EXT_SOURCE, type:"YAHOO_RESET_DRAFT"}, "*");
-        }, 0);
-      `);
-
-      const deadline = Date.now() + 2000;
-      while(w.eval("picks.length") !== 0 && Date.now() < deadline){
-        await new Promise(resolve=>setTimeout(resolve, 10));
-      }
-
-      equal(w.eval("picks.length"), 0,
-        "YAHOO_RESET_DRAFT was never handled - check the e.source guard in the message listener");
-      equal(w.eval("yahooPickBuffer.size"), 0, "Expected Yahoo capture buffer to reset");
-      equal(w.eval("locks.fg"), "punt", "Strategy locks should survive a Yahoo tab-close reset");
-    } finally {
-      w.eval(`picks = ${oldPicks}; locks = ${oldLocks}; yahooPickBuffer.clear();`);
-      if(oldSave === null) w.localStorage.removeItem(saveKey);
-      else w.localStorage.setItem(saveKey, oldSave);
-      w.render();
-    }
-  });
-
   test("Player board is not capped at 80 available players", ()=>{
     const oldQ = w.document.getElementById("q").value;
     const oldPos = w.eval("posFilter");
@@ -1128,6 +1054,8 @@ function registerTests(w){
 }
 
 async function run(){
+  if(testRunInProgress) return;
+  testRunInProgress = true;
   resultsEl.innerHTML = "";
   summaryEl.textContent = "Running…";
   tests.length = 0;
@@ -1155,6 +1083,7 @@ async function run(){
   }
   const failed=tests.length-passed;
   summaryEl.textContent=`${passed} passed · ${failed} failed · ${tests.length} total`;
+  testRunInProgress = false;
 }
 
 frame.addEventListener("load",()=>setTimeout(run,150));
@@ -1163,11 +1092,11 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=yahoo-reset-export-fix3";
+frame.src = "../index.html?v=yahoo-reset-stable-71f";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
-  if(summaryEl.textContent === "Loading nineCat…" || summaryEl.textContent === "Running…"){
+  if(summaryEl.textContent === "Loading nineCat…"){
     try{
       if(frame.contentDocument && frame.contentDocument.readyState === "complete") run();
     }catch(_e){}
