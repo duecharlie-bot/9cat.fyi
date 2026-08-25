@@ -55,7 +55,7 @@
     if(n > 0 && !safeSessionGet(ACTIVE_DRAFT_KEY)){
       safeSessionSet(ACTIVE_DRAFT_KEY, "1");
       window.ninecatTrack("draft_started", {
-        draft_source: draftSource === "yahoo" ? "yahoo" : "manual",
+        draft_source: ["yahoo","espn"].includes(draftSource) ? draftSource : "manual",
         team_count: (typeof cfg !== "undefined" && cfg) ? Number(cfg.teams) || 0 : 0,
         roster_size: (typeof cfg !== "undefined" && cfg) ? Number(cfg.size) || 0 : 0
       });
@@ -63,7 +63,7 @@
     if(total > 0 && n >= total && !safeSessionGet(COMPLETE_DRAFT_KEY)){
       safeSessionSet(COMPLETE_DRAFT_KEY, "1");
       window.ninecatTrack("draft_completed", {
-        draft_source: draftSource === "yahoo" ? "yahoo" : "manual",
+        draft_source: ["yahoo","espn"].includes(draftSource) ? draftSource : "manual",
         team_count: (typeof cfg !== "undefined" && cfg) ? Number(cfg.teams) || 0 : 0,
         roster_size: (typeof cfg !== "undefined" && cfg) ? Number(cfg.size) || 0 : 0,
         total_picks: total
@@ -71,7 +71,7 @@
     }
   };
 
-  // Call only for an intentional fresh-start action. The automatic Yahoo-tab
+  // Call only for an intentional fresh-start action. The automatic draft-tab
   // close reset deliberately does NOT clear this, preventing a same-draft
   // reopen from being counted as a second draft start.
   window.ninecatResetDraftAnalytics = function(){
