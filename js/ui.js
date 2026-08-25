@@ -26,6 +26,10 @@ function zColor(z){
 function zOpacity(z){
   return Math.abs(z) < NEUTRAL ? 0.92 : Math.min(1, 0.86 + Math.abs(z)/5);
 }
+function profileZColor(z){
+  if(Math.abs(z) < NEUTRAL) return "var(--dimmer)";
+  return z >= 0 ? "var(--profile-cool)" : "var(--profile-hot)";
+}
 const zText = z => Math.abs(z) < 0.05 ? "0.0" : z.toFixed(1);
 
 function renderClock(state){
@@ -444,7 +448,7 @@ function renderLedger(state){
 
     const eliteCut = Math.max(1, Math.ceil(live / 4));
     const elite = barW > 0 && rank !== null && rank <= eliteCut && curProfile >= 0.35;
-    const bar = `<div class="lbar ${elite?"elite":barW>=0?"pos":"neg"}" style="${barW>=0
+    const bar = `<div class="lbar ${barW>=0?"pos":"neg"}" style="${barW>=0
       ? `left:50%;width:${barW}%`
       : `right:50%;width:${-barW}%`}"></div>`;
 
@@ -457,7 +461,7 @@ function renderLedger(state){
       <span class="lcat" data-c="${c.k}" title="${isMine ? "Click through: auto \u2192 punt \u2192 chase \u2192 hard chase" : "Switch back to your team to set punts"}">${c.label}${cw(c.k)!==1?`<em class="cwx">\u00d7${cw(c.k)}</em>`:""}</span>
       <span class="ltrack"><span class="lmid"></span>${bar}${ghost}</span>
       <span class="lval">
-        <span class="main" style="color:${roster.length?zColor(valZ):"var(--dimmer)"}">${valTxt}</span>
+        <span class="main" style="color:${roster.length?profileZColor(valZ):"var(--dimmer)"}">${valTxt}</span>
         ${nextTxt !== null ? `<em class="lnext ${better>0?"up":better<0?"dn":""}">\u2192 ${nextTxt}</em>` : ``}
       </span>
       <span class="lrank ${rank===1?"first":""}" title="${rank?`${rank} of ${live} drafted teams`:""}">${rank?`${rank}/${live}`:"\u2014"}</span>
