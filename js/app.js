@@ -332,7 +332,8 @@ document.addEventListener("keydown", e=>{
 
 document.addEventListener("keydown", e=>{
   if(e.key !== "Escape") return;
-  const open = ["#setmask","#impmask","#helpmask"].map($).filter(m=>m && m.classList.contains("on"));
+  // League Setup is intentionally non-dismissible: it only closes via Save or Cancel.
+  const open = ["#impmask","#helpmask"].map($).filter(m=>m && m.classList.contains("on"));
   if(open.length){ open.forEach(m=>m.classList.remove("on")); e.stopPropagation(); }
 });
 
@@ -385,11 +386,16 @@ applySplit(splitFrac);
 })();
 $("#helpmask").addEventListener("click", e=>{ if(e.target === $("#helpmask")) $("#helpmask").classList.remove("on"); });
 
-// Close the setup modal when the user clicks the backdrop,
-// but keep clicks inside the modal itself from dismissing it.
-$("#setmask").addEventListener("click", e=>{
-  if(e.target === e.currentTarget) e.currentTarget.classList.remove("on");
-});
+// League Setup is intentionally non-dismissible from the backdrop.
+// Capture backdrop clicks before any generic modal-dismiss handler can see them.
+// Save Setup / Save and Continue and Cancel are the only ways to close it.
+const setupMask = $("#setmask");
+setupMask?.addEventListener("click", e=>{
+  if(e.target !== setupMask) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+}, true);
+
 document.querySelectorAll(".setup-num-btn").forEach(btn=>{
   btn.addEventListener("click", ()=>{
     const input = document.getElementById(btn.dataset.stepTarget);
