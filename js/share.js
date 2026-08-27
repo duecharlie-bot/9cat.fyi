@@ -5,8 +5,8 @@
 
    The grade is based on projected head-to-head matchup win rate against the
    rest of the league. A 5-4 matchup win and an 8-1 matchup win both count as
-   one win. Share links are self-contained in the URL; no draft data is sent
-   to or stored by nineCat.
+   one win. Share links prefer a short Netlify-backed URL. If the share
+   service is unavailable, nineCat falls back to the self-contained URL.
    ============================================================ */
 
 const SHARE_SHOWN_KEY = "ninecat.sharecard.lastShown.v2";
@@ -143,11 +143,30 @@ function draftShareUrl(summary=draftShareSummary()){
 
 function gradeArticle(grade){ return /^[AFS]/.test(String(grade)) ? "an" : "a"; }
 
-function draftShareText(summary=draftShareSummary()){
+function draftShareText(summary=draftShareSummary(), url=draftShareUrl(summary)){
   return [
     `I just drafted ${gradeArticle(summary.grade)} ${summary.grade} team on nineCat — projected to beat ${roundedWinRate(summary)}% of the field. Think you can beat it?`,
-    draftShareUrl(summary)
+    url
   ].join("\n");
+}
+
+async function createShortDraftShare(summary=draftShareSummary()){
+  const fallback = draftShareUrl(summary);
+  try{
+    const response = await fetch("/api/share", {
+      method:"POST",
+      headers:{"content-type":"application/json","accept":"application/json"},
+      body:JSON.stringify(sharePayload(summary))
+    });
+    if(!response.ok) throw new Error(`Share service returned ${response.status}`);
+    const data = await response.json();
+    if(!data || !/^[a-f0-9]{8}$/i.test(String(data.id || ""))) throw new Error("Invalid share id");
+    const origin = (location && location.origin && location.origin !== "null") ? location.origin : "https://9cat.fyi";
+    return {url:`${origin}/s/${String(data.id).toLowerCase()}`, short:true};
+  }catch(e){
+    console.warn("nineCat short share unavailable; using self-contained link", e);
+    return {url:fallback, short:false};
+  }
 }
 
 function sharePills(items, kind, emptyText){
@@ -321,7 +340,12 @@ async function downloadDraftShare(){
 }
 
 async function copyDraftShare(){
-  const text = draftShareText();
+  const btn=document.getElementById("share_copy");
+  const oldLabel=btn?.textContent || "Copy share";
+  if(btn){ btn.disabled=true; btn.textContent="Creating link…"; }
+  const summary = draftShareSummary();
+  const link = await createShortDraftShare(summary);
+  const text = draftShareText(summary, link.url);
   let ok = false;
   try{ await navigator.clipboard.writeText(text); ok=true; }catch(e){}
   if(!ok){
@@ -330,9 +354,11 @@ async function copyDraftShare(){
     try{ ok=document.execCommand("copy"); }catch(e){}
     ta.remove();
   }
-  const btn=document.getElementById("share_copy");
-  if(btn){ const old=btn.textContent; btn.textContent=ok?"Copied!":"Copy failed"; setTimeout(()=>btn.textContent=old,1200); }
-  if(ok) window.ninecatTrack?.("draft_share_copied", {grade:draftShareSummary().grade});
+  if(btn){
+    btn.textContent=ok?"Copied!":"Copy failed";
+    setTimeout(()=>{btn.disabled=false; btn.textContent=oldLabel;},1200);
+  }
+  if(ok) window.ninecatTrack?.("draft_share_copied", {grade:summary.grade, link_type:link.short?"short":"fallback"});
 }
 
 window.ninecatMaybeShowDraftShare = maybeShowDraftShare;
@@ -340,6 +366,7 @@ window.ninecatOpenDraftShare = openDraftShare;
 window.ninecatDraftShareSummary = draftShareSummary;
 window.ninecatDraftShareText = draftShareText;
 window.ninecatDraftShareUrl = draftShareUrl;
+window.ninecatCreateShortDraftShare = createShortDraftShare;
 window.ninecatDraftGrade = draftGrade;
 window.ninecatDraftFieldRecord = draftFieldRecord;
 
