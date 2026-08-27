@@ -9,8 +9,8 @@
    service is unavailable, nineCat falls back to the self-contained URL.
    ============================================================ */
 
-const SHARE_SHOWN_KEY = "ninecat.sharecard.lastShown.v2";
 let sharePendingSig = null;
+let shareAutoShownForCompletion = false;
 
 function draftShareSignature(){
   let h = 2166136261;
@@ -202,9 +202,6 @@ function openDraftShare(opts={}){
   const mask = document.getElementById("sharemask");
   if(!mask) return false;
   mask.classList.add("on");
-  if(opts.auto){
-    try{ localStorage.setItem(SHARE_SHOWN_KEY, draftShareSignature()); }catch(e){}
-  }
   window.ninecatTrack?.("draft_share_opened", {source:opts.auto ? "completion" : "manual"});
   return true;
 }
@@ -213,18 +210,30 @@ function closeDraftShare(){
   document.getElementById("sharemask")?.classList.remove("on");
 }
 
+/* Auto-open once per completion cycle, not once per roster signature forever.
+   The old localStorage signature meant repeating the same mock draft (or restoring
+   an identical completed draft) could silently suppress the popup. Resetting or
+   undoing below the completion threshold arms it again. */
 function maybeShowDraftShare(){
-  if(picks.length !== cfg.teams * cfg.size) return;
+  const target = cfg.teams * cfg.size;
+  const complete = picks.length >= target;
+
+  if(!complete){
+    shareAutoShownForCompletion = false;
+    sharePendingSig = null;
+    return;
+  }
+  if(shareAutoShownForCompletion || sharePendingSig) return;
+
   const sig = draftShareSignature();
-  let shown = "";
-  try{ shown = localStorage.getItem(SHARE_SHOWN_KEY) || ""; }catch(e){}
-  if(shown === sig || sharePendingSig === sig) return;
   sharePendingSig = sig;
   setTimeout(()=>{
-    const stillComplete = picks.length === cfg.teams * cfg.size;
+    const stillComplete = picks.length >= cfg.teams * cfg.size;
     const sameDraft = draftShareSignature() === sig;
     sharePendingSig = null;
-    if(stillComplete && sameDraft) openDraftShare({auto:true});
+    if(!stillComplete || !sameDraft || shareAutoShownForCompletion) return;
+    shareAutoShownForCompletion = true;
+    openDraftShare({auto:true});
   }, 80);
 }
 
