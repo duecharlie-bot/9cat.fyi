@@ -11,11 +11,24 @@ function renderCats(items, punt=false){
   if(!items || !items.length) return punt ? "No punts" : "None";
   return items.map(x=>punt ? esc(x) : `${esc(x[0])} #${esc(x[1])}`).join(" · ");
 }
-try{
-  const d = new URLSearchParams(location.search).get("d");
-  if(!d) throw new Error("missing payload");
-  const p = decodePayload(d);
+function validatePayload(p){
   if(!p || p.v !== 2 || !Array.isArray(p.ro)) throw new Error("unsupported payload");
+  return p;
+}
+async function loadPayload(){
+  // Legacy/self-contained links remain supported forever.
+  const encoded = new URLSearchParams(location.search).get("d");
+  if(encoded) return validatePayload(decodePayload(encoded));
+
+  const match = location.pathname.match(/^\/s\/([a-f0-9]{8})\/?$/i);
+  if(!match) throw new Error("missing share id");
+  const response = await fetch(`/api/share?id=${encodeURIComponent(match[1].toLowerCase())}`, {
+    headers:{"accept":"application/json"}
+  });
+  if(!response.ok) throw new Error(`share fetch failed: ${response.status}`);
+  return validatePayload(await response.json());
+}
+function renderPayload(p){
   document.getElementById("grade2").textContent=p.g;
   const winRate = Math.round(p.wr);
   const winRateEl = document.getElementById("winrate2");
@@ -31,6 +44,11 @@ try{
   document.getElementById("roster").innerHTML=rosterCol(p.ro.slice(0,split),0)+rosterCol(p.ro.slice(split),split);
   document.title=`${p.g} nineCat Draft · ${Math.round(p.wr)}% projected win rate`;
   document.getElementById("result").hidden=false;
-}catch(e){
-  document.getElementById("invalid").hidden=false;
 }
+(async()=>{
+  try{ renderPayload(await loadPayload()); }
+  catch(e){
+    console.warn("Could not load nineCat share", e);
+    document.getElementById("invalid").hidden=false;
+  }
+})();
