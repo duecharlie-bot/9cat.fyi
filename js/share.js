@@ -1,14 +1,15 @@
 "use strict";
 
 /* ============================================================
-   DRAFT SHARE CARD — v1
+   DRAFT SHARE CARD — v2
 
-   A completed draft gets one automatic share prompt. The user can reopen it
-   from the completed-draft clock at any time. Everything is generated in the
-   browser: no roster or league data is uploaded anywhere.
+   The grade is based on projected head-to-head matchup win rate against the
+   rest of the league. A 5-4 matchup win and an 8-1 matchup win both count as
+   one win. Share links are self-contained in the URL; no draft data is sent
+   to or stored by nineCat.
    ============================================================ */
 
-const SHARE_SHOWN_KEY = "ninecat.sharecard.lastShown.v1";
+const SHARE_SHOWN_KEY = "ninecat.sharecard.lastShown.v2";
 let sharePendingSig = null;
 
 function draftShareSignature(){
@@ -23,30 +24,47 @@ function draftShareSignature(){
   return `${cfg.teams}-${cfg.size}-${(h>>>0).toString(36)}`;
 }
 
-function draftGrade(score){
-  if(score >= 90) return "A+";
-  if(score >= 82) return "A";
-  if(score >= 75) return "A-";
-  if(score >= 68) return "B+";
-  if(score >= 61) return "B";
-  if(score >= 55) return "B-";
-  if(score >= 49) return "C+";
-  if(score >= 43) return "C";
-  if(score >= 37) return "C-";
-  if(score >= 31) return "D+";
-  if(score >= 25) return "D";
+function draftGrade(winRate){
+  if(winRate >= 100) return "S+";
+  if(winRate >= 90) return "S";
+  if(winRate >= 80) return "A+";
+  if(winRate >= 70) return "A";
+  if(winRate >= 60) return "B";
+  if(winRate >= 50) return "C";
+  if(winRate >= 40) return "D";
   return "F";
+}
+
+function draftFieldRecord(rosters, mine){
+  const myRoster = rosters[mine] || [];
+  let wins = 0, losses = 0, ties = 0;
+  const matchups = [];
+
+  rosters.forEach((roster,i)=>{
+    if(i === mine) return;
+    const m = compareTeams(myRoster, roster || [], CATS, cw);
+    if(m.verdict === "win") wins++;
+    else if(m.verdict === "lose") losses++;
+    else ties++;
+    matchups.push({teamIdx:i, won:m.won, lost:m.lost, tied:m.tied, verdict:m.verdict});
+  });
+
+  const opponents = matchups.length;
+  const winRate = opponents ? 100 * (wins + ties * 0.5) / opponents : 50;
+  return {wins, losses, ties, opponents, winRate, matchups};
 }
 
 function draftShareSummary(){
   const rosters = allRosters();
   const mine = myTeamIdx();
-  const myZ = teamZ(rosters[mine] || []);
+  const mineRoster = rosters[mine] || [];
+  const myZ = teamZ(mineRoster);
   const activeCats = CATS.filter(c=>cw(c.k) > 0.05);
   const teams = Math.max(1, cfg.teams);
   const quartile = Math.max(1, Math.ceil(teams / 4));
+  const field = draftFieldRecord(rosters, mine);
 
-  const mineSize = Math.max(1, (rosters[mine] || []).length);
+  const mineSize = Math.max(1, mineRoster.length);
   const categories = activeCats.map(c=>{
     const rank = 1 + rosters.reduce((n,r,i)=>{
       if(i === mine) return n;
@@ -56,10 +74,6 @@ function draftShareSummary(){
     const profile = myZ[c.k] / mineSize;
     return {k:c.k, label:c.label, rank, percentile, profile, punted:locks[c.k] === "punt"};
   });
-
-  const score = categories.length
-    ? categories.reduce((s,c)=>s + c.percentile, 0) / categories.length
-    : 50;
 
   const strong = categories
     .filter(c=>!c.punted && c.rank <= quartile && c.profile >= 0.35)
@@ -72,30 +86,67 @@ function draftShareSummary(){
   const punted = categories.filter(c=>c.punted).sort((a,b)=>a.rank-b.rank);
 
   return {
-    grade:draftGrade(score),
-    score,
+    grade:draftGrade(field.winRate),
+    winRate:field.winRate,
+    wins:field.wins,
+    losses:field.losses,
+    ties:field.ties,
+    opponents:field.opponents,
+    matchups:field.matchups,
     teams,
     rounds:cfg.size,
     strong,
     weak,
     punted,
-    categories
+    categories,
+    roster:mineRoster.map(p=>({name:p.name, team:p.team || "", pos:Array.isArray(p.pos) ? p.pos.join("/") : String(p.pos || "")}))
   };
 }
 
 function shareRankText(c){ return `${c.label} #${c.rank}`; }
+function roundedWinRate(s){ return Math.round(s.winRate); }
+function fieldRecordText(s){
+  if(!s.opponents) return "No opponents";
+  if(s.ties) return `${s.wins}-${s.losses}-${s.ties} vs field`;
+  return `${s.wins}-${s.losses} vs field`;
+}
+
+function sharePayload(summary=draftShareSummary()){
+  return {
+    v:2,
+    g:summary.grade,
+    wr:Math.round(summary.winRate * 10) / 10,
+    w:summary.wins,
+    l:summary.losses,
+    t:summary.ties,
+    tm:summary.teams,
+    r:summary.rounds,
+    s:summary.strong.map(c=>[c.label,c.rank]),
+    wk:summary.weak.map(c=>[c.label,c.rank]),
+    p:summary.punted.map(c=>c.label),
+    ro:summary.roster.map(p=>[p.name,p.team,p.pos])
+  };
+}
+
+function encodeSharePayload(payload){
+  const json = JSON.stringify(payload);
+  const bytes = new TextEncoder().encode(json);
+  let binary = "";
+  for(let i=0;i<bytes.length;i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
+}
+
+function draftShareUrl(summary=draftShareSummary()){
+  const origin = (location && location.origin && location.origin !== "null") ? location.origin : "https://9cat.fyi";
+  return `${origin}/s/?d=${encodeSharePayload(sharePayload(summary))}`;
+}
+
+function gradeArticle(grade){ return /^[AFS]/.test(String(grade)) ? "an" : "a"; }
 
 function draftShareText(summary=draftShareSummary()){
-  const strong = summary.strong.length ? summary.strong.map(shareRankText).join(", ") : "None";
-  const weak = summary.weak.length ? summary.weak.map(shareRankText).join(", ") : "None";
-  const punted = summary.punted.length ? summary.punted.map(c=>c.label).join(", ") : "None";
   return [
-    `My nineCat Draft Grade: ${summary.grade}`,
-    `Strong: ${strong}`,
-    `Weak: ${weak}`,
-    `Punt: ${punted}`,
-    "",
-    "9cat.fyi"
+    `I just drafted ${gradeArticle(summary.grade)} ${summary.grade} team on nineCat — projected to beat ${roundedWinRate(summary)}% of the field. Think you can beat it?`,
+    draftShareUrl(summary)
   ].join("\n");
 }
 
@@ -104,15 +155,23 @@ function sharePills(items, kind, emptyText){
   return items.map(c=>`<span class="share-pill ${kind}"><b>${c.label}</b>${kind === "punt" ? "" : `<span>#${c.rank}</span>`}</span>`).join("");
 }
 
+function shareRosterRows(roster){
+  if(!roster.length) return `<span class="share-empty">No roster found</span>`;
+  return roster.map((p,i)=>`<span class="share-roster-player"><i>${i+1}</i><b>${p.name}</b><small>${[p.pos,p.team].filter(Boolean).join(" · ")}</small></span>`).join("");
+}
+
 function paintDraftShare(){
   const s = draftShareSummary();
   const grade = document.getElementById("share_grade");
   if(!grade) return s;
   grade.textContent = s.grade;
   document.getElementById("share_meta").textContent = `${s.teams}-team league · ${s.rounds} rounds`;
+  document.getElementById("share_winrate").textContent = `${roundedWinRate(s)}%`;
+  document.getElementById("share_record").textContent = fieldRecordText(s);
   document.getElementById("share_strong").innerHTML = sharePills(s.strong, "strong", "No standout strengths");
   document.getElementById("share_weak").innerHTML = sharePills(s.weak, "weak", "No major weaknesses");
   document.getElementById("share_punts").innerHTML = sharePills(s.punted, "punt", "No punts");
+  document.getElementById("share_roster").innerHTML = shareRosterRows(s.roster);
   return s;
 }
 
@@ -140,7 +199,6 @@ function maybeShowDraftShare(){
   try{ shown = localStorage.getItem(SHARE_SHOWN_KEY) || ""; }catch(e){}
   if(shown === sig || sharePendingSig === sig) return;
   sharePendingSig = sig;
-  // Let the final render settle before placing the modal over it.
   setTimeout(()=>{
     const stillComplete = picks.length === cfg.teams * cfg.size;
     const sameDraft = draftShareSignature() === sig;
@@ -156,57 +214,83 @@ function roundRect(ctx,x,y,w,h,r){
   ctx.arcTo(x,y+h,x,y,rr); ctx.arcTo(x,y,x+w,y,rr); ctx.closePath();
 }
 
+function fitText(ctx, text, maxWidth, maxSize, minSize, weight, family){
+  let size = maxSize;
+  while(size > minSize){
+    ctx.font = `${weight} ${size}px ${family}`;
+    if(ctx.measureText(text).width <= maxWidth) break;
+    size--;
+  }
+  return size;
+}
+
 function drawDraftShareCard(summary=draftShareSummary()){
   const canvas = document.createElement("canvas");
   canvas.width = 1200; canvas.height = 630;
   const ctx = canvas.getContext("2d");
-  const C = {bg:"#171D26", panel:"#202834", line:"#36434F", chalk:"#EEF3F9", dim:"#A6B3C3", wood:"#D4A059", ok:"#5CC489", hot:"#FF8DA1"};
+  const C = {bg:"#171D26", panel:"#202834", line:"#36434F", chalk:"#EEF3F9", dim:"#A6B3C3", dim2:"#7E8C9E", wood:"#D4A059", ok:"#5CC489", hot:"#FF8DA1"};
 
   ctx.fillStyle = C.bg; ctx.fillRect(0,0,1200,630);
   ctx.fillStyle = C.wood; ctx.fillRect(0,0,1200,8);
 
   ctx.fillStyle = C.wood;
-  ctx.font = '700 28px "Saira Condensed", Arial Narrow, sans-serif';
-  ctx.fillText("NINECAT", 72, 78);
+  ctx.font = '700 27px "Saira Condensed", Arial Narrow, sans-serif';
+  ctx.fillText("NINECAT", 64, 67);
   ctx.fillStyle = C.chalk;
-  ctx.font = '900 54px "Saira Condensed", Arial Narrow, sans-serif';
-  ctx.fillText("MY DRAFT", 72, 132);
-  ctx.fillStyle = C.dim;
-  ctx.font = '500 22px "IBM Plex Sans", Arial, sans-serif';
-  ctx.fillText(`${summary.teams}-team league · ${summary.rounds} rounds`, 74, 171);
+  ctx.font = '900 50px "Saira Condensed", Arial Narrow, sans-serif';
+  ctx.fillText("MY DRAFT", 64, 117);
+  ctx.textAlign="right"; ctx.fillStyle=C.dim; ctx.font='500 19px "IBM Plex Sans", Arial, sans-serif';
+  ctx.fillText(`${summary.teams}-team league · ${summary.rounds} rounds`,1136,88); ctx.textAlign="left";
 
-  // Grade block
-  roundRect(ctx,72,210,300,300,12); ctx.fillStyle=C.panel; ctx.fill();
-  ctx.strokeStyle=C.line; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle=C.dim; ctx.font='600 22px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("DRAFT GRADE",108,260);
-  ctx.fillStyle=C.wood; ctx.font='900 150px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText(summary.grade,104,408);
-  ctx.fillStyle=C.dim; ctx.font='500 18px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("Based on projected category ranks",108,466);
+  // Grade / field-win block.
+  roundRect(ctx,64,158,280,370,12); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle=C.dim; ctx.font='600 20px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("DRAFT GRADE",94,204);
+  ctx.fillStyle=C.wood;
+  const gSize = fitText(ctx, summary.grade, 210, 150, 105, 900, '"Saira Condensed", Arial Narrow, sans-serif');
+  ctx.font=`900 ${gSize}px "Saira Condensed", Arial Narrow, sans-serif`; ctx.fillText(summary.grade,92,346);
+  ctx.fillStyle=C.chalk; ctx.font='800 37px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(`${roundedWinRate(summary)}%`,94,413);
+  ctx.fillStyle=C.dim; ctx.font='500 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("PROJECTED WIN RATE",94,440);
+  ctx.fillStyle=C.dim2; ctx.font='500 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(fieldRecordText(summary),94,474);
+  ctx.font='500 14px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("5-4 and 8-1 wins count the same",94,503);
 
+  // Strength / weakness / punt summary.
   const sections = [
-    {title:"STRONG", items:summary.strong, color:C.ok, x:420, rank:true, empty:"No standout strengths"},
-    {title:"WEAK", items:summary.weak, color:C.hot, x:680, rank:true, empty:"No major weaknesses"},
-    {title:"PUNT", items:summary.punted, color:C.wood, x:940, rank:false, empty:"No punts"}
+    {title:"STRONG", items:summary.strong, color:C.ok, x:390, rank:true, empty:"No standout strengths"},
+    {title:"WEAK", items:summary.weak, color:C.hot, x:620, rank:true, empty:"No major weaknesses"},
+    {title:"PUNT", items:summary.punted, color:C.wood, x:850, rank:false, empty:"No punts"}
   ];
   sections.forEach(sec=>{
-    ctx.fillStyle=sec.color; ctx.font='700 20px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(sec.title,sec.x,238);
+    ctx.fillStyle=sec.color; ctx.font='700 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(sec.title,sec.x,180);
     if(!sec.items.length){
-      ctx.fillStyle=C.dim; ctx.font='500 18px "IBM Plex Sans", Arial, sans-serif';
-      const words=sec.empty.split(" "); let line="", yy=286;
-      words.forEach(word=>{ const next=line?line+" "+word:word; if(ctx.measureText(next).width>190){ctx.fillText(line,sec.x,yy); yy+=27; line=word;} else line=next; });
-      if(line) ctx.fillText(line,sec.x,yy);
-      return;
+      ctx.fillStyle=C.dim2; ctx.font='500 14px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(sec.empty,sec.x,211); return;
     }
     sec.items.slice(0,3).forEach((item,i)=>{
-      const y=270+i*72;
-      roundRect(ctx,sec.x,y,200,52,8); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=2; ctx.stroke();
-      ctx.fillStyle=sec.color; ctx.font='700 23px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(item.label,sec.x+16,y+34);
-      if(sec.rank){ ctx.textAlign="right"; ctx.fillStyle=C.chalk; ctx.fillText(`#${item.rank}`,sec.x+182,y+34); ctx.textAlign="left"; }
+      const y=195+i*42;
+      roundRect(ctx,sec.x,y,190,32,6); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle=sec.color; ctx.font='700 16px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(item.label,sec.x+11,y+22);
+      if(sec.rank){ ctx.textAlign="right"; ctx.fillStyle=C.chalk; ctx.fillText(`#${item.rank}`,sec.x+178,y+22); ctx.textAlign="left"; }
     });
   });
 
-  ctx.fillStyle=C.line; ctx.fillRect(72,554,1056,1);
-  ctx.fillStyle=C.dim; ctx.font='500 20px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("Built with nineCat",72,594);
-  ctx.textAlign="right"; ctx.fillStyle=C.wood; ctx.font='700 24px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText("9cat.fyi",1128,594); ctx.textAlign="left";
+  // Full roster, two columns.
+  ctx.fillStyle=C.chalk; ctx.font='800 18px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("YOUR ROSTER",390,348);
+  const roster = summary.roster || [];
+  const split = Math.ceil(roster.length/2);
+  const cols = [roster.slice(0,split), roster.slice(split)];
+  cols.forEach((players,ci)=>{
+    const x = ci ? 775 : 390;
+    players.forEach((p,i)=>{
+      const y = 380 + i*26;
+      ctx.fillStyle=C.dim2; ctx.font='500 13px "IBM Plex Mono", monospace'; ctx.fillText(String(i + 1 + (ci?split:0)).padStart(2,"0"),x,y);
+      ctx.fillStyle=C.chalk;
+      fitText(ctx,p.name,300,16,12,700,'"IBM Plex Sans", Arial, sans-serif');
+      ctx.fillText(p.name,x+32,y);
+    });
+  });
+
+  ctx.fillStyle=C.line; ctx.fillRect(64,558,1072,1);
+  ctx.fillStyle=C.dim2; ctx.font='500 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("Built with nineCat",64,595);
+  ctx.textAlign="right"; ctx.fillStyle=C.wood; ctx.font='700 22px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText("9cat.fyi",1136,595); ctx.textAlign="left";
   return canvas;
 }
 
@@ -225,7 +309,7 @@ async function downloadDraftShare(){
     a.href=url; a.download=`ninecat-draft-${s.grade.replace("+","plus")}.png`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
-    window.ninecatTrack?.("draft_share_downloaded", {grade:s.grade});
+    window.ninecatTrack?.("draft_share_downloaded", {grade:s.grade, win_rate:Math.round(s.winRate)});
   } finally {
     if(btn){ btn.disabled=false; btn.textContent=old || "Download card"; }
   }
@@ -250,6 +334,9 @@ window.ninecatMaybeShowDraftShare = maybeShowDraftShare;
 window.ninecatOpenDraftShare = openDraftShare;
 window.ninecatDraftShareSummary = draftShareSummary;
 window.ninecatDraftShareText = draftShareText;
+window.ninecatDraftShareUrl = draftShareUrl;
+window.ninecatDraftGrade = draftGrade;
+window.ninecatDraftFieldRecord = draftFieldRecord;
 
 const shareMask = document.getElementById("sharemask");
 if(shareMask){
