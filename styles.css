@@ -332,6 +332,25 @@ textarea{
 }
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .fld label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:4px}
+
+/* League Setup number fields use our own compact step controls instead of the
+   bright native Chrome spinner. */
+.setup-num{position:relative}
+.setup-num input[type=number]{padding-right:34px;-moz-appearance:textfield;appearance:textfield}
+.setup-num input[type=number]::-webkit-outer-spin-button,
+.setup-num input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.setup-num-controls{
+  position:absolute;right:1px;top:1px;bottom:1px;width:28px;display:grid;grid-template-rows:1fr 1fr;
+  border-left:1px solid var(--line);border-radius:0 calc(var(--r) - 1px) calc(var(--r) - 1px) 0;overflow:hidden
+}
+.setup-num-btn{
+  appearance:none;border:0;background:var(--raise);color:var(--dimmer);font:700 8px/1 system-ui,sans-serif;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;min-width:0
+}
+.setup-num-btn + .setup-num-btn{border-top:1px solid var(--line)}
+.setup-num-btn:hover{background:var(--panel-2);color:var(--chalk)}
+.setup-num-btn:active{background:var(--line-soft);color:var(--wood-hi)}
+.setup-num-btn:focus-visible{outline:2px solid var(--wood);outline-offset:-2px;position:relative;z-index:1}
 .msg{font-size:12px;margin-top:10px}
 .msg.bad{color:var(--hot)}
 .msg.good{color:var(--ok)}
