@@ -1,5 +1,10 @@
 "use strict";
 
+const MIN_TEAMS = 4;
+const MAX_TEAMS = 24;
+const MIN_ROSTER_SPOTS = 5;
+const MAX_ROSTER_SPOTS = 20;
+
 let cfg = {
   teams:12, slot:5, size:13, aggr:5, k:7, gpw:0.5, scarcity:1.2,
   /*  Per-category weight, to match your league's scoring. 1 = counts normally,
@@ -242,8 +247,15 @@ document.addEventListener("keydown", e=>{
 // Settings
 function paintNameGrid(){
   // Preview the values currently entered in the modal without mutating the saved setup.
-  const teams = Math.max(4, +$("#s_teams").value || cfg.teams);
-  const slot = Math.min(teams, Math.max(1, +$("#s_slot").value || cfg.slot));
+  // Clamp the upper bound BEFORE allocating the team-name grid: type=number's
+  // max attribute does not stop someone from manually typing a huge value.
+  const teamsInput = $("#s_teams");
+  const rawTeams = Number(teamsInput.value);
+  if(Number.isFinite(rawTeams) && rawTeams > MAX_TEAMS) teamsInput.value = MAX_TEAMS;
+  const teams = Math.min(MAX_TEAMS, Math.max(MIN_TEAMS, +teamsInput.value || cfg.teams));
+  const slotInput = $("#s_slot");
+  slotInput.max = String(teams);
+  const slot = Math.min(teams, Math.max(1, +slotInput.value || cfg.slot));
   $("#s_names").innerHTML = Array.from({length: teams}, (_,i)=>
     `<div class="fld"><label>${i+1 === slot ? "You \u00b7 slot " + (i+1) : "Slot " + (i+1)}</label>
      <input type="text" data-n="${i}" maxlength="18" placeholder="Team ${i+1}"
@@ -378,15 +390,27 @@ $("#helpmask").addEventListener("click", e=>{ if(e.target === $("#helpmask")) $(
 $("#setmask").addEventListener("click", e=>{
   if(e.target === e.currentTarget) e.currentTarget.classList.remove("on");
 });
+document.querySelectorAll(".setup-num-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const input = document.getElementById(btn.dataset.stepTarget);
+    if(!input) return;
+    const dir = Number(btn.dataset.stepDir) || 1;
+    try{ dir > 0 ? input.stepUp() : input.stepDown(); }
+    catch(_e){ return; }
+    input.dispatchEvent(new Event("input", {bubbles:true}));
+    input.focus();
+  });
+});
+
 $("#s_teams").addEventListener("input", paintNameGrid);
 $("#s_slot").addEventListener("input", paintNameGrid);
 $("#s_cats_std").onclick = ()=> setCatPreset({});
 $("#s_cats_8").onclick = ()=> setCatPreset({to:0});
 $("#s_save").onclick = ()=>{
   const oldStructure = {teams:cfg.teams, slot:cfg.slot, size:cfg.size};
-  cfg.teams = Math.max(4, +$("#s_teams").value || 12);
+  cfg.teams = Math.min(MAX_TEAMS, Math.max(MIN_TEAMS, +$("#s_teams").value || 12));
   cfg.slot  = Math.min(cfg.teams, Math.max(1, +$("#s_slot").value || 1));
-  cfg.size  = Math.max(5, +$("#s_size").value || 13);
+  cfg.size  = Math.min(MAX_ROSTER_SPOTS, Math.max(MIN_ROSTER_SPOTS, +$("#s_size").value || 13));
   cfg.aggr  = Math.max(0, Math.min(10, +$("#s_aggr").value));
   const structureChanged = oldStructure.teams !== cfg.teams || oldStructure.slot !== cfg.slot || oldStructure.size !== cfg.size;
   cfg.names = [];
