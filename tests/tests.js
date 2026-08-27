@@ -959,6 +959,38 @@ function registerTests(w){
   });
 
 
+  test("League setup caps team count at 24 before rendering team-name fields", ()=>{
+    const teams = w.document.getElementById("s_teams");
+    const slot = w.document.getElementById("s_slot");
+    const oldTeams = teams.value, oldSlot = slot.value;
+    try{
+      equal(teams.max, "24", "Teams input should advertise the 24-team cap");
+      teams.value = "5000000";
+      slot.value = "5";
+      w.paintNameGrid();
+      equal(teams.value, "24", "Huge manually typed team counts should be clamped immediately");
+      equal(w.document.querySelectorAll("#s_names input[data-n]").length, 24, "Team-name grid must never allocate more than 24 teams");
+      equal(slot.max, "24", "Draft-slot control should follow the clamped team count");
+    } finally {
+      teams.value = oldTeams; slot.value = oldSlot; w.paintNameGrid();
+    }
+  });
+
+  test("Loaded league settings sanitize oversized team and roster counts", ()=>{
+    const old = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), names:w.eval("cfg.names")};
+    try{
+      w.__oldNames = old.names;
+      w.eval("cfg.teams=5000000; cfg.slot=5000000; cfg.size=5000000; cfg.names=Array.from({length:30},(_,i)=>'T'+i); normalizeCfgAfterLoad()");
+      equal(w.eval("cfg.teams"), 24);
+      equal(w.eval("cfg.slot"), 24);
+      equal(w.eval("cfg.size"), 20);
+      equal(w.eval("cfg.names.length"), 24);
+    } finally {
+      w.eval(`cfg.teams=${old.teams}; cfg.slot=${old.slot}; cfg.size=${old.size}; cfg.names=window.__oldNames`);
+      delete w.__oldNames;
+    }
+  });
+
   test("First-run league setup clearly leads with the two required draft-order settings", ()=>{
     const oldFirstRun = w.eval("firstRun");
     try{
