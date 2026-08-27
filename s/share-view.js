@@ -1,0 +1,33 @@
+"use strict";
+function decodePayload(raw){
+  const s = raw.replace(/-/g,"+").replace(/_/g,"/");
+  const padded = s + "=".repeat((4 - s.length % 4) % 4);
+  const bin = atob(padded);
+  const bytes = Uint8Array.from(bin, c=>c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function renderCats(items, punt=false){
+  if(!items || !items.length) return punt ? "No punts" : "None";
+  return items.map(x=>punt ? esc(x) : `${esc(x[0])} #${esc(x[1])}`).join(" · ");
+}
+try{
+  const d = new URLSearchParams(location.search).get("d");
+  if(!d) throw new Error("missing payload");
+  const p = decodePayload(d);
+  if(!p || p.v !== 2 || !Array.isArray(p.ro)) throw new Error("unsupported payload");
+  document.getElementById("grade").textContent=p.g;
+  document.getElementById("grade2").textContent=p.g;
+  document.getElementById("winrate").textContent=`${Math.round(p.wr)}%`;
+  document.getElementById("winrate2").textContent=`${Math.round(p.wr)}%`;
+  document.getElementById("record").textContent=p.t ? `${p.w}-${p.l}-${p.t} vs field` : `${p.w}-${p.l} vs field`;
+  document.getElementById("meta").textContent=`${p.tm}-team league · ${p.r} rounds`;
+  document.getElementById("strong").innerHTML=renderCats(p.s);
+  document.getElementById("weak").innerHTML=renderCats(p.wk);
+  document.getElementById("punt").innerHTML=renderCats(p.p,true);
+  document.getElementById("roster").innerHTML=p.ro.map(x=>`<li><b>${esc(x[0])}</b><small>${esc([x[2],x[1]].filter(Boolean).join(" · "))}</small></li>`).join("");
+  document.title=`${p.g} nineCat Draft · ${Math.round(p.wr)}% projected win rate`;
+  document.getElementById("result").hidden=false;
+}catch(e){
+  document.getElementById("invalid").hidden=false;
+}

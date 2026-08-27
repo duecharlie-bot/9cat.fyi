@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>nineCat Draft Share</title>
+<meta name="description" content="A shared nineCat fantasy basketball draft result.">
+<meta property="og:title" content="nineCat Draft Share">
+<meta property="og:description" content="See a shared fantasy basketball draft result and build your own with nineCat.">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="share.css?v=1">
+</head>
+<body>
+<main>
+  <header>
+    <a href="/" class="brand">nineCat</a>
+    <a href="/" class="cta">Try nineCat →</a>
+  </header>
+  <section id="invalid" class="invalid" hidden>
+    <h1>This share link is invalid.</h1>
+    <p>The draft data may be missing or damaged.</p>
+    <a href="/">Start your own draft →</a>
+  </section>
+  <section id="result" hidden>
+    <p class="eyebrow">SHARED DRAFT</p>
+    <h1><span id="grade">—</span> nineCat draft</h1>
+    <p class="lede">Projected to beat <b id="winrate">—</b> of the field.</p>
+
+    <div class="card">
+      <div class="gradebox">
+        <span>DRAFT GRADE</span>
+        <strong id="grade2">—</strong>
+        <b id="winrate2">—</b>
+        <small>PROJECTED WIN RATE</small>
+        <em id="record">—</em>
+      </div>
+      <div class="details">
+        <div class="meta" id="meta"></div>
+        <div class="cats">
+          <div><span class="strong">STRONG</span><p id="strong"></p></div>
+          <div><span class="weak">WEAK</span><p id="weak"></p></div>
+          <div><span class="punt">PUNT</span><p id="punt"></p></div>
+        </div>
+        <div class="roster">
+          <h2>YOUR ROSTER</h2>
+          <ol id="roster"></ol>
+        </div>
+      </div>
+    </div>
+    <div class="challenge">
+      <p>Think you can draft a better team?</p>
+      <a href="/">Start a draft on nineCat →</a>
+    </div>
+  </section>
+</main>
+<script src="share-view.js?v=1"></script>
+</body>
+</html>
