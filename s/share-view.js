@@ -25,7 +25,9 @@ try{
   document.getElementById("strong").innerHTML=renderCats(p.s);
   document.getElementById("weak").innerHTML=renderCats(p.wk);
   document.getElementById("punt").innerHTML=renderCats(p.p,true);
-  document.getElementById("roster").innerHTML=p.ro.map(x=>`<li><b>${esc(x[0])}</b><small>${esc([x[2],x[1]].filter(Boolean).join(" · "))}</small></li>`).join("");
+  const split=Math.ceil(p.ro.length/2);
+  const rosterCol=(arr,offset)=>`<ol class="roster-col">${arr.map((x,i)=>`<li><i>${String(i+1+offset).padStart(2,"0")}</i><b>${esc(x[0])}</b><small>${esc([x[2],x[1]].filter(Boolean).join(" · "))}</small></li>`).join("")}</ol>`;
+  document.getElementById("roster").innerHTML=rosterCol(p.ro.slice(0,split),0)+rosterCol(p.ro.slice(split),split);
   document.title=`${p.g} nineCat Draft · ${Math.round(p.wr)}% projected win rate`;
   document.getElementById("result").hidden=false;
 }catch(e){
