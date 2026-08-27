@@ -1083,7 +1083,7 @@ function registerTests(w){
     assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
   });
 
-  test("Completed drafts produce a share-card grade and category summary", ()=>{
+  test("Completed drafts grade projected matchup wins, not category margin", ()=>{
     const old = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size"), slot:w.eval("cfg.slot")};
     w.__shareOldPicks = w.eval("picks");
     w.__shareOldLocks = w.eval("locks");
@@ -1092,26 +1092,42 @@ function registerTests(w){
         picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));
         locks={fg:"punt"};`);
       const s = w.ninecatDraftShareSummary();
-      assert(/^[A-F][+-]?$/.test(s.grade), "Expected a letter draft grade");
-      assert(Number.isFinite(s.score), "Expected a numeric draft score");
-      equal(s.categories.length, 9, "Standard 9-cat should grade all nine categories");
+      assert(/^(S\+|S|[A-F][+-]?)$/.test(s.grade), "Expected S+/S or a letter draft grade");
+      assert(Number.isFinite(s.winRate), "Expected a projected matchup win rate");
+      equal(s.opponents, 3, "A 4-team league should grade against three opponents");
+      equal(s.categories.length, 9, "Standard 9-cat should report all nine categories");
+      equal(s.roster.length, 5, "Share card should include the full drafted roster");
       assert(s.punted.some(c=>c.label==="FG%"), "Expected manual punts on the share card");
       const copy = w.ninecatDraftShareText(s);
-      assert(copy.includes("My nineCat Draft Grade:"), "Expected shareable grade copy");
-      assert(copy.includes("Punt: FG%"), "Expected punts in share copy");
-      assert(copy.includes("9cat.fyi"), "Expected nineCat URL in share copy");
+      assert(copy.includes("projected to beat"), "Expected field win-rate language in share copy");
+      assert(copy.includes("Think you can beat it?"), "Expected challenge language in share copy");
+      assert(copy.includes("/s/?d="), "Expected a self-contained share URL");
     } finally {
       w.eval(`cfg.teams=${old.teams}; cfg.size=${old.size}; cfg.slot=${old.slot}; picks=window.__shareOldPicks; locks=window.__shareOldLocks`);
       delete w.__shareOldPicks; delete w.__shareOldLocks;
     }
   });
 
-  test("Draft share popup includes preview, download, copy, and close controls", ()=>{
+  test("Share grading uses the configured overall win-rate scale", ()=>{
+    equal(w.ninecatDraftGrade(100), "S+", "100% should be S+");
+    equal(w.ninecatDraftGrade(99.9), "S", "Anything below 100% should fall below S+");
+    equal(w.ninecatDraftGrade(90), "S", "90% should be S");
+    equal(w.ninecatDraftGrade(80), "A+", "80% should be A+");
+    equal(w.ninecatDraftGrade(70), "A", "70% should be A");
+    equal(w.ninecatDraftGrade(60), "B", "60% should be B");
+    equal(w.ninecatDraftGrade(50), "C", "50% should be C");
+    equal(w.ninecatDraftGrade(40), "D", "40% should be D");
+    equal(w.ninecatDraftGrade(39.9), "F", "Below 40% should be F");
+  });
+
+  test("Draft share popup includes win rate, full roster, share link, download, and close controls", ()=>{
     const mask = w.document.getElementById("sharemask");
     assert(mask, "Expected end-of-draft share modal");
     assert(w.document.getElementById("share_card"), "Expected share-card preview");
+    assert(w.document.getElementById("share_winrate"), "Expected projected win rate on the card");
+    assert(w.document.getElementById("share_roster"), "Expected full roster on the card");
     equal(w.document.getElementById("share_download").textContent.trim(), "Download card");
-    equal(w.document.getElementById("share_copy").textContent.trim(), "Copy summary");
+    equal(w.document.getElementById("share_copy").textContent.trim(), "Copy share");
     assert(w.document.getElementById("share_close"), "Expected explicit share-card close control");
   });
 
@@ -1179,7 +1195,7 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=share-card-v1";
+frame.src = "../index.html?v=share-card-v2";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
