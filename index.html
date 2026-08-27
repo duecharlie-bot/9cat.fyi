@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=share-card-v2">
+<link rel="stylesheet" href="styles.css?v=share-card-v3">
 </head>
 <body data-theme="arena">
 
@@ -241,28 +241,34 @@
 
     <div class="share-card" id="share_card" aria-label="Draft share card preview">
       <div class="share-card-brand">
-        <span>nineCat</span>
-        <b>MY DRAFT</b>
+        <div class="share-brand-lockup"><span>NINECAT</span><b>MY DRAFT</b></div>
         <small id="share_meta"></small>
       </div>
-      <div class="share-grade-block">
-        <span>DRAFT GRADE</span>
-        <strong id="share_grade">—</strong>
-        <div class="share-winrate"><b id="share_winrate">—</b><span>PROJECTED WIN RATE</span></div>
-        <small id="share_record">—</small>
-      </div>
-      <div class="share-card-body">
-        <div class="share-card-sections">
-          <div class="share-section strong"><b>STRONG</b><div id="share_strong"></div></div>
-          <div class="share-section weak"><b>WEAK</b><div id="share_weak"></div></div>
-          <div class="share-section punt"><b>PUNT</b><div id="share_punts"></div></div>
+
+      <div class="share-card-hero">
+        <div class="share-grade-block">
+          <span>DRAFT GRADE</span>
+          <strong id="share_grade">—</strong>
         </div>
-        <div class="share-roster">
-          <b>YOUR ROSTER</b>
-          <div id="share_roster"></div>
+        <div class="share-result-block">
+          <span>PROJECTED WIN RATE</span>
+          <strong id="share_winrate">—</strong>
+          <small id="share_record">—</small>
         </div>
       </div>
-      <div class="share-card-foot"><span>Built with nineCat</span><b>9cat.fyi</b></div>
+
+      <div class="share-card-sections">
+        <div class="share-section strong"><b>STRONG</b><div id="share_strong"></div></div>
+        <div class="share-section weak"><b>WEAK</b><div id="share_weak"></div></div>
+        <div class="share-section punt"><b>PUNT</b><div id="share_punts"></div></div>
+      </div>
+
+      <div class="share-roster">
+        <b>YOUR ROSTER</b>
+        <div id="share_roster"></div>
+      </div>
+
+      <div class="share-card-foot"><span>Think you can draft better?</span><b>9cat.fyi</b></div>
     </div>
 
     <div class="share-actions">
@@ -357,7 +363,7 @@
 <script src="js/recommendations.js?v=fit-market"></script>
 <script src="js/storage.js"></script>
 <script src="js/ui.js?v=share-card-v2"></script>
-<script src="js/share.js?v=share-card-v2-grade-scale-1"></script>
+<script src="js/share.js?v=share-card-v3"></script>
 <script src="js/app.js?v=league-setup-lock-2"></script>
 </body>
 </html>
