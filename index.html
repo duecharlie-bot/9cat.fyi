@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=extension-link-reset-fix2">
+<link rel="stylesheet" href="styles.css?v=share-card-v1">
 </head>
 <body data-theme="arena">
 
@@ -227,6 +227,45 @@
   </div>
 </div>
 
+<!-- ============ DRAFT SHARE MODAL ============ -->
+<div class="mask" id="sharemask">
+  <div class="modal share-modal" role="dialog" aria-modal="true" aria-labelledby="share_title">
+    <div class="share-modal-head">
+      <div>
+        <span class="share-eyebrow">Draft complete</span>
+        <h3 id="share_title">Share your nineCat draft</h3>
+      </div>
+      <button class="px share-x" id="share_close" type="button" aria-label="Close share card">×</button>
+    </div>
+    <p class="share-lede">Here’s a quick snapshot of how your team finished across the categories.</p>
+
+    <div class="share-card" id="share_card" aria-label="Draft share card preview">
+      <div class="share-card-brand">
+        <span>nineCat</span>
+        <b>MY DRAFT</b>
+        <small id="share_meta"></small>
+      </div>
+      <div class="share-grade-block">
+        <span>DRAFT GRADE</span>
+        <strong id="share_grade">—</strong>
+        <small>Based on projected category ranks</small>
+      </div>
+      <div class="share-card-sections">
+        <div class="share-section strong"><b>STRONG</b><div id="share_strong"></div></div>
+        <div class="share-section weak"><b>WEAK</b><div id="share_weak"></div></div>
+        <div class="share-section punt"><b>PUNT</b><div id="share_punts"></div></div>
+      </div>
+      <div class="share-card-foot"><span>Built with nineCat</span><b>9cat.fyi</b></div>
+    </div>
+
+    <div class="share-actions">
+      <button class="btn primary" id="share_download" type="button">Download card</button>
+      <button class="btn" id="share_copy" type="button">Copy summary</button>
+      <button class="btn" type="button" onclick="document.getElementById('sharemask').classList.remove('on')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ IMPORT MODAL ============ -->
 <div class="mask" id="impmask">
   <div class="modal">
@@ -310,7 +349,8 @@
 <script src="js/punts.js"></script>
 <script src="js/recommendations.js?v=fit-market"></script>
 <script src="js/storage.js"></script>
-<script src="js/ui.js?v=ga4-minimal-1"></script>
+<script src="js/ui.js?v=share-card-v1"></script>
+<script src="js/share.js?v=share-card-v1"></script>
 <script src="js/app.js?v=setup-cap-1"></script>
 </body>
 </html>
