@@ -157,7 +157,9 @@ function sharePills(items, kind, emptyText){
 
 function shareRosterRows(roster){
   if(!roster.length) return `<span class="share-empty">No roster found</span>`;
-  return roster.map((p,i)=>`<span class="share-roster-player"><i>${i+1}</i><b>${p.name}</b><small>${[p.pos,p.team].filter(Boolean).join(" · ")}</small></span>`).join("");
+  const split = Math.ceil(roster.length / 2);
+  const col = (players, offset)=>`<div class="share-roster-col">${players.map((p,i)=>`<span class="share-roster-player"><i>${String(i+1+offset).padStart(2,"0")}</i><b>${p.name}</b><small>${[p.pos,p.team].filter(Boolean).join(" · ")}</small></span>`).join("")}</div>`;
+  return col(roster.slice(0,split),0) + col(roster.slice(split),split);
 }
 
 function paintDraftShare(){
@@ -228,72 +230,75 @@ function drawDraftShareCard(summary=draftShareSummary()){
   const canvas = document.createElement("canvas");
   canvas.width = 1200; canvas.height = 630;
   const ctx = canvas.getContext("2d");
-  const C = {bg:"#171D26", panel:"#202834", line:"#36434F", chalk:"#EEF3F9", dim:"#A6B3C3", dim2:"#7E8C9E", wood:"#D4A059", ok:"#5CC489", hot:"#FF8DA1"};
+  const C = {bg:"#171D26", panel:"#202834", panel2:"#141B24", line:"#36434F", line2:"#2E3946", chalk:"#EEF3F9", dim:"#A6B3C3", dim2:"#7E8C9E", wood:"#D4A059", ok:"#5CC489", hot:"#FF8DA1"};
 
-  ctx.fillStyle = C.bg; ctx.fillRect(0,0,1200,630);
-  ctx.fillStyle = C.wood; ctx.fillRect(0,0,1200,8);
+  ctx.fillStyle=C.bg; ctx.fillRect(0,0,1200,630);
+  ctx.fillStyle=C.wood; ctx.fillRect(0,0,1200,8);
 
-  ctx.fillStyle = C.wood;
-  ctx.font = '700 27px "Saira Condensed", Arial Narrow, sans-serif';
-  ctx.fillText("NINECAT", 64, 67);
-  ctx.fillStyle = C.chalk;
-  ctx.font = '900 50px "Saira Condensed", Arial Narrow, sans-serif';
-  ctx.fillText("MY DRAFT", 64, 117);
-  ctx.textAlign="right"; ctx.fillStyle=C.dim; ctx.font='500 19px "IBM Plex Sans", Arial, sans-serif';
-  ctx.fillText(`${summary.teams}-team league · ${summary.rounds} rounds`,1136,88); ctx.textAlign="left";
+  // Header.
+  ctx.fillStyle=C.wood; ctx.font='700 25px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText("NINECAT",64,62);
+  ctx.fillStyle=C.chalk; ctx.font='900 48px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText("MY DRAFT",64,108);
+  ctx.textAlign="right"; ctx.fillStyle=C.dim2; ctx.font='500 17px "IBM Plex Mono", monospace';
+  ctx.fillText(`${summary.teams}-team league · ${summary.rounds} rounds`,1136,82); ctx.textAlign="left";
 
-  // Grade / field-win block.
-  roundRect(ctx,64,158,280,370,12); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle=C.dim; ctx.font='600 20px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("DRAFT GRADE",94,204);
-  ctx.fillStyle=C.wood;
-  const gSize = fitText(ctx, summary.grade, 210, 150, 105, 900, '"Saira Condensed", Arial Narrow, sans-serif');
-  ctx.font=`900 ${gSize}px "Saira Condensed", Arial Narrow, sans-serif`; ctx.fillText(summary.grade,92,346);
-  ctx.fillStyle=C.chalk; ctx.font='800 37px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(`${roundedWinRate(summary)}%`,94,413);
-  ctx.fillStyle=C.dim; ctx.font='500 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("PROJECTED WIN RATE",94,440);
-  ctx.fillStyle=C.dim2; ctx.font='500 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(fieldRecordText(summary),94,474);
-  ctx.font='500 14px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("5-4 and 8-1 wins count the same",94,503);
+  // Grade.
+  roundRect(ctx,64,142,208,158,10); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle=C.dim; ctx.font='700 15px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("DRAFT GRADE",84,175);
+  ctx.fillStyle=C.wood; const gs=fitText(ctx,summary.grade,160,100,72,900,'"Saira Condensed", Arial Narrow, sans-serif');
+  ctx.font=`900 ${gs}px "Saira Condensed", Arial Narrow, sans-serif`; ctx.fillText(summary.grade,82,270);
 
-  // Strength / weakness / punt summary.
-  const sections = [
-    {title:"STRONG", items:summary.strong, color:C.ok, x:390, rank:true, empty:"No standout strengths"},
-    {title:"WEAK", items:summary.weak, color:C.hot, x:620, rank:true, empty:"No major weaknesses"},
-    {title:"PUNT", items:summary.punted, color:C.wood, x:850, rank:false, empty:"No punts"}
+  // Win rate.
+  roundRect(ctx,288,142,250,158,10); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.stroke();
+  ctx.fillStyle=C.dim; ctx.font='700 15px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("PROJECTED WIN RATE",310,175);
+  ctx.fillStyle=C.chalk; ctx.font='900 62px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText(`${roundedWinRate(summary)}%`,308,240);
+  ctx.fillStyle=C.dim2; ctx.font='500 17px "IBM Plex Mono", monospace'; ctx.fillText(fieldRecordText(summary),310,271);
+
+  // Category summary cards.
+  const sections=[
+    {title:"STRONG",items:summary.strong,color:C.ok,empty:"No standout strengths"},
+    {title:"WEAK",items:summary.weak,color:C.hot,empty:"No major weaknesses"},
+    {title:"PUNT",items:summary.punted,color:C.wood,empty:"No punts"}
   ];
-  sections.forEach(sec=>{
-    ctx.fillStyle=sec.color; ctx.font='700 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(sec.title,sec.x,180);
+  const secX=[556,754,952];
+  sections.forEach((sec,si)=>{
+    const x=secX[si], w=184;
+    roundRect(ctx,x,142,w,158,10); ctx.fillStyle=C.panel2; ctx.fill(); ctx.strokeStyle=C.line2; ctx.stroke();
+    ctx.fillStyle=sec.color; ctx.font='700 14px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(sec.title,x+15,171);
     if(!sec.items.length){
-      ctx.fillStyle=C.dim2; ctx.font='500 14px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(sec.empty,sec.x,211); return;
+      ctx.fillStyle=C.dim2; ctx.font='500 13px "IBM Plex Sans", Arial, sans-serif';
+      const words=sec.empty.split(" "); let line="", y=205;
+      for(const word of words){ const test=(line?line+" ":"")+word; if(ctx.measureText(test).width>150){ctx.fillText(line,x+15,y);line=word;y+=19}else line=test; }
+      if(line) ctx.fillText(line,x+15,y);
+    }else{
+      sec.items.slice(0,3).forEach((item,i)=>{
+        const y=193+i*31;
+        ctx.fillStyle=sec.color; ctx.font='700 15px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(item.label,x+15,y);
+        if(si<2){ctx.textAlign="right";ctx.fillStyle=C.chalk;ctx.font='600 13px "IBM Plex Mono", monospace';ctx.fillText(`#${item.rank}`,x+w-15,y);ctx.textAlign="left";}
+      });
     }
-    sec.items.slice(0,3).forEach((item,i)=>{
-      const y=195+i*42;
-      roundRect(ctx,sec.x,y,190,32,6); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.lineWidth=1.5; ctx.stroke();
-      ctx.fillStyle=sec.color; ctx.font='700 16px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText(item.label,sec.x+11,y+22);
-      if(sec.rank){ ctx.textAlign="right"; ctx.fillStyle=C.chalk; ctx.fillText(`#${item.rank}`,sec.x+178,y+22); ctx.textAlign="left"; }
-    });
   });
 
-  // Full roster, two columns.
-  ctx.fillStyle=C.chalk; ctx.font='800 18px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("YOUR ROSTER",390,348);
-  const roster = summary.roster || [];
-  const split = Math.ceil(roster.length/2);
-  const cols = [roster.slice(0,split), roster.slice(split)];
+  // Roster.
+  ctx.fillStyle=C.chalk; ctx.font='800 18px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("YOUR ROSTER",64,342);
+  ctx.fillStyle=C.line2; ctx.fillRect(64,354,1072,1);
+  const roster=summary.roster||[]; const split=Math.ceil(roster.length/2); const cols=[roster.slice(0,split),roster.slice(split)];
   cols.forEach((players,ci)=>{
-    const x = ci ? 775 : 390;
+    const x=ci?610:64; const nameX=x+34; const metaX=x+500;
     players.forEach((p,i)=>{
-      const y = 380 + i*26;
-      ctx.fillStyle=C.dim2; ctx.font='500 13px "IBM Plex Mono", monospace'; ctx.fillText(String(i + 1 + (ci?split:0)).padStart(2,"0"),x,y);
-      ctx.fillStyle=C.chalk;
-      fitText(ctx,p.name,300,16,12,700,'"IBM Plex Sans", Arial, sans-serif');
-      ctx.fillText(p.name,x+32,y);
+      const n=i+1+(ci?split:0), y=390+i*28;
+      ctx.fillStyle=C.dim2; ctx.font='500 12px "IBM Plex Mono", monospace'; ctx.fillText(String(n).padStart(2,"0"),x,y);
+      const nameSize=fitText(ctx,p.name,315,16,12,700,'"IBM Plex Sans", Arial, sans-serif');
+      ctx.font=`700 ${nameSize}px "IBM Plex Sans", Arial, sans-serif`; ctx.fillStyle=C.chalk; ctx.fillText(p.name,nameX,y);
+      ctx.textAlign="right"; ctx.fillStyle=C.dim2; ctx.font='500 12px "IBM Plex Sans", Arial, sans-serif';
+      ctx.fillText([p.pos,p.team].filter(Boolean).join(" · "),metaX,y); ctx.textAlign="left";
     });
   });
 
-  ctx.fillStyle=C.line; ctx.fillRect(64,558,1072,1);
-  ctx.fillStyle=C.dim2; ctx.font='500 17px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("Built with nineCat",64,595);
-  ctx.textAlign="right"; ctx.fillStyle=C.wood; ctx.font='700 22px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText("9cat.fyi",1136,595); ctx.textAlign="left";
+  ctx.fillStyle=C.line; ctx.fillRect(64,568,1072,1);
+  ctx.fillStyle=C.dim; ctx.font='600 16px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("Think you can draft better?",64,603);
+  ctx.textAlign="right"; ctx.fillStyle=C.wood; ctx.font='700 23px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText("9cat.fyi",1136,603); ctx.textAlign="left";
   return canvas;
 }
-
 async function downloadDraftShare(){
   const btn = document.getElementById("share_download");
   const old = btn?.textContent;
