@@ -187,7 +187,15 @@ function paintDraftShare(){
   if(!grade) return s;
   grade.textContent = s.grade;
   document.getElementById("share_meta").textContent = `${s.teams}-team league · ${s.rounds} rounds`;
-  document.getElementById("share_winrate").textContent = `${roundedWinRate(s)}%`;
+  const winRate = roundedWinRate(s);
+  const winRateEl = document.getElementById("share_winrate");
+  winRateEl.textContent = `${winRate}%`;
+  winRateEl.classList.remove("win-good", "win-mid", "win-bad");
+  winRateEl.classList.add(
+    winRate >= 75 ? "win-good" :
+    winRate >= 50 ? "win-mid" :
+    "win-bad"
+  );
   document.getElementById("share_record").textContent = fieldRecordText(s);
   document.getElementById("share_strong").innerHTML = sharePills(s.strong, "strong", "No standout strengths");
   document.getElementById("share_weak").innerHTML = sharePills(s.weak, "weak", "No major weaknesses");
@@ -278,7 +286,10 @@ function drawDraftShareCard(summary=draftShareSummary()){
   // Win rate.
   roundRect(ctx,288,142,250,158,10); ctx.fillStyle=C.panel; ctx.fill(); ctx.strokeStyle=C.line; ctx.stroke();
   ctx.fillStyle=C.dim; ctx.font='700 15px "IBM Plex Sans", Arial, sans-serif'; ctx.fillText("PROJECTED WIN RATE",310,175);
-  ctx.fillStyle=C.chalk; ctx.font='900 62px "Saira Condensed", Arial Narrow, sans-serif'; ctx.fillText(`${roundedWinRate(summary)}%`,308,240);
+  const imageWinRate = roundedWinRate(summary);
+  ctx.fillStyle = imageWinRate >= 75 ? C.ok : imageWinRate >= 50 ? C.wood : C.hot;
+  ctx.font='900 62px "Saira Condensed", Arial Narrow, sans-serif';
+  ctx.fillText(`${imageWinRate}%`,308,240);
   ctx.fillStyle=C.dim2; ctx.font='500 17px "IBM Plex Mono", monospace'; ctx.fillText(fieldRecordText(summary),310,271);
 
   // Category summary cards.
