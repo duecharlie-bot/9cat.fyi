@@ -16,10 +16,11 @@ try{
   if(!d) throw new Error("missing payload");
   const p = decodePayload(d);
   if(!p || p.v !== 2 || !Array.isArray(p.ro)) throw new Error("unsupported payload");
-  document.getElementById("grade").textContent=p.g;
   document.getElementById("grade2").textContent=p.g;
-  document.getElementById("winrate").textContent=`${Math.round(p.wr)}%`;
-  document.getElementById("winrate2").textContent=`${Math.round(p.wr)}%`;
+  const winRate = Math.round(p.wr);
+  const winRateEl = document.getElementById("winrate2");
+  winRateEl.textContent=`${winRate}%`;
+  winRateEl.classList.add(winRate >= 75 ? "win-good" : winRate >= 50 ? "win-mid" : "win-bad");
   document.getElementById("record").textContent=p.t ? `${p.w}-${p.l}-${p.t} vs field` : `${p.w}-${p.l} vs field`;
   document.getElementById("meta").textContent=`${p.tm}-team league · ${p.r} rounds`;
   document.getElementById("strong").innerHTML=renderCats(p.s);

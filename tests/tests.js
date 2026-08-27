@@ -1131,6 +1131,18 @@ function registerTests(w){
     assert(w.document.getElementById("share_close"), "Expected explicit share-card close control");
   });
 
+  test("Draft share popup ignores backdrop clicks and Escape", ()=>{
+    const mask = w.document.getElementById("sharemask");
+    const close = w.document.getElementById("share_close");
+    mask.classList.add("on");
+    mask.dispatchEvent(new w.MouseEvent("click", {bubbles:true, cancelable:true}));
+    assert(mask.classList.contains("on"), "Backdrop click should not close Draft Share");
+    w.document.dispatchEvent(new w.KeyboardEvent("keydown", {key:"Escape", bubbles:true, cancelable:true}));
+    assert(mask.classList.contains("on"), "Escape should not close Draft Share");
+    close.click();
+    assert(!mask.classList.contains("on"), "Explicit close button should close Draft Share");
+  });
+
   test("Player board is not capped at 80 available players", ()=>{
     const oldQ = w.document.getElementById("q").value;
     const oldPos = w.eval("posFilter");
@@ -1195,7 +1207,7 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=share-card-v3";
+frame.src = "../index.html?v=share-card-v3-lock-1";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
