@@ -1,0 +1,25 @@
+nineCat Share Card v2 beta
+
+What changed from v1:
+- Draft grade is now based on projected head-to-head matchup win rate vs the league field.
+- A 5-4 matchup win and an 8-1 matchup win both count as one win.
+- Tied matchups count as half a win.
+- Added S and S+ grades; a perfect 100% field win rate earns S+.
+- Share card now lists the full drafted roster.
+- Copy Share now includes a self-contained /s/?d=... URL.
+- Added a public /s/ share page that reconstructs the result entirely from the URL.
+- No backend or saved draft database is required for this beta.
+
+Current grading thresholds:
+S+ 100%
+S  90%+
+A+ 80%+
+A  70%+
+B  60%+
+C  50%+
+D  40%+
+F  below 40%
+
+Notes:
+- The /s/ URL is intentionally longer than a database-backed short link because the result lives inside the URL.
+- Social crawlers will see generic nineCat Open Graph metadata in this version; dynamic card previews would require a backend/server-rendered share endpoint later.
