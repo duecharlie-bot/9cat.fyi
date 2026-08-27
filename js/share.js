@@ -345,11 +345,20 @@ window.ninecatDraftFieldRecord = draftFieldRecord;
 
 const shareMask = document.getElementById("sharemask");
 if(shareMask){
-  shareMask.addEventListener("click", e=>{ if(e.target===shareMask) closeDraftShare(); });
+  // Draft Share is intentionally non-dismissible from the backdrop. Users must
+  // use one of the explicit close controls so the end-of-draft report is not
+  // accidentally lost with a stray click.
+  shareMask.addEventListener("click", e=>{
+    if(e.target !== shareMask) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  }, true);
   document.getElementById("share_close")?.addEventListener("click", closeDraftShare);
   document.getElementById("share_download")?.addEventListener("click", downloadDraftShare);
   document.getElementById("share_copy")?.addEventListener("click", copyDraftShare);
 }
 document.addEventListener("keydown", e=>{
-  if(e.key === "Escape" && shareMask?.classList.contains("on")) closeDraftShare();
-});
+  if(e.key !== "Escape" || !shareMask?.classList.contains("on")) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+}, true);
