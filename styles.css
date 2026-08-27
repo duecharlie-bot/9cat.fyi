@@ -807,9 +807,43 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 }
 .lrank.first{color:var(--ok);font-weight:600}
 
-/* ---------- native browser scrollbars ---------- */
-/* Use the platform scrollbar styling instead of a custom themed version. */
-*{scrollbar-width:auto;scrollbar-color:auto}
+/* ---------- themed scrollbars ---------- */
+.modal,
+.col:not(.boardcol),
+.namegrid{
+  scrollbar-width:thin;
+  scrollbar-color:var(--scroll) transparent
+}
+
+.modal::-webkit-scrollbar,
+.col:not(.boardcol)::-webkit-scrollbar,
+.namegrid::-webkit-scrollbar{
+  width:10px;
+  height:10px
+}
+
+.modal::-webkit-scrollbar-track,
+.col:not(.boardcol)::-webkit-scrollbar-track,
+.namegrid::-webkit-scrollbar-track{
+  background:transparent
+}
+
+.modal::-webkit-scrollbar-thumb,
+.col:not(.boardcol)::-webkit-scrollbar-thumb,
+.namegrid::-webkit-scrollbar-thumb{
+  background:var(--scroll);
+  border:2px solid transparent;
+  background-clip:padding-box;
+  border-radius:999px;
+  min-height:28px
+}
+
+.modal::-webkit-scrollbar-thumb:hover,
+.col:not(.boardcol)::-webkit-scrollbar-thumb:hover,
+.namegrid::-webkit-scrollbar-thumb:hover{
+  background:var(--scroll-hi);
+  background-clip:padding-box
+}
 
 /* ---------- roster position tag ---------- */
 .rpos{font-size:10px;letter-spacing:.06em;color:var(--dimmer);
