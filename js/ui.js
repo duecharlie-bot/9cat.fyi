@@ -54,6 +54,7 @@ function renderClock(state){
   $("#clock").innerHTML = done
     ? `<div class="clock-cell onclock"><span class="k">Draft</span><span class="v">Complete</span></div>
        <div class="clock-gap"></div>
+       <button class="clock-btn" id="sharedraft">Share Draft</button>
        <button class="clock-btn" id="undo">↶ Undo Pick</button>
        <button class="clock-btn" id="menubtn" title="Menu">☰</button>`
     : `
@@ -76,6 +77,8 @@ function renderClock(state){
   ub.disabled = !picks.length;
   ub.style.opacity = picks.length ? 1 : .55;
   ub.title = picks.length ? `Undo pick ${picks.length} (${playerForPick(picks[picks.length-1])?.name || ""})` : "Nothing to undo";
+  const sb = $("#sharedraft");
+  if(sb) sb.onclick = ()=> window.ninecatOpenDraftShare?.({auto:false});
   $("#menubtn").onclick = e=>{ e.stopPropagation(); $("#menu").classList.toggle("on"); };
 }
 
@@ -914,6 +917,7 @@ function render(){
   renderRoster(state);
   renderLog();
   saveState();
+  window.ninecatMaybeShowDraftShare?.(state);
 }
 
 

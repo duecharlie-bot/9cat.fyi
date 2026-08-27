@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>nineCat Draft Share</title>
+<meta name="description" content="A shared nineCat fantasy basketball draft result.">
+<meta property="og:title" content="nineCat Draft Share">
+<meta property="og:description" content="See a shared fantasy basketball draft result and build your own with nineCat.">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="share.css?v=6">
+</head>
+<body>
+<main>
+  <header>
+    <a href="/" class="brand">nineCat</a>
+  </header>
+  <section id="invalid" class="invalid" hidden>
+    <h1>This share link is invalid.</h1>
+    <p>The draft data may be missing or damaged.</p>
+    <a href="/">Start your own draft →</a>
+  </section>
+  <section id="result" hidden>
+    <div class="report">
+      <div class="report-brand"><div><b>MY DRAFT</b></div><small id="meta"></small></div>
+      <div class="report-hero">
+        <div class="gradebox"><span>DRAFT GRADE</span><strong id="grade2">—</strong></div>
+        <div class="winbox"><span>PROJECTED WIN RATE</span><strong id="winrate2">—</strong><em id="record">—</em></div>
+      </div>
+      <div class="cats">
+        <div><span class="strong">STRONG</span><p id="strong"></p></div>
+        <div><span class="weak">WEAK</span><p id="weak"></p></div>
+        <div><span class="punt">PUNT</span><p id="punt"></p></div>
+      </div>
+      <div class="roster"><h2>YOUR ROSTER</h2><div id="roster" class="roster-grid"></div></div>
+      <div class="report-foot"><span>Think you can draft better?</span><b>9cat.fyi</b></div>
+    </div>
+    <div class="challenge"><strong>Build your own draft.</strong><a href="/">Start a draft on nineCat →</a></div>
+  </section>
+</main>
+<script src="share-view.js?v=netlify-shortlinks-1"></script>
+</body>
+</html>

@@ -991,6 +991,28 @@ function registerTests(w){
     }
   });
 
+  test("League setup only closes with Save Setup or Cancel", ()=>{
+    const mask = w.document.getElementById("setmask");
+    const oldFirstRun = w.eval("firstRun");
+    try{
+      w.eval("firstRun = false");
+      w.openSet();
+      assert(mask.classList.contains("on"), "League Setup should be open");
+
+      mask.dispatchEvent(new w.MouseEvent("click", {bubbles:true}));
+      assert(mask.classList.contains("on"), "Backdrop click must not close League Setup");
+
+      w.document.dispatchEvent(new w.KeyboardEvent("keydown", {key:"Escape", bubbles:true}));
+      assert(mask.classList.contains("on"), "Escape must not close League Setup");
+
+      w.document.getElementById("s_close").click();
+      assert(!mask.classList.contains("on"), "Cancel should close League Setup");
+    } finally {
+      w.eval(`firstRun = ${oldFirstRun ? "true" : "false"}`);
+      mask.classList.remove("on");
+    }
+  });
+
   test("First-run league setup clearly leads with the two required draft-order settings", ()=>{
     const oldFirstRun = w.eval("firstRun");
     try{
@@ -1061,6 +1083,106 @@ function registerTests(w){
     assert(!mask.classList.contains("on"), "Start drafting should close Quick start");
   });
 
+  test("Completed drafts grade projected matchup wins, not category margin", ()=>{
+    const old = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size"), slot:w.eval("cfg.slot")};
+    w.__shareOldPicks = w.eval("picks");
+    w.__shareOldLocks = w.eval("locks");
+    try{
+      w.eval(`cfg.teams=4; cfg.size=5; cfg.slot=1;
+        picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));
+        locks={fg:"punt"};`);
+      const s = w.ninecatDraftShareSummary();
+      assert(/^(S\+|S|[A-F][+-]?)$/.test(s.grade), "Expected S+/S or a letter draft grade");
+      assert(Number.isFinite(s.winRate), "Expected a projected matchup win rate");
+      equal(s.opponents, 3, "A 4-team league should grade against three opponents");
+      equal(s.categories.length, 9, "Standard 9-cat should report all nine categories");
+      equal(s.roster.length, 5, "Share card should include the full drafted roster");
+      assert(s.punted.some(c=>c.label==="FG%"), "Expected manual punts on the share card");
+      const copy = w.ninecatDraftShareText(s);
+      assert(copy.includes("projected to beat"), "Expected field win-rate language in share copy");
+      assert(copy.includes("Think you can beat it?"), "Expected challenge language in share copy");
+      assert(copy.includes("/s/?d="), "Expected a self-contained fallback share URL");
+      const shortCopy = w.ninecatDraftShareText(s, "https://9cat.fyi/s/3d6b8504");
+      assert(shortCopy.includes("https://9cat.fyi/s/3d6b8504"), "Expected short share URL support");
+    } finally {
+      w.eval(`cfg.teams=${old.teams}; cfg.size=${old.size}; cfg.slot=${old.slot}; picks=window.__shareOldPicks; locks=window.__shareOldLocks`);
+      delete w.__shareOldPicks; delete w.__shareOldLocks;
+    }
+  });
+
+  test("Share grading uses the configured overall win-rate scale", ()=>{
+    equal(w.ninecatDraftGrade(100), "S+", "100% should be S+");
+    equal(w.ninecatDraftGrade(99.9), "S", "Anything below 100% should fall below S+");
+    equal(w.ninecatDraftGrade(90), "S", "90% should be S");
+    equal(w.ninecatDraftGrade(80), "A+", "80% should be A+");
+    equal(w.ninecatDraftGrade(70), "A", "70% should be A");
+    equal(w.ninecatDraftGrade(60), "B", "60% should be B");
+    equal(w.ninecatDraftGrade(50), "C", "50% should be C");
+    equal(w.ninecatDraftGrade(40), "D", "40% should be D");
+    equal(w.ninecatDraftGrade(39.9), "F", "Below 40% should be F");
+  });
+
+  test("Draft share popup includes win rate, full roster, share link, download, and close controls", ()=>{
+    const mask = w.document.getElementById("sharemask");
+    assert(mask, "Expected end-of-draft share modal");
+    assert(w.document.getElementById("share_card"), "Expected share-card preview");
+    assert(w.document.getElementById("share_winrate"), "Expected projected win rate on the card");
+    assert(w.document.getElementById("share_roster"), "Expected full roster on the card");
+    equal(w.document.getElementById("share_download").textContent.trim(), "Download card");
+    equal(w.document.getElementById("share_copy").textContent.trim(), "Copy share");
+    assert(w.document.getElementById("share_close"), "Expected explicit share-card close control");
+  });
+
+  test("Draft share popup ignores backdrop clicks and Escape", ()=>{
+    const mask = w.document.getElementById("sharemask");
+    const close = w.document.getElementById("share_close");
+    mask.classList.add("on");
+    mask.dispatchEvent(new w.MouseEvent("click", {bubbles:true, cancelable:true}));
+    assert(mask.classList.contains("on"), "Backdrop click should not close Draft Share");
+    w.document.dispatchEvent(new w.KeyboardEvent("keydown", {key:"Escape", bubbles:true, cancelable:true}));
+    assert(mask.classList.contains("on"), "Escape should not close Draft Share");
+    close.click();
+    assert(!mask.classList.contains("on"), "Explicit close button should close Draft Share");
+  });
+
+  test("Draft share auto-opens once per completion cycle", async ()=>{
+    const mask = w.document.getElementById("sharemask");
+    const old = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size"), slot:w.eval("cfg.slot")};
+    w.__shareCycleOldPicks = w.eval("picks");
+    try{
+      mask.classList.remove("on");
+      w.eval(`cfg.teams=4; cfg.size=5; cfg.slot=1; picks=pool.slice(0,19).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(!mask.classList.contains("on"), "Incomplete draft should not auto-open share");
+
+      w.eval(`picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(mask.classList.contains("on"), "Completing the draft should auto-open share");
+
+      w.document.getElementById("share_close").click();
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(!mask.classList.contains("on"), "Share should not reopen repeatedly while the same draft remains complete");
+
+      // Dropping below complete starts a new completion cycle, even if the exact
+      // same picks are later restored. This is the mock/re-draft regression.
+      w.eval(`picks=pool.slice(0,19).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      w.eval(`picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(mask.classList.contains("on"), "A new completion cycle should auto-open even for an identical final roster");
+    } finally {
+      mask.classList.remove("on");
+      w.eval(`cfg.teams=${old.teams}; cfg.size=${old.size}; cfg.slot=${old.slot}; picks=window.__shareCycleOldPicks`);
+      delete w.__shareCycleOldPicks;
+      // Re-arm the production completion detector for the restored test state.
+      w.ninecatMaybeShowDraftShare();
+    }
+  });
+
   test("Player board is not capped at 80 available players", ()=>{
     const oldQ = w.document.getElementById("q").value;
     const oldPos = w.eval("posFilter");
@@ -1125,7 +1247,7 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=ga4-minimal-1";
+frame.src = "../index.html?v=share-autopopup-fix-1";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
