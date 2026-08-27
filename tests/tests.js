@@ -1101,7 +1101,9 @@ function registerTests(w){
       const copy = w.ninecatDraftShareText(s);
       assert(copy.includes("projected to beat"), "Expected field win-rate language in share copy");
       assert(copy.includes("Think you can beat it?"), "Expected challenge language in share copy");
-      assert(copy.includes("/s/?d="), "Expected a self-contained share URL");
+      assert(copy.includes("/s/?d="), "Expected a self-contained fallback share URL");
+      const shortCopy = w.ninecatDraftShareText(s, "https://9cat.fyi/s/3d6b8504");
+      assert(shortCopy.includes("https://9cat.fyi/s/3d6b8504"), "Expected short share URL support");
     } finally {
       w.eval(`cfg.teams=${old.teams}; cfg.size=${old.size}; cfg.slot=${old.slot}; picks=window.__shareOldPicks; locks=window.__shareOldLocks`);
       delete w.__shareOldPicks; delete w.__shareOldLocks;
@@ -1207,7 +1209,7 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=share-card-v3-lock-1";
+frame.src = "../index.html?v=netlify-shortlinks-1";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
