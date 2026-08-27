@@ -10,6 +10,20 @@ const CFG_KEY  = "draftboard.league.v1";   // settings, kept away from draft sta
 const PROJ_KEY = "draftboard.projections.v1";
 const poolSig = () => pool.length + "|" + (pool[0] ? pool[0].name : "");
 
+function normalizeCfgAfterLoad(){
+  if(!cfg || !cfg.catW) return;
+  // Treat HTML min/max as presentation only. Persisted or manually edited values
+  // are clamped here as well so an old/bad localStorage value cannot create an
+  // enormous draft structure on startup.
+  cfg.teams = Math.min(MAX_TEAMS, Math.max(MIN_TEAMS, Math.trunc(Number(cfg.teams) || 12)));
+  cfg.slot = Math.min(cfg.teams, Math.max(1, Math.trunc(Number(cfg.slot) || 1)));
+  cfg.size = Math.min(MAX_ROSTER_SPOTS, Math.max(MIN_ROSTER_SPOTS, Math.trunc(Number(cfg.size) || 13)));
+  if(!Array.isArray(cfg.names)) cfg.names = [];
+  else cfg.names = cfg.names.slice(0, cfg.teams);
+  // Migrate the old default TO weight back to the current standard 9-cat default.
+  if(cfg.catW.to === 0.75) cfg.catW.to = 1;
+}
+
 function saveProjectionText(text){
   try{ localStorage.setItem(PROJ_KEY, text); }catch(e){}
 }
@@ -61,6 +75,7 @@ function loadSettings(){
     const d = JSON.parse(localStorage.getItem(CFG_KEY) || "null");
     if(!d) return false;
     if(d.cfg) Object.assign(cfg, d.cfg);
+    normalizeCfgAfterLoad();
     if(typeof d.shape === "number") shape = d.shape;
     if(d.theme) document.body.dataset.theme = d.theme;
     if(d.ui) pendingUI = d.ui;      // applied once the elements exist
@@ -110,6 +125,7 @@ function loadState(){
     const d = JSON.parse(raw);
     // Legacy blobs carried settings too; honour them once so nobody loses a setup.
     if(d.cfg) Object.assign(cfg, d.cfg);
+    normalizeCfgAfterLoad();
     if(typeof d.shape === "number") shape = d.shape;
     if(d.theme) document.body.dataset.theme = d.theme;
     if(d.sig !== poolSig()) return false;      // different data loaded; keep settings, drop picks

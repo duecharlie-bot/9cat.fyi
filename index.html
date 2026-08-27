@@ -63,9 +63,9 @@
       <thead>
         <tr>
           <th class="l" data-s="name">Player<span class="arw">▾</span></th>
-          <th data-s="fit" title="Total, adjusted for your roster and availability. Fit is re-centered as the draft moves: 0 is the median Fit among roughly the best two rounds of players still available. Positive is better than a typical current option.">Fit<span class="arw">▾</span></th>
-          <th data-s="rank" title="Rank by Total across the whole pool — our own ordering, not the projection source&#39;s. Compare with ADP to see who the market is under- or over-drafting.">#<span class="arw">▾</span></th>
-          <th data-s="adp" title="Average draft position — where the market is taking him, regardless of what the projections say.">ADP<span class="arw">▾</span></th>
+          <th data-s="fit" title="Total, adjusted for your roster and availability.">Fit<span class="arw">▾</span></th>
+          <th data-s="rank" title="Overall rank by Total — where the player ranks based on projected value.">#<span class="arw">▾</span></th>
+          <th data-s="adp" title="Average Draft Position — where the player is being drafted by the market.">ADP<span class="arw">▾</span></th>
           <th data-s="total" title="Add up the nine category numbers to the right and you get this. It's the player in a vacuum — total production, before anything about your roster. Switch the view to Z-scores to see the columns add up.">Total<span class="arw">▾</span></th>
           <th data-s="fg">FG%<span class="arw">▾</span></th>
           <th data-s="ft">FT%<span class="arw">▾</span></th>
@@ -122,7 +122,7 @@
       <div class="ledger-key" id="ledgerkey"></div>
     </div>
 
-    <div class="head"><h2>Punt Radar</h2><span class="note">Click a category to punt. Double/Triple-click to chase.</span></div>
+    <div class="head"><h2>Punt Radar</h2><span class="note">Click a category to punt. Double-click to chase.</span></div>
     <div id="suggest"></div>
 
     <div class="head"><h2 id="rosterhead">My Roster</h2><span class="note" id="rostercount"></span></div>
@@ -147,10 +147,10 @@
       <span class="onboard-sub">nineCat includes a 500-player 2026–27 projection pool, so you can draft immediately. You can replace it anytime in Settings → Load projections.</span>
     </div>
     <div class="grid2">
-      <div class="fld"><label>Teams</label><input type="number" id="s_teams" min="4" max="20"></div>
-      <div class="fld"><label>Your draft slot</label><input type="number" id="s_slot" min="1" max="20"></div>
-      <div class="fld"><label>Roster spots</label><input type="number" id="s_size" min="5" max="20"></div>
-      <div class="fld"><label>Punt aggression (0–10)</label><input type="number" id="s_aggr" min="0" max="10" step="1"></div>
+      <div class="fld"><label>Teams</label><div class="setup-num"><input type="number" id="s_teams" min="4" max="24"><span class="setup-num-controls" aria-hidden="false"><button type="button" class="setup-num-btn" data-step-target="s_teams" data-step-dir="1" aria-label="Increase teams">▲</button><button type="button" class="setup-num-btn" data-step-target="s_teams" data-step-dir="-1" aria-label="Decrease teams">▼</button></span></div></div>
+      <div class="fld"><label>Your draft slot</label><div class="setup-num"><input type="number" id="s_slot" min="1" max="24"><span class="setup-num-controls" aria-hidden="false"><button type="button" class="setup-num-btn" data-step-target="s_slot" data-step-dir="1" aria-label="Increase draft slot">▲</button><button type="button" class="setup-num-btn" data-step-target="s_slot" data-step-dir="-1" aria-label="Decrease draft slot">▼</button></span></div></div>
+      <div class="fld"><label>Roster spots</label><div class="setup-num"><input type="number" id="s_size" min="5" max="20"><span class="setup-num-controls" aria-hidden="false"><button type="button" class="setup-num-btn" data-step-target="s_size" data-step-dir="1" aria-label="Increase roster spots">▲</button><button type="button" class="setup-num-btn" data-step-target="s_size" data-step-dir="-1" aria-label="Decrease roster spots">▼</button></span></div></div>
+      <div class="fld"><label>Punt aggression (0–10)</label><div class="setup-num"><input type="number" id="s_aggr" min="0" max="10" step="1"><span class="setup-num-controls" aria-hidden="false"><button type="button" class="setup-num-btn" data-step-target="s_aggr" data-step-dir="1" aria-label="Increase punt aggression">▲</button><button type="button" class="setup-num-btn" data-step-target="s_aggr" data-step-dir="-1" aria-label="Decrease punt aggression">▼</button></span></div></div>
     </div>
     <p style="margin-bottom:16px"><b style="color:var(--chalk)">Punt aggression</b> controls how quickly the engine recommends punting a category. <b style="color:var(--chalk)">0</b> means it will never recommend a punt; <b style="color:var(--chalk)">10</b> means it will recommend one as soon as a category starts to slip. <b style="color:var(--chalk)">5</b> is a balanced default.</p>
     <h3 class="modal-subhead">Team names <span class="subhead-optional">optional</span></h3>
@@ -311,6 +311,6 @@
 <script src="js/recommendations.js?v=fit-market"></script>
 <script src="js/storage.js"></script>
 <script src="js/ui.js?v=ga4-minimal-1"></script>
-<script src="js/app.js?v=espn-sync-1"></script>
+<script src="js/app.js?v=setup-cap-1"></script>
 </body>
 </html>

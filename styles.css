@@ -332,6 +332,25 @@ textarea{
 }
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .fld label{display:block;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dimmer);margin-bottom:4px}
+
+/* League Setup number fields use our own compact step controls instead of the
+   bright native Chrome spinner. */
+.setup-num{position:relative}
+.setup-num input[type=number]{padding-right:34px;-moz-appearance:textfield;appearance:textfield}
+.setup-num input[type=number]::-webkit-outer-spin-button,
+.setup-num input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.setup-num-controls{
+  position:absolute;right:1px;top:1px;bottom:1px;width:28px;display:grid;grid-template-rows:1fr 1fr;
+  border-left:1px solid var(--line);border-radius:0 calc(var(--r) - 1px) calc(var(--r) - 1px) 0;overflow:hidden
+}
+.setup-num-btn{
+  appearance:none;border:0;background:var(--raise);color:var(--dimmer);font:700 8px/1 system-ui,sans-serif;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;min-width:0
+}
+.setup-num-btn + .setup-num-btn{border-top:1px solid var(--line)}
+.setup-num-btn:hover{background:var(--panel-2);color:var(--chalk)}
+.setup-num-btn:active{background:var(--line-soft);color:var(--wood-hi)}
+.setup-num-btn:focus-visible{outline:2px solid var(--wood);outline-offset:-2px;position:relative;z-index:1}
 .msg{font-size:12px;margin-top:10px}
 .msg.bad{color:var(--hot)}
 .msg.good{color:var(--ok)}
@@ -807,9 +826,81 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 }
 .lrank.first{color:var(--ok);font-weight:600}
 
-/* ---------- native browser scrollbars ---------- */
-/* Use the platform scrollbar styling instead of a custom themed version. */
-*{scrollbar-width:auto;scrollbar-color:auto}
+/* ---------- themed scrollbars ---------- */
+/* The main draft board scrolls inside .boardscroll; html/body are included as
+   a fallback for narrower layouts where the viewport itself becomes scrollable. */
+html,
+body,
+.boardscroll,
+.startray-body,
+.modal,
+.col:not(.boardcol),
+.namegrid,
+.scrolly{
+  scrollbar-width:thin;
+  scrollbar-color:var(--scroll) transparent
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.boardscroll::-webkit-scrollbar,
+.startray-body::-webkit-scrollbar,
+.modal::-webkit-scrollbar,
+.col:not(.boardcol)::-webkit-scrollbar,
+.namegrid::-webkit-scrollbar,
+.scrolly::-webkit-scrollbar{
+  width:10px;
+  height:10px
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.boardscroll::-webkit-scrollbar-track,
+.startray-body::-webkit-scrollbar-track,
+.modal::-webkit-scrollbar-track,
+.col:not(.boardcol)::-webkit-scrollbar-track,
+.namegrid::-webkit-scrollbar-track,
+.scrolly::-webkit-scrollbar-track{
+  background:var(--ink)
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.boardscroll::-webkit-scrollbar-thumb,
+.startray-body::-webkit-scrollbar-thumb,
+.modal::-webkit-scrollbar-thumb,
+.col:not(.boardcol)::-webkit-scrollbar-thumb,
+.namegrid::-webkit-scrollbar-thumb,
+.scrolly::-webkit-scrollbar-thumb{
+  background:var(--scroll);
+  border:2px solid var(--ink);
+  background-clip:padding-box;
+  border-radius:999px;
+  min-height:28px
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+.boardscroll::-webkit-scrollbar-thumb:hover,
+.startray-body::-webkit-scrollbar-thumb:hover,
+.modal::-webkit-scrollbar-thumb:hover,
+.col:not(.boardcol)::-webkit-scrollbar-thumb:hover,
+.namegrid::-webkit-scrollbar-thumb:hover,
+.scrolly::-webkit-scrollbar-thumb:hover{
+  background:var(--scroll-hi);
+  background-clip:padding-box
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+.boardscroll::-webkit-scrollbar-corner,
+.startray-body::-webkit-scrollbar-corner,
+.modal::-webkit-scrollbar-corner,
+.col:not(.boardcol)::-webkit-scrollbar-corner,
+.namegrid::-webkit-scrollbar-corner,
+.scrolly::-webkit-scrollbar-corner{
+  background:var(--ink)
+}
 
 /* ---------- roster position tag ---------- */
 .rpos{font-size:10px;letter-spacing:.06em;color:var(--dimmer);
