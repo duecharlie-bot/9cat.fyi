@@ -808,41 +808,79 @@ body[data-theme="court"] .mono-badge{color:hsl(var(--h) 45% 32%);background:hsl(
 .lrank.first{color:var(--ok);font-weight:600}
 
 /* ---------- themed scrollbars ---------- */
+/* The main draft board scrolls inside .boardscroll; html/body are included as
+   a fallback for narrower layouts where the viewport itself becomes scrollable. */
+html,
+body,
+.boardscroll,
+.startray-body,
 .modal,
 .col:not(.boardcol),
-.namegrid{
+.namegrid,
+.scrolly{
   scrollbar-width:thin;
   scrollbar-color:var(--scroll) transparent
 }
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.boardscroll::-webkit-scrollbar,
+.startray-body::-webkit-scrollbar,
 .modal::-webkit-scrollbar,
 .col:not(.boardcol)::-webkit-scrollbar,
-.namegrid::-webkit-scrollbar{
+.namegrid::-webkit-scrollbar,
+.scrolly::-webkit-scrollbar{
   width:10px;
   height:10px
 }
 
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.boardscroll::-webkit-scrollbar-track,
+.startray-body::-webkit-scrollbar-track,
 .modal::-webkit-scrollbar-track,
 .col:not(.boardcol)::-webkit-scrollbar-track,
-.namegrid::-webkit-scrollbar-track{
-  background:transparent
+.namegrid::-webkit-scrollbar-track,
+.scrolly::-webkit-scrollbar-track{
+  background:var(--ink)
 }
 
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.boardscroll::-webkit-scrollbar-thumb,
+.startray-body::-webkit-scrollbar-thumb,
 .modal::-webkit-scrollbar-thumb,
 .col:not(.boardcol)::-webkit-scrollbar-thumb,
-.namegrid::-webkit-scrollbar-thumb{
+.namegrid::-webkit-scrollbar-thumb,
+.scrolly::-webkit-scrollbar-thumb{
   background:var(--scroll);
-  border:2px solid transparent;
+  border:2px solid var(--ink);
   background-clip:padding-box;
   border-radius:999px;
   min-height:28px
 }
 
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+.boardscroll::-webkit-scrollbar-thumb:hover,
+.startray-body::-webkit-scrollbar-thumb:hover,
 .modal::-webkit-scrollbar-thumb:hover,
 .col:not(.boardcol)::-webkit-scrollbar-thumb:hover,
-.namegrid::-webkit-scrollbar-thumb:hover{
+.namegrid::-webkit-scrollbar-thumb:hover,
+.scrolly::-webkit-scrollbar-thumb:hover{
   background:var(--scroll-hi);
   background-clip:padding-box
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+.boardscroll::-webkit-scrollbar-corner,
+.startray-body::-webkit-scrollbar-corner,
+.modal::-webkit-scrollbar-corner,
+.col:not(.boardcol)::-webkit-scrollbar-corner,
+.namegrid::-webkit-scrollbar-corner,
+.scrolly::-webkit-scrollbar-corner{
+  background:var(--ink)
 }
 
 /* ---------- roster position tag ---------- */
