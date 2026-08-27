@@ -1145,6 +1145,44 @@ function registerTests(w){
     assert(!mask.classList.contains("on"), "Explicit close button should close Draft Share");
   });
 
+  test("Draft share auto-opens once per completion cycle", async ()=>{
+    const mask = w.document.getElementById("sharemask");
+    const old = {teams:w.eval("cfg.teams"), size:w.eval("cfg.size"), slot:w.eval("cfg.slot")};
+    w.__shareCycleOldPicks = w.eval("picks");
+    try{
+      mask.classList.remove("on");
+      w.eval(`cfg.teams=4; cfg.size=5; cfg.slot=1; picks=pool.slice(0,19).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(!mask.classList.contains("on"), "Incomplete draft should not auto-open share");
+
+      w.eval(`picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(mask.classList.contains("on"), "Completing the draft should auto-open share");
+
+      w.document.getElementById("share_close").click();
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(!mask.classList.contains("on"), "Share should not reopen repeatedly while the same draft remains complete");
+
+      // Dropping below complete starts a new completion cycle, even if the exact
+      // same picks are later restored. This is the mock/re-draft regression.
+      w.eval(`picks=pool.slice(0,19).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      w.eval(`picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      w.ninecatMaybeShowDraftShare();
+      await new Promise(r=>setTimeout(r,110));
+      assert(mask.classList.contains("on"), "A new completion cycle should auto-open even for an identical final roster");
+    } finally {
+      mask.classList.remove("on");
+      w.eval(`cfg.teams=${old.teams}; cfg.size=${old.size}; cfg.slot=${old.slot}; picks=window.__shareCycleOldPicks`);
+      delete w.__shareCycleOldPicks;
+      // Re-arm the production completion detector for the restored test state.
+      w.ninecatMaybeShowDraftShare();
+    }
+  });
+
   test("Player board is not capped at 80 available players", ()=>{
     const oldQ = w.document.getElementById("q").value;
     const oldPos = w.eval("posFilter");
@@ -1209,7 +1247,7 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=netlify-shortlinks-1";
+frame.src = "../index.html?v=share-autopopup-fix-1";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
