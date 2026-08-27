@@ -1195,7 +1195,7 @@ rerun.addEventListener("click",run);
 // Attach the load listener before navigating the iframe. On a fast/cached
 // Netlify preview the old harness could miss the iframe's load event and sit
 // forever on "Loading nineCat…".
-frame.src = "../index.html?v=share-card-v2";
+frame.src = "../index.html?v=share-card-v3";
 
 // Fallback in case a browser restores the frame unusually quickly.
 setTimeout(()=>{
