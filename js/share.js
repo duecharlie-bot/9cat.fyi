@@ -218,6 +218,33 @@ function closeDraftShare(){
   document.getElementById("sharemask")?.classList.remove("on");
 }
 
+function closeAndResetDraftShare(){
+  closeDraftShare();
+
+  // Same draft-state reset used elsewhere in nineCat, while leaving league
+  // settings and loaded projections untouched.
+  picks = [];
+  locks = {};
+  hoverId = null;
+  selectedId = null;
+  armedDraftId = null;
+  rosterInspectId = null;
+  ledgerTeam = null;
+  recMessageCleared = false;
+  sharePendingSig = null;
+  shareAutoShownForCompletion = false;
+
+  ui.gapHidden = "";
+  ui.sugHidden.clear();
+  clearState();
+  window.ninecatResetDraftAnalytics?.();
+
+  const q = document.getElementById("q");
+  if(q) q.value = "";
+
+  render();
+}
+
 /* Auto-open once per completion cycle, not once per roster signature forever.
    The old localStorage signature meant repeating the same mock draft (or restoring
    an identical completed draft) could silently suppress the popup. Resetting or
@@ -389,6 +416,7 @@ window.ninecatDraftShareUrl = draftShareUrl;
 window.ninecatCreateShortDraftShare = createShortDraftShare;
 window.ninecatDraftGrade = draftGrade;
 window.ninecatDraftFieldRecord = draftFieldRecord;
+window.ninecatCloseAndResetDraftShare = closeAndResetDraftShare;
 
 const shareMask = document.getElementById("sharemask");
 if(shareMask){
