@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=roster-positions-v1">
+<link rel="stylesheet" href="styles.css?v=roster-slots-v2">
 </head>
 <body data-theme="arena">
 
@@ -160,14 +160,10 @@
         <span class="setup-details-hint" id="s_roster_hint">Standard Yahoo-style</span>
       </summary>
       <div class="setup-details-body">
-        <p>For 13+ roster spots, nineCat defaults to <b style="color:var(--chalk)">PG, SG, G, SF, PF, F, C, C, UTIL, UTIL</b> plus bench spots. Extra roster spots become bench spots. Customize any count below if your league is different.</p>
+        <p>Roster positions always match the <b style="color:var(--chalk)">Roster spots</b> number above. nineCat starts with Yahoo-style defaults, but you can change any individual slot.</p>
         <div class="roster-slot-grid" id="s_roster_slots"></div>
-        <div class="roster-slot-total">
-          <span>Total roster spots</span>
-          <b id="s_roster_total">13</b>
-          <span id="s_roster_msg"></span>
-        </div>
-        <button class="mini" id="s_roster_default" type="button" style="display:inline-block">Use default</button>
+        <div class="roster-slot-status" id="s_roster_msg"></div>
+        <button class="mini" id="s_roster_default" type="button" style="display:inline-block">Reset to Default</button>
       </div>
     </details>
     <h3 class="modal-subhead">Team names <span class="subhead-optional">optional</span></h3>
@@ -375,13 +371,13 @@
 <script src="data/player-name-rules.js"></script>
 <script src="js/projections.js"></script>
 <script src="js/matchup.js?v=gp-season-totals-1"></script>
-<script src="js/roster.js?v=roster-positions-v1"></script>
+<script src="js/roster.js?v=roster-slots-v2"></script>
 <script src="js/draft.js?v=ga4-minimal-1"></script>
 <script src="js/punts.js"></script>
 <script src="js/recommendations.js?v=roster-positions-v1"></script>
-<script src="js/storage.js?v=roster-positions-v1"></script>
+<script src="js/storage.js?v=roster-slots-v2"></script>
 <script src="js/ui.js?v=roster-positions-v1"></script>
 <script src="js/share.js?v=share-close-reset-clickfix-1"></script>
-<script src="js/app.js?v=roster-positions-v1"></script>
+<script src="js/app.js?v=roster-slots-v2"></script>
 </body>
 </html>

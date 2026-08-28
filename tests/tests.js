@@ -104,7 +104,20 @@ function registerTests(w){
     }
   });
 
-  test("Automatic 13-player roster uses the standard Yahoo-style slot mix", ()=>{
+  test("Default 5-player roster is PG, SG, SF, PF, C", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval("cfg.size=5; cfg.rosterSlots=null");
+      equal(JSON.stringify(w.expandRosterSlots()),
+        JSON.stringify(["PG","SG","SF","PF","C"]));
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Default 13-player roster uses the standard Yahoo-style slot mix", ()=>{
     const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
     w.__oldRosterSlots = oldSlots;
     try{
@@ -117,7 +130,7 @@ function registerTests(w){
     }
   });
 
-  test("Automatic rosters above 13 add extra bench spots", ()=>{
+  test("Default rosters above 13 add extra bench spots", ()=>{
     const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
     w.__oldRosterSlots = oldSlots;
     try{
@@ -132,28 +145,15 @@ function registerTests(w){
     }
   });
 
-  test("Automatic rosters under 13 are unrestricted", ()=>{
+  test("Every roster spot can be customized to C", ()=>{
     const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
     w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size=5; cfg.rosterSlots=null");
-      equal(JSON.stringify(w.expandRosterSlots()), JSON.stringify(["UTIL","UTIL","UTIL","UTIL","UTIL"]));
+      w.eval(`cfg.size=5; cfg.rosterSlots=["C","C","C","C","C"]`);
+      equal(JSON.stringify(w.expandRosterSlots()),
+        JSON.stringify(["C","C","C","C","C"]));
       equal(w.assignSlots([player("C"),player("C"),player("C"),player("C"),player("C")]).unplaced.length,0);
-    } finally {
-      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
-      delete w.__oldRosterSlots;
-    }
-  });
-
-  test("Custom roster counts can require two centres", ()=>{
-    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
-    w.__oldRosterSlots = oldSlots;
-    try{
-      w.eval(`cfg.rosterSlots={PG:1,SG:1,G:0,SF:1,PF:1,F:0,C:2,UTIL:0,BN:0}; cfg.size=6`);
-      const oneC = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
-      const gaps = w.rosterGaps(oneC);
-      equal(gaps.requiredOpenSlots.filter(s=>s==="C").length,1);
-      assert(w.canFitRoster(oneC,player("C")), "Second C should satisfy the last required slot");
+      assert(!w.canFitRoster([], player("PG")), "A pure PG should not fit an all-C custom roster");
     } finally {
       w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
       delete w.__oldRosterSlots;
@@ -233,7 +233,7 @@ function registerTests(w){
     const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
     w.__oldRosterSlots = oldSlots;
     try{
-      w.eval(`cfg.rosterSlots={PG:1,SG:1,G:1,SF:1,PF:1,F:0,C:1,UTIL:0,BN:0}; cfg.size=6`);
+      w.eval(`cfg.rosterSlots=["PG","SG","G","SF","PF","C"]; cfg.size=6`);
       const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
       assert(!w.canFitRoster(roster,player("C")), "A second pure C should not fit into the remaining G slot");
       assert(w.canFitRoster(roster,player("PG")), "A PG should fit into the remaining G slot");
@@ -247,7 +247,7 @@ function registerTests(w){
     const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
     w.__oldRosterSlots = oldSlots;
     try{
-      w.eval(`cfg.rosterSlots={PG:1,SG:1,G:0,SF:1,PF:0,F:0,C:2,UTIL:0,BN:0}; cfg.size=5`);
+      w.eval(`cfg.rosterSlots=["PG","SG","SF","C","C"]; cfg.size=5`);
       const roster = [player("PG"),player("SG"),player("SF")];
       assert(!w.canFitRoster(roster,player("PG")), "Guard should be blocked when both remaining picks must be C");
       assert(w.canFitRoster(roster,player("C")), "C should keep a legal finish possible");
@@ -278,7 +278,7 @@ function registerTests(w){
         {playerId:null,teamIdx:1,overall:6}
       ];
       w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {}; w.__oldRosterSlots = oldCfg.rosterSlots;
-      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots={PG:1,SG:1,G:1,SF:1,PF:1,F:0,C:1,UTIL:0,BN:0}; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
+      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots=["PG","SG","G","SF","PF","C"]; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
       const state = w.evaluate();
       assert(state.enforceRosterFit, "Roster fit should be enforced when our team is on the clock");
       const wemby = state.avail.find(p=>p.id===6);
@@ -309,7 +309,7 @@ function registerTests(w){
         {playerId:5,teamIdx:0,overall:4}, {playerId:null,teamIdx:2,overall:5}
       ];
       w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {}; w.__oldRosterSlots = oldCfg.rosterSlots;
-      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots={PG:1,SG:1,G:1,SF:1,PF:1,F:0,C:1,UTIL:0,BN:0}; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
+      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots=["PG","SG","G","SF","PF","C"]; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
       const state = w.evaluate();
       assert(!state.enforceRosterFit, "Our roster fit should not be enforced on another team's pick");
       const wemby = state.avail.find(p=>p.id===6);
@@ -1036,19 +1036,48 @@ function registerTests(w){
   });
 
 
-  test("Custom roster-position counts drive roster size in League Setup", ()=>{
+  test("Roster positions render one dropdown per roster spot", ()=>{
     const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
     w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size=13; cfg.rosterSlots=null; openSet()");
-      const c = w.document.querySelector('#s_roster_slots input[data-rslot="C"]');
-      const bn = w.document.querySelector('#s_roster_slots input[data-rslot="BN"]');
-      equal(+c.value,2,"Standard setup should start with two C slots");
-      equal(+bn.value,3,"Standard 13-player setup should start with three BN slots");
-      c.value = 3;
-      c.dispatchEvent(new Event("input",{bubbles:true}));
-      equal(+w.document.getElementById("s_size").value,14,"Changing a slot count should update roster spots");
-      assert(w.document.getElementById("s_size").readOnly,"Roster spots should lock while custom counts are active");
+      w.eval("cfg.size=5; cfg.rosterSlots=null; openSet()");
+      const selects = [...w.document.querySelectorAll('#s_roster_slots select[data-rslot-index]')];
+      equal(selects.length,5,"Expected exactly five position dropdowns");
+      equal(JSON.stringify(selects.map(x=>x.value)),
+        JSON.stringify(["PG","SG","SF","PF","C"]));
+
+      selects.forEach(s=>{
+        s.value="C";
+        s.dispatchEvent(new Event("change",{bubbles:true}));
+      });
+      equal(+w.document.getElementById("s_size").value,5,
+        "Changing positions must not change Roster spots");
+      equal(JSON.stringify([...w.document.querySelectorAll('#s_roster_slots select')].map(x=>x.value)),
+        JSON.stringify(["C","C","C","C","C"]));
+
+      w.document.getElementById("s_roster_default").click();
+      equal(JSON.stringify([...w.document.querySelectorAll('#s_roster_slots select')].map(x=>x.value)),
+        JSON.stringify(["PG","SG","SF","PF","C"]),
+        "Reset to Default should restore the default five slots");
+      w.document.getElementById("s_close").click();
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Changing Roster spots changes the number of position dropdowns", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval("cfg.size=5; cfg.rosterSlots=null; openSet()");
+      const input = w.document.getElementById("s_size");
+      input.value=6;
+      input.dispatchEvent(new Event("input",{bubbles:true}));
+      const selects=[...w.document.querySelectorAll('#s_roster_slots select[data-rslot-index]')];
+      equal(selects.length,6);
+      equal(JSON.stringify(selects.map(x=>x.value)),
+        JSON.stringify(["PG","SG","G","SF","PF","C"]));
       w.document.getElementById("s_close").click();
     } finally {
       w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
@@ -1070,6 +1099,19 @@ function registerTests(w){
       equal(slot.max, "24", "Draft-slot control should follow the clamped team count");
     } finally {
       teams.value = oldTeams; slot.value = oldSlot; w.paintNameGrid();
+    }
+  });
+
+  test("V1 roster-position count objects migrate to slot lists", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval(`cfg.size=5; cfg.rosterSlots={PG:0,SG:0,G:0,SF:0,PF:0,F:0,C:5,UTIL:0,BN:0}; normalizeCfgAfterLoad()`);
+      equal(JSON.stringify(w.eval("cfg.rosterSlots")),
+        JSON.stringify(["C","C","C","C","C"]));
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
