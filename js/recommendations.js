@@ -102,14 +102,15 @@ function evaluate(){
         NOW than an equal player who won't be — you can have him either way.
         Centred on 0.5 so it's a real swing, not the old ±5% rounding error.  */
     p.scarce = cfg.scarcity * (p.risk - 0.5);
-    p.fitAdj = p.fit + p.scarce;
+    p.rosterNeed = enforceRosterFit ? rosterNeedBonus(roster, p) : 0;
+    p.fitAdj = p.fit + p.scarce + p.rosterNeed;
 
     /*  The same fit, recomputed from what the player actually did last season:
         same category weights, same roster leverage, same scarcity — only the
         production changes. Answers "what if the projection is wrong and he just
         repeats himself?" Null when there's no prior season to draw on.       */
     p.fitLast = (p.last && p.last.z)
-      ? CATS.reduce((s,c)=>s + w[c.k] * cw(c.k) * p.last.z[c.k], 0) + p.scarce
+      ? CATS.reduce((s,c)=>s + w[c.k] * cw(c.k) * p.last.z[c.k], 0) + p.scarce + p.rosterNeed
       : null;
   });
 

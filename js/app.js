@@ -13,7 +13,8 @@ let cfg = {
   /*  Standard 9-cat now weights turnovers at 1.0 again. Use 0 only for
       8-cat leagues, or adjust manually if your league has custom scoring.   */
   catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:1},
-  names: []            // optional league team names, indexed by draft slot
+  names: [],           // optional league team names, indexed by draft slot
+  rosterSlots:null     // null = automatic; object = custom fantasy slot counts
 };
 const teamName = i => (cfg.names[i] && cfg.names[i].trim()) || ("Team " + (i+1));
 const shortName = i => { const n = teamName(i); return n.length > 9 ? n.slice(0,8) + "\u2026" : n; };
@@ -268,16 +269,103 @@ function paintCatGrid(){
     `<div class="fld"><label>${c.label}</label>
      <input type="number" data-w="${c.k}" min="0" max="3" step="0.25" value="${cw(c.k)}"></div>`).join("");
 }
+
+let setupRosterCustom = false;
+let setupRosterCounts = null;
+
+function setupRosterTotal(counts=setupRosterCounts){
+  return ROSTER_SLOT_KEYS.reduce((s,k)=>s+(Number(counts?.[k])||0),0);
+}
+
+function setRosterSizeLocked(locked){
+  const input = $("#s_size");
+  input.readOnly = !!locked;
+  input.closest(".setup-num")?.classList.toggle("locked", !!locked);
+}
+
+function rosterSetupHint(){
+  if(setupRosterCustom) return "Custom";
+  return (+$("#s_size").value || cfg.size) >= 13 ? "Standard Yahoo-style" : "Unrestricted";
+}
+
+function refreshRosterSetupStatus(){
+  const total = setupRosterTotal();
+  $("#s_roster_total").textContent = total;
+  $("#s_roster_hint").textContent = rosterSetupHint();
+  const msg = $("#s_roster_msg");
+
+  if(setupRosterCustom){
+    msg.textContent = total < MIN_ROSTER_SPOTS
+      ? `Add at least ${MIN_ROSTER_SPOTS-total} more slot${MIN_ROSTER_SPOTS-total===1?"":"s"}.`
+      : total > MAX_ROSTER_SPOTS
+        ? `Maximum roster size is ${MAX_ROSTER_SPOTS}.`
+        : "Roster spots is calculated from these position counts.";
+    msg.classList.toggle("bad", total < MIN_ROSTER_SPOTS || total > MAX_ROSTER_SPOTS);
+  }else{
+    const size = +$("#s_size").value || cfg.size;
+    msg.textContent = size >= 13
+      ? "Default: PG, SG, G, SF, PF, F, C, C, UTIL, UTIL, then bench."
+      : "No position requirements by default for rosters under 13 spots.";
+    msg.classList.remove("bad");
+  }
+  setRosterSizeLocked(setupRosterCustom);
+}
+
+function paintRosterSlotGrid(){
+  const el = $("#s_roster_slots");
+  if(!el) return;
+  const size = Math.min(MAX_ROSTER_SPOTS, Math.max(MIN_ROSTER_SPOTS, +$("#s_size").value || cfg.size));
+  if(!setupRosterCounts) setupRosterCounts = automaticRosterSlotCounts(size);
+
+  el.innerHTML = ROSTER_SLOT_KEYS.map(k=>{
+    const id = `s_rs_${k.toLowerCase()}`;
+    const val = Math.max(0, Math.trunc(Number(setupRosterCounts[k])||0));
+    return `<div class="fld roster-slot-fld">
+      <label>${k}</label>
+      <div class="setup-num">
+        <input type="number" id="${id}" data-rslot="${k}" min="0" max="20" step="1" value="${val}">
+        <span class="setup-num-controls" aria-hidden="false">
+          <button type="button" class="setup-num-btn" data-step-target="${id}" data-step-dir="1" aria-label="Increase ${k} slots">▲</button>
+          <button type="button" class="setup-num-btn" data-step-target="${id}" data-step-dir="-1" aria-label="Decrease ${k} slots">▼</button>
+        </span>
+      </div>
+    </div>`;
+  }).join("");
+  refreshRosterSetupStatus();
+}
+
+function readSetupRosterCounts(){
+  const out = blankRosterSlotCounts();
+  [...$("#s_roster_slots").querySelectorAll("input[data-rslot]")].forEach(el=>{
+    out[el.dataset.rslot] = Math.max(0,
+      Math.min(MAX_ROSTER_SPOTS, Math.trunc(Number(el.value)||0)));
+  });
+  return out;
+}
+
+function resetSetupRosterToDefault(){
+  setupRosterCustom = false;
+  setupRosterCounts = automaticRosterSlotCounts(+$("#s_size").value || cfg.size);
+  paintRosterSlotGrid();
+}
+
 let firstRun = false;
 
 function openSet(){
   $("#s_teams").value = cfg.teams; $("#s_slot").value = cfg.slot;
   $("#s_size").value = cfg.size;   $("#s_aggr").value = cfg.aggr;
+  setupRosterCustom = rosterPositionsCustomized();
+  setupRosterCounts = setupRosterCustom
+    ? sanitizeRosterSlotCounts(cfg.rosterSlots)
+    : automaticRosterSlotCounts(cfg.size);
   paintCatGrid();
   paintNameGrid();
+  paintRosterSlotGrid();
   $("#s_intro").style.display = firstRun ? "" : "none";
   const catDetails = $("#catweightsdetails");
   if(catDetails) catDetails.open = false;
+  const rosterDetails = $("#rosterpositionsdetails");
+  if(rosterDetails) rosterDetails.open = false;
   $("#s_save").textContent = firstRun ? "Save and continue" : (picks.length ? "Save and reset picks" : "Save setup");
   $("#setmask").classList.add("on");
   setTimeout(()=>{ const f = $("#s_teams"); if(f && f.focus){ f.focus(); if(f.select) f.select(); } }, 30);
@@ -396,29 +484,68 @@ setupMask?.addEventListener("click", e=>{
   e.stopImmediatePropagation();
 }, true);
 
-document.querySelectorAll(".setup-num-btn").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    const input = document.getElementById(btn.dataset.stepTarget);
-    if(!input) return;
-    const dir = Number(btn.dataset.stepDir) || 1;
-    try{ dir > 0 ? input.stepUp() : input.stepDown(); }
-    catch(_e){ return; }
-    input.dispatchEvent(new Event("input", {bubbles:true}));
-    input.focus();
-  });
+document.addEventListener("click", e=>{
+  const btn = e.target.closest?.(".setup-num-btn");
+  if(!btn) return;
+  const input = document.getElementById(btn.dataset.stepTarget);
+  if(!input || input.readOnly) return;
+  const dir = Number(btn.dataset.stepDir) || 1;
+  try{ dir > 0 ? input.stepUp() : input.stepDown(); }
+  catch(_e){ return; }
+  input.dispatchEvent(new Event("input", {bubbles:true}));
+  input.focus();
 });
 
 $("#s_teams").addEventListener("input", paintNameGrid);
 $("#s_slot").addEventListener("input", paintNameGrid);
+$("#s_size").addEventListener("input", ()=>{
+  if(setupRosterCustom) return;
+  setupRosterCounts = automaticRosterSlotCounts(+$("#s_size").value || cfg.size);
+  paintRosterSlotGrid();
+});
+$("#s_roster_slots").addEventListener("input", e=>{
+  if(!e.target.matches("input[data-rslot]")) return;
+  setupRosterCustom = true;
+  setupRosterCounts = readSetupRosterCounts();
+  const total = setupRosterTotal();
+  if(total >= MIN_ROSTER_SPOTS && total <= MAX_ROSTER_SPOTS) $("#s_size").value = total;
+  refreshRosterSetupStatus();
+});
+$("#s_roster_default").onclick = resetSetupRosterToDefault;
 $("#s_cats_std").onclick = ()=> setCatPreset({});
 $("#s_cats_8").onclick = ()=> setCatPreset({to:0});
 $("#s_save").onclick = ()=>{
-  const oldStructure = {teams:cfg.teams, slot:cfg.slot, size:cfg.size};
+  const oldStructure = {
+    teams:cfg.teams, slot:cfg.slot, size:cfg.size,
+    rosterSlots:JSON.stringify(cfg.rosterSlots || null)
+  };
+
+  if(setupRosterCustom){
+    setupRosterCounts = readSetupRosterCounts();
+    const total = setupRosterTotal();
+    if(total < MIN_ROSTER_SPOTS || total > MAX_ROSTER_SPOTS){
+      const msg = $("#s_roster_msg");
+      msg.textContent = total < MIN_ROSTER_SPOTS
+        ? `Roster positions must total at least ${MIN_ROSTER_SPOTS}.`
+        : `Roster positions cannot total more than ${MAX_ROSTER_SPOTS}.`;
+      msg.classList.add("bad");
+      $("#rosterpositionsdetails").open = true;
+      return;
+    }
+    $("#s_size").value = total;
+  }
+
   cfg.teams = Math.min(MAX_TEAMS, Math.max(MIN_TEAMS, +$("#s_teams").value || 12));
   cfg.slot  = Math.min(cfg.teams, Math.max(1, +$("#s_slot").value || 1));
   cfg.size  = Math.min(MAX_ROSTER_SPOTS, Math.max(MIN_ROSTER_SPOTS, +$("#s_size").value || 13));
+  cfg.rosterSlots = setupRosterCustom ? sanitizeRosterSlotCounts(setupRosterCounts) : null;
+  if(cfg.rosterSlots) cfg.size = ROSTER_SLOT_KEYS.reduce((s,k)=>s+cfg.rosterSlots[k],0);
   cfg.aggr  = Math.max(0, Math.min(10, +$("#s_aggr").value));
-  const structureChanged = oldStructure.teams !== cfg.teams || oldStructure.slot !== cfg.slot || oldStructure.size !== cfg.size;
+  const structureChanged =
+    oldStructure.teams !== cfg.teams ||
+    oldStructure.slot !== cfg.slot ||
+    oldStructure.size !== cfg.size ||
+    oldStructure.rosterSlots !== JSON.stringify(cfg.rosterSlots || null);
   cfg.names = [];
   [...$("#s_names").querySelectorAll("input[data-n]")].forEach(el=>{
     cfg.names[+el.dataset.n] = el.value.trim();

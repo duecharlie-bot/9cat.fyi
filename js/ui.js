@@ -943,28 +943,22 @@ function renderRoster(state){
   $("#rosterhead").textContent = isMine ? "My Roster" : possessive(teamName(viewing)) + " Roster";
   $("#rostercount").textContent = `${r.length} / ${cfg.size}${r.length ? " · click player for stats" : ""}`;
 
-  /* Positional warnings become hard constraints once roster flexibility is gone. */
+  /* Position requirements stay quiet early and become explicit as the deadline
+     approaches. Hard legality is enforced separately in canFitRoster(). */
   const g = state.gaps;
-  const sig = `${g.missing.join(",")}|${g.eligibilityMissing.join(",")}|${g.openSlots.join(",")}|${g.eligibilityAlert}`;
-  const onlyRestricted = g.openSlots.length && !g.openSlots.some(s=>s==="UTIL"||s==="BN");
-  const needsAlert = g.eligibilityAlert || onlyRestricted || (g.missing.length && g.left > 0);
+  const sig = `${g.requiredOpenSlots.join(",")}|${g.openSlots.join(",")}|${g.hardDeadline}`;
+  const needsAlert = g.requiredOpenCount > 0 && (g.hardDeadline || g.left <= 5);
   // Positional warnings are actionable only on our pick. On another team's
   // clock, do not imply that our open slots restrict which player can be logged.
   const show = isMine && state.enforceRosterFit && needsAlert && ui.gapHidden !== sig;
   const gn = $("#rgap");
   gn.style.display = show ? "" : "none";
   if(show){
-    const hard = g.eligibilityAlert || (onlyRestricted && g.openSlots.length <= 3);
-    gn.className = "rgap " + (hard ? "hot" : g.urgency > 0.34 ? "warm" : "");
-    let msg;
-    if(g.eligibilityAlert){
-      const missingText = g.eligibilityMissing.join(" / ");
-      msg = `<b>ROSTER ALERT — YOUR ROSTER HAS NO ${missingText} ELIGIBILITY.</b> You are already 5+ picks in. Prioritize adding ${missingText} eligibility before the roster gets harder to balance.`;
-    } else if(onlyRestricted){
-      msg = `<b>ROSTER SLOTS ARE TIGHT.</b> Your open slots are ${g.openSlots.join(", ")}. The board will only recommend players who can legally fit one of them.`;
-    } else {
-      msg = `No ${g.missing.join(", ")} yet · ${g.left} pick${g.left===1?"":"s"} left. ${g.urgency > 0.34 ? `Worth covering soon.` : `You still have flexibility, but keep an eye on positional balance.`}`;
-    }
+    gn.className = "rgap " + (g.hardDeadline ? "hot" : "warm");
+    const needs = g.requiredOpenLabels.join(", ");
+    const msg = g.hardDeadline
+      ? `<b>ROSTER DEADLINE — ${needs} still required.</b> You have ${g.left} pick${g.left===1?"":"s"} left, so every remaining pick must keep a legal roster possible.`
+      : `<b>ROSTER NEEDS — ${needs}.</b> ${g.left} picks left. Fit now gives a small boost to players who cover these slots.`;
     gn.innerHTML = `<span>${msg}</span><button class="dismiss" id="gapx" title="Dismiss">&times;</button>`;
     $("#gapx").onclick = ()=>{ ui.gapHidden = sig; render(); };
   }
