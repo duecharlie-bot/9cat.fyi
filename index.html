@@ -275,7 +275,7 @@
       <button class="btn primary" id="share_copy" type="button">Copy share</button>
       <button class="btn" id="share_download" type="button">Download card</button>
       <button class="btn" type="button" onclick="document.getElementById('sharemask').classList.remove('on')">Close</button>
-      <button class="btn danger" id="share_close_reset" type="button">Close and reset draft</button>
+      <button class="btn danger" id="share_close_reset" type="button" onclick="window.ninecatCloseAndResetDraftShare?.()">Close and reset draft</button>
     </div>
   </div>
 </div>
@@ -364,7 +364,7 @@
 <script src="js/recommendations.js?v=fit-market"></script>
 <script src="js/storage.js"></script>
 <script src="js/ui.js?v=gp-season-totals-1"></script>
-<script src="js/share.js?v=share-close-reset-1"></script>
+<script src="js/share.js?v=share-close-reset-clickfix-1"></script>
 <script src="js/app.js?v=league-setup-lock-2"></script>
 </body>
 </html>

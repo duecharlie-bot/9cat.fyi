@@ -1198,6 +1198,7 @@ function registerTests(w){
     try{
       w.eval(`cfg.teams=4; cfg.size=5; cfg.slot=1; picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
       mask.classList.add("on");
+      assert(typeof w.ninecatCloseAndResetDraftShare === "function", "Expected reset action to be exported");
       w.document.getElementById("share_close_reset").click();
       equal(w.eval("picks.length"), 0, "Expected Close and reset draft to clear all picks");
       assert(!mask.classList.contains("on"), "Expected Close and reset draft to close the popup");
