@@ -13,7 +13,8 @@ let cfg = {
   /*  Standard 9-cat now weights turnovers at 1.0 again. Use 0 only for
       8-cat leagues, or adjust manually if your league has custom scoring.   */
   catW: {fg:1, ft:1, tpm:1, pts:1, reb:1, ast:1, stl:1, blk:1, to:1},
-  names: []            // optional league team names, indexed by draft slot
+  names: [],           // optional league team names, indexed by draft slot
+  rosterSlots:null     // null = default; array = custom position for each roster spot
 };
 const teamName = i => (cfg.names[i] && cfg.names[i].trim()) || ("Team " + (i+1));
 const shortName = i => { const n = teamName(i); return n.length > 9 ? n.slice(0,8) + "\u2026" : n; };
@@ -268,16 +269,82 @@ function paintCatGrid(){
     `<div class="fld"><label>${c.label}</label>
      <input type="number" data-w="${c.k}" min="0" max="3" step="0.25" value="${cw(c.k)}"></div>`).join("");
 }
+
+let setupRosterCustom = false;
+let setupRosterSlots = null;
+
+function rosterSetupHint(){
+  return setupRosterCustom ? "Custom" : "Default";
+}
+
+function rosterSlotOptions(selected){
+  return ROSTER_SLOT_KEYS.map(k=>
+    `<option value="${k}"${k===selected?" selected":""}>${k}</option>`
+  ).join("");
+}
+
+function currentSetupRosterSize(){
+  return Math.min(MAX_ROSTER_SPOTS,
+    Math.max(MIN_ROSTER_SPOTS, Math.trunc(Number($("#s_size").value)||cfg.size||13)));
+}
+
+function paintRosterSlotGrid(){
+  const el = $("#s_roster_slots");
+  if(!el) return;
+
+  const size = currentSetupRosterSize();
+  const defaults = defaultRosterSlots(size);
+
+  if(!Array.isArray(setupRosterSlots)){
+    setupRosterSlots = defaults.slice();
+  }else{
+    setupRosterSlots = setupRosterSlots.slice(0,size);
+    while(setupRosterSlots.length < size){
+      setupRosterSlots.push(defaults[setupRosterSlots.length] || "BN");
+    }
+  }
+
+  el.innerHTML = setupRosterSlots.map((slot,i)=>`
+    <div class="roster-slot-picker">
+      <label for="s_rslot_${i}">Slot ${i+1}</label>
+      <select id="s_rslot_${i}" data-rslot-index="${i}">
+        ${rosterSlotOptions(slot)}
+      </select>
+    </div>
+  `).join("");
+
+  $("#s_roster_hint").textContent = rosterSetupHint();
+  const msg = $("#s_roster_msg");
+  msg.textContent = `${size} roster spot${size===1?"":"s"} · ${setupRosterCustom ? "custom positions" : "Yahoo-style default"}`;
+}
+
+function readSetupRosterSlots(){
+  return [...$("#s_roster_slots").querySelectorAll("select[data-rslot-index]")]
+    .map(el=>ROSTER_SLOT_KEYS.includes(el.value) ? el.value : "UTIL");
+}
+
+function resetSetupRosterToDefault(){
+  setupRosterCustom = false;
+  setupRosterSlots = defaultRosterSlots(currentSetupRosterSize());
+  paintRosterSlotGrid();
+}
 let firstRun = false;
 
 function openSet(){
   $("#s_teams").value = cfg.teams; $("#s_slot").value = cfg.slot;
   $("#s_size").value = cfg.size;   $("#s_aggr").value = cfg.aggr;
+  setupRosterCustom = rosterPositionsCustomized();
+  setupRosterSlots = setupRosterCustom
+    ? sanitizeRosterSlotList(cfg.rosterSlots, cfg.size)
+    : defaultRosterSlots(cfg.size);
   paintCatGrid();
   paintNameGrid();
+  paintRosterSlotGrid();
   $("#s_intro").style.display = firstRun ? "" : "none";
   const catDetails = $("#catweightsdetails");
   if(catDetails) catDetails.open = false;
+  const rosterDetails = $("#rosterpositionsdetails");
+  if(rosterDetails) rosterDetails.open = false;
   $("#s_save").textContent = firstRun ? "Save and continue" : (picks.length ? "Save and reset picks" : "Save setup");
   $("#setmask").classList.add("on");
   setTimeout(()=>{ const f = $("#s_teams"); if(f && f.focus){ f.focus(); if(f.select) f.select(); } }, 30);
@@ -396,29 +463,62 @@ setupMask?.addEventListener("click", e=>{
   e.stopImmediatePropagation();
 }, true);
 
-document.querySelectorAll(".setup-num-btn").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    const input = document.getElementById(btn.dataset.stepTarget);
-    if(!input) return;
-    const dir = Number(btn.dataset.stepDir) || 1;
-    try{ dir > 0 ? input.stepUp() : input.stepDown(); }
-    catch(_e){ return; }
-    input.dispatchEvent(new Event("input", {bubbles:true}));
-    input.focus();
-  });
+document.addEventListener("click", e=>{
+  const btn = e.target.closest?.(".setup-num-btn");
+  if(!btn) return;
+  const input = document.getElementById(btn.dataset.stepTarget);
+  if(!input || input.readOnly) return;
+  const dir = Number(btn.dataset.stepDir) || 1;
+  try{ dir > 0 ? input.stepUp() : input.stepDown(); }
+  catch(_e){ return; }
+  input.dispatchEvent(new Event("input", {bubbles:true}));
+  input.focus();
 });
 
 $("#s_teams").addEventListener("input", paintNameGrid);
 $("#s_slot").addEventListener("input", paintNameGrid);
+$("#s_size").addEventListener("input", ()=>{
+  const size = currentSetupRosterSize();
+  if(setupRosterCustom){
+    const defaults = defaultRosterSlots(size);
+    setupRosterSlots = (setupRosterSlots || []).slice(0,size);
+    while(setupRosterSlots.length < size){
+      setupRosterSlots.push(defaults[setupRosterSlots.length] || "BN");
+    }
+  }else{
+    setupRosterSlots = defaultRosterSlots(size);
+  }
+  paintRosterSlotGrid();
+});
+$("#s_roster_slots").addEventListener("change", e=>{
+  if(!e.target.matches("select[data-rslot-index]")) return;
+  setupRosterCustom = true;
+  setupRosterSlots = readSetupRosterSlots();
+  $("#s_roster_hint").textContent = "Custom";
+  $("#s_roster_msg").textContent = `${setupRosterSlots.length} roster spots · custom positions`;
+});
+$("#s_roster_default").onclick = resetSetupRosterToDefault;
 $("#s_cats_std").onclick = ()=> setCatPreset({});
 $("#s_cats_8").onclick = ()=> setCatPreset({to:0});
 $("#s_save").onclick = ()=>{
-  const oldStructure = {teams:cfg.teams, slot:cfg.slot, size:cfg.size};
+  const oldStructure = {
+    teams:cfg.teams, slot:cfg.slot, size:cfg.size,
+    rosterSlots:JSON.stringify(cfg.rosterSlots || null)
+  };
+
   cfg.teams = Math.min(MAX_TEAMS, Math.max(MIN_TEAMS, +$("#s_teams").value || 12));
   cfg.slot  = Math.min(cfg.teams, Math.max(1, +$("#s_slot").value || 1));
   cfg.size  = Math.min(MAX_ROSTER_SPOTS, Math.max(MIN_ROSTER_SPOTS, +$("#s_size").value || 13));
+  setupRosterSlots = readSetupRosterSlots();
+  cfg.rosterSlots = setupRosterCustom
+    ? sanitizeRosterSlotList(setupRosterSlots, cfg.size)
+    : null;
   cfg.aggr  = Math.max(0, Math.min(10, +$("#s_aggr").value));
-  const structureChanged = oldStructure.teams !== cfg.teams || oldStructure.slot !== cfg.slot || oldStructure.size !== cfg.size;
+  const structureChanged =
+    oldStructure.teams !== cfg.teams ||
+    oldStructure.slot !== cfg.slot ||
+    oldStructure.size !== cfg.size ||
+    oldStructure.rosterSlots !== JSON.stringify(cfg.rosterSlots || null);
   cfg.names = [];
   [...$("#s_names").querySelectorAll("input[data-n]")].forEach(el=>{
     cfg.names[+el.dataset.n] = el.value.trim();

@@ -505,7 +505,7 @@ function renderLedger(state){
   }
 
   $("#ledgerkey").innerHTML = asTotals
-    ? `Combined projected per-game production of the roster \u2014 counting stats summed, percentages recombined by volume. Bar lengths always show the same category profile as Z mode, so toggling Z/Totals changes the numbers, not the shape of your roster. The right-hand figure is the rank among drafted teams.`
+    ? `Projected season production of the roster \u2014 counting stats use GP × per-game production; FG% and FT% recombine projected makes and attempts after weighting each player by GP. Bar lengths still show the same category profile as Z mode, so toggling Z/Totals changes the numbers, not the shape of your roster. The right-hand figure is the rank among drafted teams.`
     : ``;
 
   $("#ledgernote").textContent = isMine
@@ -669,6 +669,21 @@ function renderBoard(state){
 
   const key = sortKey;
   const showRisk = teamOnClock(picks.length) === myTeamIdx();
+
+  /* Risk dots describe player availability, not the active table sort.
+     Work out the same "top 15 by Fit" group first, then let the user sort by
+     ADP, rank, rebounds, etc. without making those warnings disappear. */
+  const riskEligibleIds = new Set(
+    [...list].sort((a,b)=>{
+      if((a.rosterFit === false || b.rosterFit === false) && a.rosterFit !== b.rosterFit)
+        return a.rosterFit === false ? 1 : -1;
+      const av = sortVal(a,"fit",mode), bv = sortVal(b,"fit",mode);
+      const ab = !isFinite(av), bb = !isFinite(bv);
+      if(ab || bb) return ab && bb ? 0 : (ab ? 1 : -1);
+      return bv - av;
+    }).slice(0,15).map(p=>p.id)
+  );
+
   list = [...list].sort((a,b)=>{
     if(key === "fit" && (a.rosterFit === false || b.rosterFit === false) && a.rosterFit !== b.rosterFit)
       return a.rosterFit === false ? 1 : -1;
@@ -689,7 +704,7 @@ function renderBoard(state){
         "gone soon" dot on someone ranked 40th is noise — it's true (the market
         rates him higher than the projections do) but it isn't a decision you
         actually face.                                                        */
-    flagRisk: showRisk && p.risk > 0.6 && i < 15 && key === "fit",
+    flagRisk: showRisk && p.risk > 0.6 && riskEligibleIds.has(p.id),
     top: i === 0 && key === "fit"
   })).join("") || `<tr><td class="l" colspan="14" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
 
@@ -928,28 +943,22 @@ function renderRoster(state){
   $("#rosterhead").textContent = isMine ? "My Roster" : possessive(teamName(viewing)) + " Roster";
   $("#rostercount").textContent = `${r.length} / ${cfg.size}${r.length ? " · click player for stats" : ""}`;
 
-  /* Positional warnings become hard constraints once roster flexibility is gone. */
+  /* Position requirements stay quiet early and become explicit as the deadline
+     approaches. Hard legality is enforced separately in canFitRoster(). */
   const g = state.gaps;
-  const sig = `${g.missing.join(",")}|${g.eligibilityMissing.join(",")}|${g.openSlots.join(",")}|${g.eligibilityAlert}`;
-  const onlyRestricted = g.openSlots.length && !g.openSlots.some(s=>s==="UTIL"||s==="BN");
-  const needsAlert = g.eligibilityAlert || onlyRestricted || (g.missing.length && g.left > 0);
+  const sig = `${g.requiredOpenSlots.join(",")}|${g.openSlots.join(",")}|${g.hardDeadline}`;
+  const needsAlert = g.requiredOpenCount > 0 && (g.hardDeadline || g.left <= 5);
   // Positional warnings are actionable only on our pick. On another team's
   // clock, do not imply that our open slots restrict which player can be logged.
   const show = isMine && state.enforceRosterFit && needsAlert && ui.gapHidden !== sig;
   const gn = $("#rgap");
   gn.style.display = show ? "" : "none";
   if(show){
-    const hard = g.eligibilityAlert || (onlyRestricted && g.openSlots.length <= 3);
-    gn.className = "rgap " + (hard ? "hot" : g.urgency > 0.34 ? "warm" : "");
-    let msg;
-    if(g.eligibilityAlert){
-      const missingText = g.eligibilityMissing.join(" / ");
-      msg = `<b>ROSTER ALERT — YOUR ROSTER HAS NO ${missingText} ELIGIBILITY.</b> You are already 5+ picks in. Prioritize adding ${missingText} eligibility before the roster gets harder to balance.`;
-    } else if(onlyRestricted){
-      msg = `<b>ROSTER SLOTS ARE TIGHT.</b> Your open slots are ${g.openSlots.join(", ")}. The board will only recommend players who can legally fit one of them.`;
-    } else {
-      msg = `No ${g.missing.join(", ")} yet · ${g.left} pick${g.left===1?"":"s"} left. ${g.urgency > 0.34 ? `Worth covering soon.` : `You still have flexibility, but keep an eye on positional balance.`}`;
-    }
+    gn.className = "rgap " + (g.hardDeadline ? "hot" : "warm");
+    const needs = g.requiredOpenLabels.join(", ");
+    const msg = g.hardDeadline
+      ? `<b>ROSTER DEADLINE — ${needs} still required.</b> You have ${g.left} pick${g.left===1?"":"s"} left, so every remaining pick must keep a legal roster possible.`
+      : `<b>ROSTER NEEDS — ${needs}.</b> ${g.left} picks left. Fit now gives a small boost to players who cover these slots.`;
     gn.innerHTML = `<span>${msg}</span><button class="dismiss" id="gapx" title="Dismiss">&times;</button>`;
     $("#gapx").onclick = ()=>{ ui.gapHidden = sig; render(); };
   }

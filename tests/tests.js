@@ -19,7 +19,7 @@ function approx(actual, expected, eps=1e-9, message=""){
 }
 
 function player(pos, overrides={}){
-  return {pos:Array.isArray(pos)?pos:[pos], fgm:0,fga:0,ftm:0,fta:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0, ...overrides};
+  return {pos:Array.isArray(pos)?pos:[pos], gp:1, fgm:0,fga:0,ftm:0,fta:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0, ...overrides};
 }
 
 function registerTests(w){
@@ -49,6 +49,29 @@ function registerTests(w){
     ];
     const t = w.teamTotals(roster);
     equal(t.pts,48); equal(t.reb,15); equal(t.ast,10); equal(t.tpm,4); equal(t.to,6);
+  });
+
+  test("Projected season counting totals multiply each player by GP", ()=>{
+    const roster = [
+      player("PG", {gp:10,pts:20,reb:4,ast:7,tpm:3,to:4}),
+      player("C",  {gp:5, pts:10,reb:8,ast:2,tpm:1,to:2})
+    ];
+    const t = w.teamTotals(roster);
+    equal(t.pts,250);
+    equal(t.reb,80);
+    equal(t.ast,80);
+    equal(t.tpm,35);
+    equal(t.to,50);
+  });
+
+  test("Projected FG% and FT% weight shooting volume by GP", ()=>{
+    const roster = [
+      player("SG", {gp:10,fgm:5,fga:10,ftm:8,fta:10}),
+      player("SF", {gp:5, fgm:9,fga:10,ftm:9,fta:10})
+    ];
+    const t = w.teamTotals(roster);
+    approx(w.catTotal(t,"fg"), 95/150);
+    approx(w.catTotal(t,"ft"), 125/150);
   });
 
   test("H2H percentage comparison is symmetric", ()=>{
@@ -81,38 +104,59 @@ function registerTests(w){
     }
   });
 
-  test("Roster slot matcher accepts a legal PG/SG/SF/PF/C five-man roster", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("Default 5-player roster is PG, SG, SF, PF, C", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 5");
-      const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
-      equal(w.assignSlots(roster).unplaced.length,0);
+      w.eval("cfg.size=5; cfg.rosterSlots=null");
+      equal(JSON.stringify(w.expandRosterSlots()),
+        JSON.stringify(["PG","SG","SF","PF","C"]));
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
-  test("Roster slot matcher rejects a five-man roster with no C when C is required", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("Default 13-player roster uses the standard Yahoo-style slot mix", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 5");
-      const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("PG")];
-      equal(w.assignSlots(roster).unplaced.length,1);
+      w.eval("cfg.size=13; cfg.rosterSlots=null");
+      equal(JSON.stringify(w.expandRosterSlots()),
+        JSON.stringify(["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL","BN","BN","BN"]));
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
-  test("After 5 players, missing standard-position eligibility triggers a roster alert", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("Default rosters above 13 add extra bench spots", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 13");
-      const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("PG")];
-      const gaps = w.rosterGaps(roster);
-      assert(gaps.eligibilityAlert, "Expected eligibility alert after five drafted players");
-      assert(gaps.eligibilityMissing.includes("C"), "Expected C to be reported missing");
+      w.eval("cfg.size=15; cfg.rosterSlots=null");
+      const slots = w.expandRosterSlots();
+      equal(slots.filter(s=>s==="C").length,2);
+      equal(slots.filter(s=>s==="BN").length,5);
+      equal(slots.length,15);
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Every roster spot can be customized to C", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval(`cfg.size=5; cfg.rosterSlots=["C","C","C","C","C"]`);
+      equal(JSON.stringify(w.expandRosterSlots()),
+        JSON.stringify(["C","C","C","C","C"]));
+      equal(w.assignSlots([player("C"),player("C"),player("C"),player("C"),player("C")]).unplaced.length,0);
+      assert(!w.canFitRoster([], player("PG")), "A pure PG should not fit an all-C custom roster");
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
@@ -185,20 +229,36 @@ function registerTests(w){
     assert(!w.slotEligible("F", player("SG")), "F should not accept SG");
   });
 
-  test("A centre cannot fit when the only remaining slot is G", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("A centre cannot fit when a custom roster's only remaining slot is G", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 6"); // PG, SG, SF, PF, C, G
+      w.eval(`cfg.rosterSlots=["PG","SG","G","SF","PF","C"]; cfg.size=6`);
       const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
-      assert(!w.canFitRoster(roster, player("C")), "A second pure C should not fit into the remaining G slot");
-      assert(w.canFitRoster(roster, player("PG")), "A PG should fit into the remaining G slot");
+      assert(!w.canFitRoster(roster,player("C")), "A second pure C should not fit into the remaining G slot");
+      assert(w.canFitRoster(roster,player("PG")), "A PG should fit into the remaining G slot");
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Late draft legality prevents skipping two required C slots", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval(`cfg.rosterSlots=["PG","SG","SF","C","C"]; cfg.size=5`);
+      const roster = [player("PG"),player("SG"),player("SF")];
+      assert(!w.canFitRoster(roster,player("PG")), "Guard should be blocked when both remaining picks must be C");
+      assert(w.canFitRoster(roster,player("C")), "C should keep a legal finish possible");
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
   test("Roster legality is enforced on my turn", ()=>{
-    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size")};
+    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), rosterSlots:w.eval("cfg.rosterSlots")};
     const oldPool = w.eval("pool");
     const oldPicks = w.eval("picks");
     const oldLocks = w.eval("locks");
@@ -217,21 +277,21 @@ function registerTests(w){
         {playerId:5,teamIdx:0,overall:4}, {playerId:null,teamIdx:2,overall:5},
         {playerId:null,teamIdx:1,overall:6}
       ];
-      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {};
-      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks");
+      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {}; w.__oldRosterSlots = oldCfg.rosterSlots;
+      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots=["PG","SG","G","SF","PF","C"]; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
       const state = w.evaluate();
       assert(state.enforceRosterFit, "Roster fit should be enforced when our team is on the clock");
       const wemby = state.avail.find(p=>p.id===6);
       assert(wemby && wemby.rosterFit === false, "Pure C should be unavailable when our only open slot is G");
     } finally {
       w.__oldPool = oldPool; w.__oldPicks = oldPicks; w.__oldLocks = oldLocks;
-      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
-      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; cfg.rosterSlots=window.__oldRosterSlots; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks; delete w.__oldRosterSlots;
     }
   });
 
   test("My roster slots do not block an opponent's pick", ()=>{
-    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size")};
+    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), rosterSlots:w.eval("cfg.rosterSlots")};
     const oldPool = w.eval("pool");
     const oldPicks = w.eval("picks");
     const oldLocks = w.eval("locks");
@@ -248,16 +308,16 @@ function registerTests(w){
         {playerId:3,teamIdx:0,overall:2}, {playerId:4,teamIdx:0,overall:3},
         {playerId:5,teamIdx:0,overall:4}, {playerId:null,teamIdx:2,overall:5}
       ];
-      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {};
-      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks");
+      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {}; w.__oldRosterSlots = oldCfg.rosterSlots;
+      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots=["PG","SG","G","SF","PF","C"]; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
       const state = w.evaluate();
       assert(!state.enforceRosterFit, "Our roster fit should not be enforced on another team's pick");
       const wemby = state.avail.find(p=>p.id===6);
       assert(wemby && wemby.rosterFit === true, "Wemby must stay selectable for the opponent even though he cannot fit our G-only opening");
     } finally {
       w.__oldPool = oldPool; w.__oldPicks = oldPicks; w.__oldLocks = oldLocks;
-      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
-      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; cfg.rosterSlots=window.__oldRosterSlots; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks; delete w.__oldRosterSlots;
     }
   });
 
@@ -800,8 +860,25 @@ function registerTests(w){
     const meta = w.eval("PROJECTION_DATASET_META");
     equal(meta.kind, "bundled");
     equal(meta.season, "2026-27");
-    equal(meta.updated, "2026-08-24");
+    equal(meta.updated, "2026-08-27");
     equal(meta.label, "2026–27 Projections");
+  });
+
+  test("Bundled Yahoo refresh uses Aug 27 GP, ADP and season-derived rates", ()=>{
+    const current = w.eval("dedupe(parsePool(RAW))");
+    const byName = new Map(current.map(p=>[p.name,p]));
+    const wemby = byName.get("Victor Wembanyama");
+    const jokic = byName.get("Nikola Jokic");
+    assert(wemby && jokic, "Expected Wembanyama and Jokic in refreshed projections");
+    approx(wemby.adp, 2.3);
+    equal(wemby.gp, 68);
+    approx(wemby.pts * wemby.gp, 1750, 0.01);
+    approx(wemby.blk * wemby.gp, 230, 0.01);
+    approx(wemby.fgm / wemby.fga, .519, 0.00005);
+    approx(jokic.adp, 4.1);
+    approx(jokic.pts * jokic.gp, 1975, 0.01);
+    approx(jokic.ast * jokic.gp, 717, 0.01);
+    approx(jokic.fgm / jokic.fga, .573, 0.00005);
   });
 
   test("Historical dataset exposes source and data-through metadata", ()=>{
@@ -814,7 +891,7 @@ function registerTests(w){
 
   test("Bundled projection summary includes label, player count and updated date", ()=>{
     const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 500))");
-    equal(summary, "2026–27 Projections · 500 players · Updated Aug 24, 2026");
+    equal(summary, "2026–27 Projections · 500 players · Updated Aug 27, 2026");
   });
 
   test("Custom projection imports are clearly distinguished from bundled data", ()=>{
@@ -959,6 +1036,55 @@ function registerTests(w){
   });
 
 
+  test("Roster positions render one dropdown per roster spot", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval("cfg.size=5; cfg.rosterSlots=null; openSet()");
+      const selects = [...w.document.querySelectorAll('#s_roster_slots select[data-rslot-index]')];
+      equal(selects.length,5,"Expected exactly five position dropdowns");
+      equal(JSON.stringify(selects.map(x=>x.value)),
+        JSON.stringify(["PG","SG","SF","PF","C"]));
+
+      selects.forEach(s=>{
+        s.value="C";
+        s.dispatchEvent(new Event("change",{bubbles:true}));
+      });
+      equal(+w.document.getElementById("s_size").value,5,
+        "Changing positions must not change Roster spots");
+      equal(JSON.stringify([...w.document.querySelectorAll('#s_roster_slots select')].map(x=>x.value)),
+        JSON.stringify(["C","C","C","C","C"]));
+
+      w.document.getElementById("s_roster_default").click();
+      equal(JSON.stringify([...w.document.querySelectorAll('#s_roster_slots select')].map(x=>x.value)),
+        JSON.stringify(["PG","SG","SF","PF","C"]),
+        "Reset to Default should restore the default five slots");
+      w.document.getElementById("s_close").click();
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Changing Roster spots changes the number of position dropdowns", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval("cfg.size=5; cfg.rosterSlots=null; openSet()");
+      const input = w.document.getElementById("s_size");
+      input.value=6;
+      input.dispatchEvent(new Event("input",{bubbles:true}));
+      const selects=[...w.document.querySelectorAll('#s_roster_slots select[data-rslot-index]')];
+      equal(selects.length,6);
+      equal(JSON.stringify(selects.map(x=>x.value)),
+        JSON.stringify(["PG","SG","G","SF","PF","C"]));
+      w.document.getElementById("s_close").click();
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
   test("League setup caps team count at 24 before rendering team-name fields", ()=>{
     const teams = w.document.getElementById("s_teams");
     const slot = w.document.getElementById("s_slot");
@@ -976,18 +1102,31 @@ function registerTests(w){
     }
   });
 
-  test("Loaded league settings sanitize oversized team and roster counts", ()=>{
-    const old = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), names:w.eval("cfg.names")};
+  test("V1 roster-position count objects migrate to slot lists", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.__oldNames = old.names;
-      w.eval("cfg.teams=5000000; cfg.slot=5000000; cfg.size=5000000; cfg.names=Array.from({length:30},(_,i)=>'T'+i); normalizeCfgAfterLoad()");
+      w.eval(`cfg.size=5; cfg.rosterSlots={PG:0,SG:0,G:0,SF:0,PF:0,F:0,C:5,UTIL:0,BN:0}; normalizeCfgAfterLoad()`);
+      equal(JSON.stringify(w.eval("cfg.rosterSlots")),
+        JSON.stringify(["C","C","C","C","C"]));
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Loaded league settings sanitize oversized team and roster counts", ()=>{
+    const old = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), names:w.eval("cfg.names"), rosterSlots:w.eval("cfg.rosterSlots")};
+    try{
+      w.__oldNames = old.names; w.__oldRosterSlots = old.rosterSlots;
+      w.eval("cfg.rosterSlots=null; cfg.teams=5000000; cfg.slot=5000000; cfg.size=5000000; cfg.names=Array.from({length:30},(_,i)=>'T'+i); normalizeCfgAfterLoad()");
       equal(w.eval("cfg.teams"), 24);
       equal(w.eval("cfg.slot"), 24);
       equal(w.eval("cfg.size"), 20);
       equal(w.eval("cfg.names.length"), 24);
     } finally {
-      w.eval(`cfg.teams=${old.teams}; cfg.slot=${old.slot}; cfg.size=${old.size}; cfg.names=window.__oldNames`);
-      delete w.__oldNames;
+      w.eval(`cfg.teams=${old.teams}; cfg.slot=${old.slot}; cfg.size=${old.size}; cfg.names=window.__oldNames; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldNames; delete w.__oldRosterSlots;
     }
   });
 
@@ -1131,6 +1270,7 @@ function registerTests(w){
     equal(w.document.getElementById("share_download").textContent.trim(), "Download card");
     equal(w.document.getElementById("share_copy").textContent.trim(), "Copy share");
     assert(w.document.getElementById("share_close"), "Expected explicit share-card close control");
+    equal(w.document.getElementById("share_close_reset").textContent.trim(), "Close and reset draft");
   });
 
   test("Draft share popup ignores backdrop clicks and Escape", ()=>{
@@ -1143,6 +1283,29 @@ function registerTests(w){
     assert(mask.classList.contains("on"), "Escape should not close Draft Share");
     close.click();
     assert(!mask.classList.contains("on"), "Explicit close button should close Draft Share");
+  });
+
+  test("Close and reset draft clears picks and closes the share popup", ()=>{
+    const mask = w.document.getElementById("sharemask");
+    const old = {
+      teams:w.eval("cfg.teams"),
+      size:w.eval("cfg.size"),
+      slot:w.eval("cfg.slot"),
+      picks:w.eval("picks")
+    };
+    w.__shareResetOldPicks = old.picks;
+    try{
+      w.eval(`cfg.teams=4; cfg.size=5; cfg.slot=1; picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      mask.classList.add("on");
+      assert(typeof w.ninecatCloseAndResetDraftShare === "function", "Expected reset action to be exported");
+      w.document.getElementById("share_close_reset").click();
+      equal(w.eval("picks.length"), 0, "Expected Close and reset draft to clear all picks");
+      assert(!mask.classList.contains("on"), "Expected Close and reset draft to close the popup");
+    } finally {
+      w.eval(`cfg.teams=${old.teams}; cfg.size=${old.size}; cfg.slot=${old.slot}; picks=window.__shareResetOldPicks;`);
+      delete w.__shareResetOldPicks;
+      w.render();
+    }
   });
 
   test("Draft share auto-opens once per completion cycle", async ()=>{
@@ -1180,6 +1343,52 @@ function registerTests(w){
       delete w.__shareCycleOldPicks;
       // Re-arm the production completion detector for the restored test state.
       w.ninecatMaybeShowDraftShare();
+    }
+  });
+
+  test("Run-risk dots persist when the board is sorted by another column", ()=>{
+    const oldQ = w.document.getElementById("q").value;
+    const oldPos = w.eval("posFilter");
+    const oldSort = w.eval("sortKey");
+    const oldDir = w.eval("sortDir");
+    const oldCfg = {
+      teams:w.eval("cfg.teams"),
+      size:w.eval("cfg.size"),
+      slot:w.eval("cfg.slot")
+    };
+    w.__riskDotOldPicks = w.eval("picks");
+    try{
+      w.document.getElementById("q").value = "";
+      w.eval('posFilter = "ALL"; sortKey = "adp"; sortDir = 1; cfg.teams=4; cfg.size=5; cfg.slot=1; picks=[];');
+      const result = w.eval(`(()=>{
+        const base = pool[0];
+        const mock = Array.from({length:20}, (_,i)=>({
+          ...base,
+          id:910000+i,
+          name:"Risk Sort Test "+i,
+          fitAdj:20-i,
+          fitDisplay:20-i,
+          total:20-i,
+          valRank:i+1,
+          adp:i+1,
+          rosterFit:true,
+          risk:i<3 ? 0.9 : 0
+        }));
+        renderBoard({avail:mock});
+        return {
+          dots:document.querySelectorAll("#board .risk-dot").length,
+          ids:[...document.querySelectorAll("#board tr[data-id] .risk-dot")].map(dot=>+dot.closest("tr").dataset.id)
+        };
+      })()`);
+      equal(result.dots, 3, "Expected the same three risk warnings after sorting by ADP");
+      assert(result.ids.includes(910000) && result.ids.includes(910001) && result.ids.includes(910002),
+        "Expected risk dots to stay attached to the Fit-eligible players");
+    } finally {
+      w.document.getElementById("q").value = oldQ;
+      w.eval(`posFilter=${JSON.stringify(oldPos)}; sortKey=${JSON.stringify(oldSort)}; sortDir=${oldDir};
+        cfg.teams=${oldCfg.teams}; cfg.size=${oldCfg.size}; cfg.slot=${oldCfg.slot}; picks=window.__riskDotOldPicks;`);
+      delete w.__riskDotOldPicks;
+      w.render();
     }
   });
 

@@ -1,14 +1,29 @@
 "use strict";
 
 /*
-  Matchup math lives here so team-v-team comparisons have one source of truth.
-  Counting categories are summed. FG% and FT% are recombined from total makes
-  and attempts, so higher-volume shooters have the correct influence.
+  Matchup math lives here so Team Profile, H2H and share grades all use the same
+  projected-season math.
+
+  Counting categories = GP × per-game rate.
+  FG% / FT% = total projected makes ÷ total projected attempts, with both makes
+  and attempts multiplied by GP. This gives availability/durability the correct
+  influence without ever averaging player percentages directly.
 */
+
+function projectedGames(p){
+  const gp = Number(p && p.gp);
+  if(Number.isFinite(gp)) return Math.max(0, gp);
+  // Custom imports may leave GP blank. Preserve a usable season projection
+  // instead of collapsing that player to zero when availability is unknown.
+  return 72;
+}
 
 function teamTotals(roster){
   const t = {fgm:0,fga:0,ftm:0,fta:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0};
-  roster.forEach(p=>{ for(const k in t) t[k] += p[k] || 0; });
+  roster.forEach(p=>{
+    const gp = projectedGames(p);
+    for(const k in t) t[k] += (Number(p && p[k]) || 0) * gp;
+  });
   return t;
 }
 
