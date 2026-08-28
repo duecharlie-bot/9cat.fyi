@@ -514,8 +514,26 @@ thead th.on .arw{opacity:1}
 }
 .setup-details-body{padding:0 12px 12px;border-top:1px solid var(--line-soft)}
 .setup-details-body > p{margin-top:10px}
+.roster-slot-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 10px;margin-top:12px
+}
+.roster-slot-fld label{font-size:10px}
+.roster-slot-total{
+  margin-top:12px;padding:9px 10px;border:1px solid var(--line-soft);border-radius:var(--r);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--dim);font-size:11px
+}
+.roster-slot-total>b{color:var(--chalk);font-family:"IBM Plex Mono",monospace;font-size:12px}
+#s_roster_msg{margin-left:auto;color:var(--dimmer)}
+#s_roster_msg.bad{color:var(--hot)}
+.setup-num.locked input{
+  color:var(--dim);background:color-mix(in srgb,var(--panel) 72%,var(--ink));cursor:not-allowed
+}
+.setup-num.locked .setup-num-controls{opacity:.3;pointer-events:none}
+
 
 @media (max-width:900px){
+  .roster-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
   .rec{height:auto;overflow:visible}
   .shell{grid-template-columns:1fr;height:auto}
   .col{height:auto;overflow:visible}
@@ -1012,9 +1030,23 @@ body::-webkit-scrollbar-corner,
 .share-card-foot{display:flex;justify-content:space-between;align-items:center;padding-top:14px;margin-top:14px;border-top:1px solid #36434F;font-size:9px;color:#7E8C9E}
 .share-card-foot b{font-family:"Saira Condensed",sans-serif;color:#D4A059;font-size:15px;letter-spacing:.04em}
 .share-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.share-actions .btn.danger{
+  margin-left:auto;
+  color:var(--hot);
+  border-color:color-mix(in srgb,var(--hot) 55%,var(--line));
+  background:color-mix(in srgb,var(--hot) 10%,var(--panel));
+}
+.share-actions .btn.danger:hover{
+  color:var(--chalk);
+  border-color:var(--hot);
+  background:color-mix(in srgb,var(--hot) 28%,var(--panel));
+}
+
 #sharedraft{color:var(--wood);font-weight:900}
 #sharedraft:hover{color:var(--chalk)}
 @media(max-width:700px){
+  .share-actions .btn.danger{margin-left:0}
+
   .share-modal{padding:16px}.share-card{padding:17px 16px 14px}.share-card-brand{align-items:flex-start}
   .share-brand-lockup{display:block}.share-brand-lockup>span{display:block;font-size:10px;margin-bottom:2px}.share-brand-lockup>b{font-size:23px}.share-card-brand>small{font-size:7px}
   .share-card-hero{grid-template-columns:1fr 1.4fr}.share-grade-block,.share-result-block{padding:11px 12px}.share-grade-block{display:block}.share-grade-block>span{display:block;margin-bottom:7px}.share-grade-block>strong{font-size:48px}

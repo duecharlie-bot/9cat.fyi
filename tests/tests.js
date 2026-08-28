@@ -104,38 +104,59 @@ function registerTests(w){
     }
   });
 
-  test("Roster slot matcher accepts a legal PG/SG/SF/PF/C five-man roster", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("Automatic 13-player roster uses the standard Yahoo-style slot mix", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 5");
-      const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
-      equal(w.assignSlots(roster).unplaced.length,0);
+      w.eval("cfg.size=13; cfg.rosterSlots=null");
+      equal(JSON.stringify(w.expandRosterSlots()),
+        JSON.stringify(["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL","BN","BN","BN"]));
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
-  test("Roster slot matcher rejects a five-man roster with no C when C is required", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("Automatic rosters above 13 add extra bench spots", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 5");
-      const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("PG")];
-      equal(w.assignSlots(roster).unplaced.length,1);
+      w.eval("cfg.size=15; cfg.rosterSlots=null");
+      const slots = w.expandRosterSlots();
+      equal(slots.filter(s=>s==="C").length,2);
+      equal(slots.filter(s=>s==="BN").length,5);
+      equal(slots.length,15);
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
-  test("After 5 players, missing standard-position eligibility triggers a roster alert", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("Automatic rosters under 13 are unrestricted", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 13");
-      const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("PG")];
-      const gaps = w.rosterGaps(roster);
-      assert(gaps.eligibilityAlert, "Expected eligibility alert after five drafted players");
-      assert(gaps.eligibilityMissing.includes("C"), "Expected C to be reported missing");
+      w.eval("cfg.size=5; cfg.rosterSlots=null");
+      equal(JSON.stringify(w.expandRosterSlots()), JSON.stringify(["UTIL","UTIL","UTIL","UTIL","UTIL"]));
+      equal(w.assignSlots([player("C"),player("C"),player("C"),player("C"),player("C")]).unplaced.length,0);
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Custom roster counts can require two centres", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval(`cfg.rosterSlots={PG:1,SG:1,G:0,SF:1,PF:1,F:0,C:2,UTIL:0,BN:0}; cfg.size=6`);
+      const oneC = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
+      const gaps = w.rosterGaps(oneC);
+      equal(gaps.requiredOpenSlots.filter(s=>s==="C").length,1);
+      assert(w.canFitRoster(oneC,player("C")), "Second C should satisfy the last required slot");
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
@@ -208,20 +229,36 @@ function registerTests(w){
     assert(!w.slotEligible("F", player("SG")), "F should not accept SG");
   });
 
-  test("A centre cannot fit when the only remaining slot is G", ()=>{
-    const oldSize = w.eval("cfg.size");
+  test("A centre cannot fit when a custom roster's only remaining slot is G", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
     try{
-      w.eval("cfg.size = 6"); // PG, SG, SF, PF, C, G
+      w.eval(`cfg.rosterSlots={PG:1,SG:1,G:1,SF:1,PF:1,F:0,C:1,UTIL:0,BN:0}; cfg.size=6`);
       const roster = [player("PG"),player("SG"),player("SF"),player("PF"),player("C")];
-      assert(!w.canFitRoster(roster, player("C")), "A second pure C should not fit into the remaining G slot");
-      assert(w.canFitRoster(roster, player("PG")), "A PG should fit into the remaining G slot");
+      assert(!w.canFitRoster(roster,player("C")), "A second pure C should not fit into the remaining G slot");
+      assert(w.canFitRoster(roster,player("PG")), "A PG should fit into the remaining G slot");
     } finally {
-      w.eval(`cfg.size = ${oldSize}`);
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
+  test("Late draft legality prevents skipping two required C slots", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval(`cfg.rosterSlots={PG:1,SG:1,G:0,SF:1,PF:0,F:0,C:2,UTIL:0,BN:0}; cfg.size=5`);
+      const roster = [player("PG"),player("SG"),player("SF")];
+      assert(!w.canFitRoster(roster,player("PG")), "Guard should be blocked when both remaining picks must be C");
+      assert(w.canFitRoster(roster,player("C")), "C should keep a legal finish possible");
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
     }
   });
 
   test("Roster legality is enforced on my turn", ()=>{
-    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size")};
+    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), rosterSlots:w.eval("cfg.rosterSlots")};
     const oldPool = w.eval("pool");
     const oldPicks = w.eval("picks");
     const oldLocks = w.eval("locks");
@@ -240,21 +277,21 @@ function registerTests(w){
         {playerId:5,teamIdx:0,overall:4}, {playerId:null,teamIdx:2,overall:5},
         {playerId:null,teamIdx:1,overall:6}
       ];
-      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {};
-      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks");
+      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {}; w.__oldRosterSlots = oldCfg.rosterSlots;
+      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots={PG:1,SG:1,G:1,SF:1,PF:1,F:0,C:1,UTIL:0,BN:0}; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
       const state = w.evaluate();
       assert(state.enforceRosterFit, "Roster fit should be enforced when our team is on the clock");
       const wemby = state.avail.find(p=>p.id===6);
       assert(wemby && wemby.rosterFit === false, "Pure C should be unavailable when our only open slot is G");
     } finally {
       w.__oldPool = oldPool; w.__oldPicks = oldPicks; w.__oldLocks = oldLocks;
-      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
-      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; cfg.rosterSlots=window.__oldRosterSlots; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks; delete w.__oldRosterSlots;
     }
   });
 
   test("My roster slots do not block an opponent's pick", ()=>{
-    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size")};
+    const oldCfg = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), rosterSlots:w.eval("cfg.rosterSlots")};
     const oldPool = w.eval("pool");
     const oldPicks = w.eval("picks");
     const oldLocks = w.eval("locks");
@@ -271,16 +308,16 @@ function registerTests(w){
         {playerId:3,teamIdx:0,overall:2}, {playerId:4,teamIdx:0,overall:3},
         {playerId:5,teamIdx:0,overall:4}, {playerId:null,teamIdx:2,overall:5}
       ];
-      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {};
-      w.eval("cfg.teams=4; cfg.slot=1; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks");
+      w.__testPool = testPool; w.__testPicks = testPicks; w.__testLocks = {}; w.__oldRosterSlots = oldCfg.rosterSlots;
+      w.eval(`cfg.teams=4; cfg.slot=1; cfg.rosterSlots={PG:1,SG:1,G:1,SF:1,PF:1,F:0,C:1,UTIL:0,BN:0}; cfg.size=6; pool=window.__testPool; picks=window.__testPicks; locks=window.__testLocks`);
       const state = w.evaluate();
       assert(!state.enforceRosterFit, "Our roster fit should not be enforced on another team's pick");
       const wemby = state.avail.find(p=>p.id===6);
       assert(wemby && wemby.rosterFit === true, "Wemby must stay selectable for the opponent even though he cannot fit our G-only opening");
     } finally {
       w.__oldPool = oldPool; w.__oldPicks = oldPicks; w.__oldLocks = oldLocks;
-      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
-      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks;
+      w.eval(`cfg.teams=${oldCfg.teams}; cfg.slot=${oldCfg.slot}; cfg.size=${oldCfg.size}; cfg.rosterSlots=window.__oldRosterSlots; pool=window.__oldPool; picks=window.__oldPicks; locks=window.__oldLocks`);
+      delete w.__testPool; delete w.__testPicks; delete w.__testLocks; delete w.__oldPool; delete w.__oldPicks; delete w.__oldLocks; delete w.__oldRosterSlots;
     }
   });
 
@@ -999,6 +1036,26 @@ function registerTests(w){
   });
 
 
+  test("Custom roster-position counts drive roster size in League Setup", ()=>{
+    const oldSize = w.eval("cfg.size"), oldSlots = w.eval("cfg.rosterSlots");
+    w.__oldRosterSlots = oldSlots;
+    try{
+      w.eval("cfg.size=13; cfg.rosterSlots=null; openSet()");
+      const c = w.document.querySelector('#s_roster_slots input[data-rslot="C"]');
+      const bn = w.document.querySelector('#s_roster_slots input[data-rslot="BN"]');
+      equal(+c.value,2,"Standard setup should start with two C slots");
+      equal(+bn.value,3,"Standard 13-player setup should start with three BN slots");
+      c.value = 3;
+      c.dispatchEvent(new Event("input",{bubbles:true}));
+      equal(+w.document.getElementById("s_size").value,14,"Changing a slot count should update roster spots");
+      assert(w.document.getElementById("s_size").readOnly,"Roster spots should lock while custom counts are active");
+      w.document.getElementById("s_close").click();
+    } finally {
+      w.eval(`cfg.size=${oldSize}; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldRosterSlots;
+    }
+  });
+
   test("League setup caps team count at 24 before rendering team-name fields", ()=>{
     const teams = w.document.getElementById("s_teams");
     const slot = w.document.getElementById("s_slot");
@@ -1017,17 +1074,17 @@ function registerTests(w){
   });
 
   test("Loaded league settings sanitize oversized team and roster counts", ()=>{
-    const old = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), names:w.eval("cfg.names")};
+    const old = {teams:w.eval("cfg.teams"), slot:w.eval("cfg.slot"), size:w.eval("cfg.size"), names:w.eval("cfg.names"), rosterSlots:w.eval("cfg.rosterSlots")};
     try{
-      w.__oldNames = old.names;
-      w.eval("cfg.teams=5000000; cfg.slot=5000000; cfg.size=5000000; cfg.names=Array.from({length:30},(_,i)=>'T'+i); normalizeCfgAfterLoad()");
+      w.__oldNames = old.names; w.__oldRosterSlots = old.rosterSlots;
+      w.eval("cfg.rosterSlots=null; cfg.teams=5000000; cfg.slot=5000000; cfg.size=5000000; cfg.names=Array.from({length:30},(_,i)=>'T'+i); normalizeCfgAfterLoad()");
       equal(w.eval("cfg.teams"), 24);
       equal(w.eval("cfg.slot"), 24);
       equal(w.eval("cfg.size"), 20);
       equal(w.eval("cfg.names.length"), 24);
     } finally {
-      w.eval(`cfg.teams=${old.teams}; cfg.slot=${old.slot}; cfg.size=${old.size}; cfg.names=window.__oldNames`);
-      delete w.__oldNames;
+      w.eval(`cfg.teams=${old.teams}; cfg.slot=${old.slot}; cfg.size=${old.size}; cfg.names=window.__oldNames; cfg.rosterSlots=window.__oldRosterSlots`);
+      delete w.__oldNames; delete w.__oldRosterSlots;
     }
   });
 

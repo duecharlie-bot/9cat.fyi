@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=share-close-reset-1">
+<link rel="stylesheet" href="styles.css?v=roster-positions-v1">
 </head>
 <body data-theme="arena">
 
@@ -153,6 +153,23 @@
       <div class="fld"><label>Punt aggression (0–10)</label><div class="setup-num"><input type="number" id="s_aggr" min="0" max="10" step="1"><span class="setup-num-controls" aria-hidden="false"><button type="button" class="setup-num-btn" data-step-target="s_aggr" data-step-dir="1" aria-label="Increase punt aggression">▲</button><button type="button" class="setup-num-btn" data-step-target="s_aggr" data-step-dir="-1" aria-label="Decrease punt aggression">▼</button></span></div></div>
     </div>
     <p style="margin-bottom:16px"><b style="color:var(--chalk)">Punt aggression</b> controls how quickly the engine recommends punting a category. <b style="color:var(--chalk)">0</b> means it will never recommend a punt; <b style="color:var(--chalk)">10</b> means it will recommend one as soon as a category starts to slip. <b style="color:var(--chalk)">5</b> is a balanced default.</p>
+
+    <details class="setup-details" id="rosterpositionsdetails">
+      <summary>
+        <span>Roster positions</span>
+        <span class="setup-details-hint" id="s_roster_hint">Standard Yahoo-style</span>
+      </summary>
+      <div class="setup-details-body">
+        <p>For 13+ roster spots, nineCat defaults to <b style="color:var(--chalk)">PG, SG, G, SF, PF, F, C, C, UTIL, UTIL</b> plus bench spots. Extra roster spots become bench spots. Customize any count below if your league is different.</p>
+        <div class="roster-slot-grid" id="s_roster_slots"></div>
+        <div class="roster-slot-total">
+          <span>Total roster spots</span>
+          <b id="s_roster_total">13</b>
+          <span id="s_roster_msg"></span>
+        </div>
+        <button class="mini" id="s_roster_default" type="button" style="display:inline-block">Use default</button>
+      </div>
+    </details>
     <h3 class="modal-subhead">Team names <span class="subhead-optional">optional</span></h3>
     <p>Leave blank for "Team 1", "Team 2" and so on. Your own slot is highlighted.</p>
     <div class="namegrid" id="s_names"></div>
@@ -358,13 +375,13 @@
 <script src="data/player-name-rules.js"></script>
 <script src="js/projections.js"></script>
 <script src="js/matchup.js?v=gp-season-totals-1"></script>
-<script src="js/roster.js"></script>
+<script src="js/roster.js?v=roster-positions-v1"></script>
 <script src="js/draft.js?v=ga4-minimal-1"></script>
 <script src="js/punts.js"></script>
-<script src="js/recommendations.js?v=fit-market"></script>
-<script src="js/storage.js"></script>
-<script src="js/ui.js?v=gp-season-totals-1"></script>
+<script src="js/recommendations.js?v=roster-positions-v1"></script>
+<script src="js/storage.js?v=roster-positions-v1"></script>
+<script src="js/ui.js?v=roster-positions-v1"></script>
 <script src="js/share.js?v=share-close-reset-clickfix-1"></script>
-<script src="js/app.js?v=league-setup-lock-2"></script>
+<script src="js/app.js?v=roster-positions-v1"></script>
 </body>
 </html>
