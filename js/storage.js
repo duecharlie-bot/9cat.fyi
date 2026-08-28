@@ -18,12 +18,9 @@ function normalizeCfgAfterLoad(){
   cfg.teams = Math.min(MAX_TEAMS, Math.max(MIN_TEAMS, Math.trunc(Number(cfg.teams) || 12)));
   cfg.slot = Math.min(cfg.teams, Math.max(1, Math.trunc(Number(cfg.slot) || 1)));
   cfg.size = Math.min(MAX_ROSTER_SPOTS, Math.max(MIN_ROSTER_SPOTS, Math.trunc(Number(cfg.size) || 13)));
-  // Missing/malformed rosterSlots migrates to automatic behavior.
-  const customRosterSlots = sanitizeRosterSlotCounts(cfg.rosterSlots);
-  cfg.rosterSlots = customRosterSlots;
-  if(customRosterSlots){
-    cfg.size = ROSTER_SLOT_KEYS.reduce((s,k)=>s+customRosterSlots[k],0);
-  }
+  // Migrate v1 count objects and normalize v2 ordered slot arrays.
+  // Roster spots remains authoritative; the slot list is always forced to match it.
+  cfg.rosterSlots = sanitizeRosterSlotList(cfg.rosterSlots, cfg.size);
   if(!Array.isArray(cfg.names)) cfg.names = [];
   else cfg.names = cfg.names.slice(0, cfg.teams);
   // Migrate the old default TO weight back to the current standard 9-cat default.

@@ -3,66 +3,89 @@
 /* ============================================================
    ROSTER ELIGIBILITY & SLOT ASSIGNMENT
 
-   Automatic 13-slot default:
-   PG, SG, G, SF, PF, F, C, C, UTIL, UTIL, BN, BN, BN
+   cfg.rosterSlots:
+   - null => use the default slot list for cfg.size
+   - array => custom ordered list, one value per roster spot
 
-   - 13+ spots: extra spots become BN.
-   - <13 spots: unrestricted (all UTIL) unless explicitly customized.
-   - cfg.rosterSlots = null means automatic; otherwise it is a count object.
+   The default is Yahoo-style. For a 5-player roster that means:
+   PG, SG, SF, PF, C
+
+   Standard 13-player roster:
+   PG, SG, G, SF, PF, F, C, C, UTIL, UTIL, BN, BN, BN
    ============================================================ */
 
 const ROSTER_SLOT_KEYS = ["PG","SG","G","SF","PF","F","C","UTIL","BN"];
-const STANDARD_13_ROSTER = Object.freeze({
-  PG:1, SG:1, G:1, SF:1, PF:1, F:1, C:2, UTIL:2, BN:3
+
+const DEFAULT_ROSTER_BY_SIZE = Object.freeze({
+  5:  ["PG","SG","SF","PF","C"],
+  6:  ["PG","SG","G","SF","PF","C"],
+  7:  ["PG","SG","G","SF","PF","F","C"],
+  8:  ["PG","SG","G","SF","PF","F","C","C"],
+  9:  ["PG","SG","G","SF","PF","F","C","C","UTIL"],
+  10: ["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL"],
+  11: ["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL","BN"],
+  12: ["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL","BN","BN"],
+  13: ["PG","SG","G","SF","PF","F","C","C","UTIL","UTIL","BN","BN","BN"]
 });
 
-function blankRosterSlotCounts(){
-  return Object.fromEntries(ROSTER_SLOT_KEYS.map(k=>[k,0]));
-}
-
-function sanitizeRosterSlotCounts(raw){
-  if(!raw || typeof raw !== "object") return null;
-  const out = blankRosterSlotCounts();
-  ROSTER_SLOT_KEYS.forEach(k=>{
-    const n = Math.trunc(Number(raw[k]));
-    out[k] = Number.isFinite(n) ? Math.max(0, Math.min(MAX_ROSTER_SPOTS, n)) : 0;
-  });
-  const total = ROSTER_SLOT_KEYS.reduce((s,k)=>s+out[k],0);
-  return total >= MIN_ROSTER_SPOTS && total <= MAX_ROSTER_SPOTS ? out : null;
-}
-
-function automaticRosterSlotCounts(size=cfg.size){
+function defaultRosterSlots(size=cfg.size){
   const n = Math.max(MIN_ROSTER_SPOTS,
     Math.min(MAX_ROSTER_SPOTS, Math.trunc(Number(size)||13)));
-  if(n < 13){
-    const out = blankRosterSlotCounts();
-    out.UTIL = n;
-    return out;
-  }
-  const out = {...STANDARD_13_ROSTER};
-  out.BN += n - 13;
-  return out;
+
+  if(DEFAULT_ROSTER_BY_SIZE[n]) return DEFAULT_ROSTER_BY_SIZE[n].slice();
+
+  const base = DEFAULT_ROSTER_BY_SIZE[13].slice();
+  while(base.length < n) base.push("BN");
+  return base.slice(0,n);
 }
 
-function activeRosterSlotCounts(){
-  return sanitizeRosterSlotCounts(cfg.rosterSlots) || automaticRosterSlotCounts(cfg.size);
-}
-
-function expandRosterSlots(counts=activeRosterSlotCounts()){
-  const slots = [];
+/* V1 stored a count object (e.g. {PG:1,C:2,...}). Accept it once and migrate
+   it to the new slot-by-slot list. */
+function countObjectToSlotList(raw){
+  if(!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out = [];
   ROSTER_SLOT_KEYS.forEach(k=>{
-    for(let i=0;i<(counts[k]||0);i++) slots.push(k);
+    const n = Math.max(0, Math.min(MAX_ROSTER_SPOTS, Math.trunc(Number(raw[k])||0)));
+    for(let i=0;i<n;i++) out.push(k);
   });
-  return slots;
+  return out.length ? out : null;
+}
+
+function sanitizeRosterSlotList(raw, size=cfg.size){
+  const n = Math.max(MIN_ROSTER_SPOTS,
+    Math.min(MAX_ROSTER_SPOTS, Math.trunc(Number(size)||13)));
+
+  let list = Array.isArray(raw) ? raw.slice() : countObjectToSlotList(raw);
+  if(!list) return null;
+
+  list = list
+    .map(x=>String(x||"").toUpperCase())
+    .filter(x=>ROSTER_SLOT_KEYS.includes(x));
+
+  if(!list.length) return null;
+
+  // A saved custom list always follows the authoritative roster-spots count.
+  // Trim if size went down; fill new positions from the default if size went up.
+  const defaults = defaultRosterSlots(n);
+  list = list.slice(0,n);
+  while(list.length < n) list.push(defaults[list.length] || "BN");
+  return list;
+}
+
+function activeRosterSlots(){
+  return sanitizeRosterSlotList(cfg.rosterSlots, cfg.size) || defaultRosterSlots(cfg.size);
+}
+
+function expandRosterSlots(){
+  return activeRosterSlots().slice();
 }
 
 function rosterPositionsCustomized(){
-  return !!sanitizeRosterSlotCounts(cfg.rosterSlots);
+  return !!sanitizeRosterSlotList(cfg.rosterSlots, cfg.size);
 }
 
 function rosterPositionsConstrained(){
-  const c = activeRosterSlotCounts();
-  return ROSTER_SLOT_KEYS.some(k=>k!=="UTIL" && k!=="BN" && (c[k]||0)>0);
+  return activeRosterSlots().some(s=>s!=="UTIL" && s!=="BN");
 }
 
 function slotEligible(slot, p){
@@ -72,7 +95,7 @@ function slotEligible(slot, p){
   return p.pos.includes(slot);
 }
 
-/* Match players to restrictive slots only. UTIL/BN are deliberately held back
+/* Match players to restrictive slots first. UTIL/BN are deliberately held back
    so a flexible slot never steals a player needed at C/PG/etc. */
 function matchRestrictedSlots(roster, slots){
   const restricted = slots
@@ -101,7 +124,7 @@ function matchRestrictedSlots(roster, slots){
 }
 
 function assignSlots(roster){
-  const slots = expandRosterSlots();
+  const slots = activeRosterSlots();
   const owner = new Array(slots.length).fill(-1);
   const matched = matchRestrictedSlots(roster, slots);
   const used = new Set();
@@ -119,7 +142,8 @@ function assignSlots(roster){
     .filter(x=>x.slot==="UTIL" || x.slot==="BN")
     .map(x=>x.si);
   const remaining = roster.map((_,i)=>i).filter(i=>!used.has(i));
-  remaining.slice(0,flexSlots.length).forEach((pi,i)=>{
+
+  remaining.slice(0, flexSlots.length).forEach((pi,i)=>{
     owner[flexSlots[i]] = pi;
     used.add(pi);
   });
@@ -132,7 +156,7 @@ function assignSlots(roster){
 }
 
 function requiredOpenSlots(roster){
-  const slots = expandRosterSlots();
+  const slots = activeRosterSlots();
   const matched = matchRestrictedSlots(roster, slots);
   return matched.restricted
     .filter((_,ri)=>matched.owner[ri] === -1)
@@ -176,13 +200,10 @@ function canFitRoster(roster, p){
   const after = roster.concat([p]);
   if(assignSlots(after).unplaced.length) return false;
 
-  // Do not allow a pick that leaves fewer future picks than required slots.
   const remainingAfter = cfg.size - after.length;
   return requiredOpenSlots(after).length <= remainingAfter;
 }
 
-/* Small bonus for covering a needed slot. It stays tiny while there is a large
-   cushion and rises only as the positional deadline approaches. */
 function rosterNeedBonus(roster, p){
   if(!rosterPositionsConstrained()) return 0;
   const before = requiredOpenSlots(roster).length;
