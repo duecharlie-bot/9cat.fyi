@@ -19,7 +19,7 @@ function approx(actual, expected, eps=1e-9, message=""){
 }
 
 function player(pos, overrides={}){
-  return {pos:Array.isArray(pos)?pos:[pos], fgm:0,fga:0,ftm:0,fta:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0, ...overrides};
+  return {pos:Array.isArray(pos)?pos:[pos], gp:1, fgm:0,fga:0,ftm:0,fta:0,tpm:0,pts:0,reb:0,ast:0,stl:0,blk:0,to:0, ...overrides};
 }
 
 function registerTests(w){
@@ -49,6 +49,29 @@ function registerTests(w){
     ];
     const t = w.teamTotals(roster);
     equal(t.pts,48); equal(t.reb,15); equal(t.ast,10); equal(t.tpm,4); equal(t.to,6);
+  });
+
+  test("Projected season counting totals multiply each player by GP", ()=>{
+    const roster = [
+      player("PG", {gp:10,pts:20,reb:4,ast:7,tpm:3,to:4}),
+      player("C",  {gp:5, pts:10,reb:8,ast:2,tpm:1,to:2})
+    ];
+    const t = w.teamTotals(roster);
+    equal(t.pts,250);
+    equal(t.reb,80);
+    equal(t.ast,80);
+    equal(t.tpm,35);
+    equal(t.to,50);
+  });
+
+  test("Projected FG% and FT% weight shooting volume by GP", ()=>{
+    const roster = [
+      player("SG", {gp:10,fgm:5,fga:10,ftm:8,fta:10}),
+      player("SF", {gp:5, fgm:9,fga:10,ftm:9,fta:10})
+    ];
+    const t = w.teamTotals(roster);
+    approx(w.catTotal(t,"fg"), 95/150);
+    approx(w.catTotal(t,"ft"), 125/150);
   });
 
   test("H2H percentage comparison is symmetric", ()=>{
@@ -800,8 +823,25 @@ function registerTests(w){
     const meta = w.eval("PROJECTION_DATASET_META");
     equal(meta.kind, "bundled");
     equal(meta.season, "2026-27");
-    equal(meta.updated, "2026-08-24");
+    equal(meta.updated, "2026-08-27");
     equal(meta.label, "2026–27 Projections");
+  });
+
+  test("Bundled Yahoo refresh uses Aug 27 GP, ADP and season-derived rates", ()=>{
+    const current = w.eval("dedupe(parsePool(RAW))");
+    const byName = new Map(current.map(p=>[p.name,p]));
+    const wemby = byName.get("Victor Wembanyama");
+    const jokic = byName.get("Nikola Jokic");
+    assert(wemby && jokic, "Expected Wembanyama and Jokic in refreshed projections");
+    approx(wemby.adp, 2.3);
+    equal(wemby.gp, 68);
+    approx(wemby.pts * wemby.gp, 1750, 0.01);
+    approx(wemby.blk * wemby.gp, 230, 0.01);
+    approx(wemby.fgm / wemby.fga, .519, 0.00005);
+    approx(jokic.adp, 4.1);
+    approx(jokic.pts * jokic.gp, 1975, 0.01);
+    approx(jokic.ast * jokic.gp, 717, 0.01);
+    approx(jokic.fgm / jokic.fga, .573, 0.00005);
   });
 
   test("Historical dataset exposes source and data-through metadata", ()=>{
@@ -814,7 +854,7 @@ function registerTests(w){
 
   test("Bundled projection summary includes label, player count and updated date", ()=>{
     const summary = w.eval("projectionDatasetSummary(projectionDatasetMeta('', 500))");
-    equal(summary, "2026–27 Projections · 500 players · Updated Aug 24, 2026");
+    equal(summary, "2026–27 Projections · 500 players · Updated Aug 27, 2026");
   });
 
   test("Custom projection imports are clearly distinguished from bundled data", ()=>{
@@ -1131,6 +1171,7 @@ function registerTests(w){
     equal(w.document.getElementById("share_download").textContent.trim(), "Download card");
     equal(w.document.getElementById("share_copy").textContent.trim(), "Copy share");
     assert(w.document.getElementById("share_close"), "Expected explicit share-card close control");
+    equal(w.document.getElementById("share_close_reset").textContent.trim(), "Close and reset draft");
   });
 
   test("Draft share popup ignores backdrop clicks and Escape", ()=>{
@@ -1143,6 +1184,28 @@ function registerTests(w){
     assert(mask.classList.contains("on"), "Escape should not close Draft Share");
     close.click();
     assert(!mask.classList.contains("on"), "Explicit close button should close Draft Share");
+  });
+
+  test("Close and reset draft clears picks and closes the share popup", ()=>{
+    const mask = w.document.getElementById("sharemask");
+    const old = {
+      teams:w.eval("cfg.teams"),
+      size:w.eval("cfg.size"),
+      slot:w.eval("cfg.slot"),
+      picks:w.eval("picks")
+    };
+    w.__shareResetOldPicks = old.picks;
+    try{
+      w.eval(`cfg.teams=4; cfg.size=5; cfg.slot=1; picks=pool.slice(0,20).map((p,i)=>({playerId:p.id,teamIdx:teamOnClock(i),overall:i}));`);
+      mask.classList.add("on");
+      w.document.getElementById("share_close_reset").click();
+      equal(w.eval("picks.length"), 0, "Expected Close and reset draft to clear all picks");
+      assert(!mask.classList.contains("on"), "Expected Close and reset draft to close the popup");
+    } finally {
+      w.eval(`cfg.teams=${old.teams}; cfg.size=${old.size}; cfg.slot=${old.slot}; picks=window.__shareResetOldPicks;`);
+      delete w.__shareResetOldPicks;
+      w.render();
+    }
   });
 
   test("Draft share auto-opens once per completion cycle", async ()=>{
@@ -1180,6 +1243,52 @@ function registerTests(w){
       delete w.__shareCycleOldPicks;
       // Re-arm the production completion detector for the restored test state.
       w.ninecatMaybeShowDraftShare();
+    }
+  });
+
+  test("Run-risk dots persist when the board is sorted by another column", ()=>{
+    const oldQ = w.document.getElementById("q").value;
+    const oldPos = w.eval("posFilter");
+    const oldSort = w.eval("sortKey");
+    const oldDir = w.eval("sortDir");
+    const oldCfg = {
+      teams:w.eval("cfg.teams"),
+      size:w.eval("cfg.size"),
+      slot:w.eval("cfg.slot")
+    };
+    w.__riskDotOldPicks = w.eval("picks");
+    try{
+      w.document.getElementById("q").value = "";
+      w.eval('posFilter = "ALL"; sortKey = "adp"; sortDir = 1; cfg.teams=4; cfg.size=5; cfg.slot=1; picks=[];');
+      const result = w.eval(`(()=>{
+        const base = pool[0];
+        const mock = Array.from({length:20}, (_,i)=>({
+          ...base,
+          id:910000+i,
+          name:"Risk Sort Test "+i,
+          fitAdj:20-i,
+          fitDisplay:20-i,
+          total:20-i,
+          valRank:i+1,
+          adp:i+1,
+          rosterFit:true,
+          risk:i<3 ? 0.9 : 0
+        }));
+        renderBoard({avail:mock});
+        return {
+          dots:document.querySelectorAll("#board .risk-dot").length,
+          ids:[...document.querySelectorAll("#board tr[data-id] .risk-dot")].map(dot=>+dot.closest("tr").dataset.id)
+        };
+      })()`);
+      equal(result.dots, 3, "Expected the same three risk warnings after sorting by ADP");
+      assert(result.ids.includes(910000) && result.ids.includes(910001) && result.ids.includes(910002),
+        "Expected risk dots to stay attached to the Fit-eligible players");
+    } finally {
+      w.document.getElementById("q").value = oldQ;
+      w.eval(`posFilter=${JSON.stringify(oldPos)}; sortKey=${JSON.stringify(oldSort)}; sortDir=${oldDir};
+        cfg.teams=${oldCfg.teams}; cfg.size=${oldCfg.size}; cfg.slot=${oldCfg.slot}; picks=window.__riskDotOldPicks;`);
+      delete w.__riskDotOldPicks;
+      w.render();
     }
   });
 
