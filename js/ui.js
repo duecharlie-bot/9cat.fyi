@@ -505,7 +505,7 @@ function renderLedger(state){
   }
 
   $("#ledgerkey").innerHTML = asTotals
-    ? `Combined projected per-game production of the roster \u2014 counting stats summed, percentages recombined by volume. Bar lengths always show the same category profile as Z mode, so toggling Z/Totals changes the numbers, not the shape of your roster. The right-hand figure is the rank among drafted teams.`
+    ? `Projected season production of the roster \u2014 counting stats use GP × per-game production; FG% and FT% recombine projected makes and attempts after weighting each player by GP. Bar lengths still show the same category profile as Z mode, so toggling Z/Totals changes the numbers, not the shape of your roster. The right-hand figure is the rank among drafted teams.`
     : ``;
 
   $("#ledgernote").textContent = isMine
@@ -669,6 +669,21 @@ function renderBoard(state){
 
   const key = sortKey;
   const showRisk = teamOnClock(picks.length) === myTeamIdx();
+
+  /* Risk dots describe player availability, not the active table sort.
+     Work out the same "top 15 by Fit" group first, then let the user sort by
+     ADP, rank, rebounds, etc. without making those warnings disappear. */
+  const riskEligibleIds = new Set(
+    [...list].sort((a,b)=>{
+      if((a.rosterFit === false || b.rosterFit === false) && a.rosterFit !== b.rosterFit)
+        return a.rosterFit === false ? 1 : -1;
+      const av = sortVal(a,"fit",mode), bv = sortVal(b,"fit",mode);
+      const ab = !isFinite(av), bb = !isFinite(bv);
+      if(ab || bb) return ab && bb ? 0 : (ab ? 1 : -1);
+      return bv - av;
+    }).slice(0,15).map(p=>p.id)
+  );
+
   list = [...list].sort((a,b)=>{
     if(key === "fit" && (a.rosterFit === false || b.rosterFit === false) && a.rosterFit !== b.rosterFit)
       return a.rosterFit === false ? 1 : -1;
@@ -689,7 +704,7 @@ function renderBoard(state){
         "gone soon" dot on someone ranked 40th is noise — it's true (the market
         rates him higher than the projections do) but it isn't a decision you
         actually face.                                                        */
-    flagRisk: showRisk && p.risk > 0.6 && i < 15 && key === "fit",
+    flagRisk: showRisk && p.risk > 0.6 && riskEligibleIds.has(p.id),
     top: i === 0 && key === "fit"
   })).join("") || `<tr><td class="l" colspan="14" style="padding:24px;color:var(--dimmer)">No players match. Clear the search or change the position filter.</td></tr>`;
 
